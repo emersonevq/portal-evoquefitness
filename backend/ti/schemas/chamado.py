@@ -2,7 +2,7 @@ from __future__ import annotations
 from datetime import date, datetime
 from pydantic import BaseModel, EmailStr, Field
 
-ALLOWED_STATUSES = {"Aberto", "Em andamento", "Em análise", "Concluído", "Cancelado"}
+ALLOWED_STATUSES = {"Aberto", "Em andamento", "Em an��lise", "Concluído", "Cancelado"}
 
 class ChamadoCreate(BaseModel):
     solicitante: str
@@ -40,5 +40,4 @@ class ChamadoStatusUpdate(BaseModel):
     status: str = Field(..., description="Novo status do chamado")
 
 class ChamadoDeleteRequest(BaseModel):
-    email: EmailStr = Field(..., description="E-mail do usuário autenticado")
-    senha: str = Field(..., min_length=6, description="Senha do usuário para confirmar exclusão")
+    confirmed: bool = Field(..., description="Confirmação de que a ação é irreversível")
