@@ -577,6 +577,89 @@ def atualizar_status(chamado_id: int, payload: ChamadoStatusUpdate, db: Session 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro ao atualizar status: {e}")
 
+@router.delete("/{chamado_id}/debug")
+def deletar_chamado_debug(chamado_id: int, db: Session = Depends(get_db)):
+    """Endpoint de debug para deletar chamado sem autenticação. REMOVER EM PRODUÇÃO."""
+    try:
+        print(f"[DEBUG DELETE] Deletando chamado {chamado_id}")
+
+        # Deletar registros relacionados
+        try:
+            from ti.models import ChamadoAnexo
+            for anexo in db.query(ChamadoAnexo).filter(ChamadoAnexo.chamado_id == chamado_id).all():
+                db.delete(anexo)
+            db.commit()
+        except Exception as e:
+            print(f"[DEBUG DELETE] Erro anexos ORM: {e}")
+            try:
+                db.execute(text("DELETE FROM chamado_anexo WHERE chamado_id = :cid"), {"cid": chamado_id})
+                db.commit()
+            except Exception:
+                pass
+
+        try:
+            from ti.models import TicketAnexo
+            for anexo in db.query(TicketAnexo).filter(TicketAnexo.chamado_id == chamado_id).all():
+                db.delete(anexo)
+            db.commit()
+        except Exception as e:
+            print(f"[DEBUG DELETE] Erro ticket anexos: {e}")
+            try:
+                db.execute(text("DELETE FROM ticket_anexos WHERE chamado_id = :cid"), {"cid": chamado_id})
+                db.commit()
+            except Exception:
+                pass
+
+        try:
+            from ti.models import HistoricoTicket
+            for hist in db.query(HistoricoTicket).filter(HistoricoTicket.chamado_id == chamado_id).all():
+                db.delete(hist)
+            db.commit()
+        except Exception as e:
+            print(f"[DEBUG DELETE] Erro historico ticket: {e}")
+            try:
+                db.execute(text("DELETE FROM historico_ticket WHERE chamado_id = :cid"), {"cid": chamado_id})
+                db.commit()
+            except Exception:
+                pass
+
+        try:
+            from ti.models import HistoricoStatus
+            for hist in db.query(HistoricoStatus).filter(HistoricoStatus.chamado_id == chamado_id).all():
+                db.delete(hist)
+            db.commit()
+        except Exception as e:
+            print(f"[DEBUG DELETE] Erro historico status: {e}")
+            try:
+                db.execute(text("DELETE FROM historico_status WHERE chamado_id = :cid"), {"cid": chamado_id})
+                db.commit()
+            except Exception:
+                pass
+
+        try:
+            db.execute(text("DELETE FROM historico_anexo WHERE chamado_id = :cid"), {"cid": chamado_id})
+            db.commit()
+        except Exception:
+            pass
+
+        # Deletar chamado
+        ch = db.query(Chamado).filter(Chamado.id == chamado_id).first()
+        if ch:
+            db.delete(ch)
+            db.commit()
+            print(f"[DEBUG DELETE] ✓ Chamado {chamado_id} deletado com sucesso")
+            return {"ok": True, "message": "Deletado via debug endpoint"}
+        else:
+            raise HTTPException(status_code=404, detail="Chamado não encontrado")
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[DEBUG DELETE] ✗ Erro: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Erro: {str(e)}")
+
+
 @router.delete("/{chamado_id}")
 def deletar_chamado(chamado_id: int, payload: ChamadoDeleteRequest, db: Session = Depends(get_db)):
     try:
