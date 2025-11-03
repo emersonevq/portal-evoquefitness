@@ -579,19 +579,21 @@ def deletar_chamado(chamado_id: int, payload: ChamadoDeleteRequest, db: Session 
         ch = db.query(Chamado).filter(Chamado.id == chamado_id).first()
         if not ch:
             raise HTTPException(status_code=404, detail="Chamado não encontrado")
+        codigo = ch.codigo
+        protocolo = ch.protocolo
         db.delete(ch)
         db.commit()
         try:
             Notification.__table__.create(bind=engine, checkfirst=True)
             dados = json.dumps({
                 "id": chamado_id,
-                "codigo": ch.codigo,
-                "protocolo": ch.protocolo,
+                "codigo": codigo,
+                "protocolo": protocolo,
             }, ensure_ascii=False)
             n = Notification(
                 tipo="chamado",
-                titulo=f"Chamado excluído: {ch.codigo}",
-                mensagem=f"Chamado {ch.protocolo} removido",
+                titulo=f"Chamado excluído: {codigo}",
+                mensagem=f"Chamado {protocolo} removido",
                 recurso="chamado",
                 recurso_id=chamado_id,
                 acao="excluido",
