@@ -696,12 +696,8 @@ export default function ChamadosPage() {
                   if (!confirmId) return;
                   setConfirmLoading(true);
                   try {
-                    const r = await apiFetch(`/chamados/${confirmId}`, {
+                    const r = await apiFetch(`/chamados/${confirmId}?confirmed=true`, {
                       method: "DELETE",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({
-                        confirmed: true,
-                      }),
                     });
                     if (!r.ok) {
                       const error = await r.text();
