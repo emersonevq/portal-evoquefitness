@@ -661,10 +661,10 @@ def deletar_chamado_debug(chamado_id: int, db: Session = Depends(get_db)):
 
 
 @router.delete("/{chamado_id}")
-def deletar_chamado(chamado_id: int, payload: ChamadoDeleteRequest = None, db: Session = Depends(get_db)):
+def deletar_chamado(chamado_id: int, payload: ChamadoDeleteRequest = Body(...), db: Session = Depends(get_db)):
     try:
         # Validar confirmação
-        if not payload.confirmed:
+        if not payload or not payload.confirmed:
             raise HTTPException(status_code=400, detail="Ação não confirmada")
 
         print(f"[CHAMADO_DELETE] Deletando chamado {chamado_id}")
