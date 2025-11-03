@@ -1,5 +1,5 @@
 from __future__ import annotations
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Body
 from sqlalchemy.orm import Session
 from core.db import get_db, engine
 from ti.schemas.chamado import (
@@ -15,7 +15,7 @@ from werkzeug.security import check_password_hash
 from ..models.notification import Notification
 import json
 from core.utils import now_brazil_naive
-from ..models import Chamado, User, TicketAnexo, ChamadoAnexo, HistoricoTicket, HistoricoStatus
+from ..models import Chamado, User, TicketAnexo, ChamadoAnexo, HistoricoTicket, HistoricoStatus, HistoricoAnexo
 from ti.schemas.attachment import AnexoOut
 from ti.schemas.ticket import HistoricoItem, HistoricoResponse
 from sqlalchemy import inspect, text
@@ -568,7 +568,7 @@ def atualizar_status(chamado_id: int, payload: ChamadoStatusUpdate, db: Session 
         raise HTTPException(status_code=500, detail=f"Erro ao atualizar status: {e}")
 
 @router.delete("/{chamado_id}")
-def deletar_chamado(chamado_id: int, payload: ChamadoDeleteRequest, db: Session = Depends(get_db)):
+def deletar_chamado(chamado_id: int, payload: ChamadoDeleteRequest = Body(...), db: Session = Depends(get_db)):
     try:
         user = db.query(User).filter(User.email == payload.email).first()
         if not user:
@@ -579,6 +579,16 @@ def deletar_chamado(chamado_id: int, payload: ChamadoDeleteRequest, db: Session 
         ch = db.query(Chamado).filter(Chamado.id == chamado_id).first()
         if not ch:
             raise HTTPException(status_code=404, detail="Chamado não encontrado")
+
+        # Delete all related records to avoid foreign key constraint violations
+        db.query(ChamadoAnexo).filter(ChamadoAnexo.chamado_id == chamado_id).delete()
+        db.query(HistoricoStatus).filter(HistoricoStatus.chamado_id == chamado_id).delete()
+        db.query(HistoricoTicket).filter(HistoricoTicket.chamado_id == chamado_id).delete()
+        db.query(HistoricoAnexo).filter(HistoricoAnexo.chamado_id == chamado_id).delete()
+        db.query(TicketAnexo).filter(TicketAnexo.chamado_id == chamado_id).delete()
+        db.commit()
+
+        # Now delete the chamado
         db.delete(ch)
         db.commit()
         try:

@@ -1,7 +1,7 @@
 from __future__ import annotations
 from datetime import datetime
 from sqlalchemy import Integer, String, DateTime, ForeignKey, Boolean, LargeBinary
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from core.db import Base
 
 class ChamadoAnexo(Base):
@@ -21,3 +21,5 @@ class ChamadoAnexo(Base):
     usuario_upload_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("user.id"), nullable=True)
     descricao: Mapped[str | None] = mapped_column(String(500), nullable=True)
     ativo: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+
+    chamado: Mapped["Chamado"] = relationship("Chamado", back_populates="anexos")

@@ -697,8 +697,20 @@ export default function ChamadosPage() {
                     );
                     setConfirmId(null);
                     setConfirmPwd("");
+                    toast({
+                      title: "Sucesso",
+                      description: "Chamado excluído com sucesso",
+                    });
                   } catch (e) {
-                    // noop: in real app show toast
+                    const errorMsg =
+                      e instanceof Error
+                        ? e.message
+                        : "Erro ao excluir chamado";
+                    toast({
+                      title: "Erro na exclusão",
+                      description: errorMsg,
+                      variant: "destructive",
+                    });
                   } finally {
                     setConfirmLoading(false);
                   }

@@ -1,7 +1,7 @@
 from __future__ import annotations
 from datetime import date, datetime
 from sqlalchemy import Integer, String, Date, DateTime, Text, ForeignKey
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from core.db import Base
 
 class Chamado(Base):
@@ -33,3 +33,8 @@ class Chamado(Base):
     cancelado_em: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
     usuario_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("user.id"), nullable=True)
+
+    anexos: Mapped[list["ChamadoAnexo"]] = relationship("ChamadoAnexo", cascade="all, delete-orphan", back_populates="chamado")
+    historicos_status: Mapped[list["HistoricoStatus"]] = relationship("HistoricoStatus", cascade="all, delete-orphan", back_populates="chamado")
+    historicos_ticket: Mapped[list["HistoricoTicket"]] = relationship("HistoricoTicket", cascade="all, delete-orphan", back_populates="chamado")
+    historicos_anexo: Mapped[list["HistoricoAnexo"]] = relationship("HistoricoAnexo", cascade="all, delete-orphan", back_populates="chamado")

@@ -794,6 +794,10 @@ export function Permissoes() {
               </div>
               <div className="grid gap-2">
                 <Label>Setor(es)</Label>
+                <div className="text-xs text-muted-foreground bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-md p-2 mb-2">
+                  ℹ️ As permissões marcadas abaixo são as permissões atuais do
+                  usuário
+                </div>
                 <div className="rounded-md border border-border/60 p-3 grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
                   {allSectors.map((s) => (
                     <label key={s} className="inline-flex items-center gap-2">
@@ -803,7 +807,7 @@ export function Permissoes() {
                         checked={editSetores.includes(normalize(s))}
                         onChange={() => toggleEditSector(s)}
                       />
-                      {s}
+                      <span>{s}</span>
                     </label>
                   ))}
                 </div>
