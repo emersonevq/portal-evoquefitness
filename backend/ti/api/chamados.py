@@ -670,14 +670,27 @@ def deletar_chamado(chamado_id: int, payload: ChamadoDeleteRequest, db: Session 
             print(f"[CHAMADO_DELETE] Usuário {payload.email} não encontrado")
             raise HTTPException(status_code=401, detail="Usuário não encontrado")
 
+        print(f"[CHAMADO_DELETE] Usuário encontrado: {user.id} ({user.email})")
+        print(f"[CHAMADO_DELETE] Hash no banco: {user.senha_hash[:50]}..." if user.senha_hash else "[CHAMADO_DELETE] Hash vazio!")
+
         # Step 2: Validar senha
         print(f"[CHAMADO_DELETE] Validando senha para usuário {user.id}")
+        print(f"[CHAMADO_DELETE] Senha recebida: {payload.senha[:3]}***" if payload.senha else "[CHAMADO_DELETE] Senha vazia!")
+
         try:
-            if not check_password_hash(user.senha_hash, payload.senha):
+            # Teste: mostrar o resultado do check
+            senha_valida = check_password_hash(user.senha_hash, payload.senha)
+            print(f"[CHAMADO_DELETE] check_password_hash retornou: {senha_valida}")
+
+            if not senha_valida:
                 print(f"[CHAMADO_DELETE] Senha inválida para usuário {user.id}")
                 raise HTTPException(status_code=401, detail="Senha inválida")
+        except HTTPException:
+            raise
         except Exception as e:
             print(f"[CHAMADO_DELETE] Erro ao validar senha: {type(e).__name__}: {e}")
+            import traceback
+            traceback.print_exc()
             raise HTTPException(status_code=401, detail="Erro na validação de senha")
 
         # Step 3: Obter o chamado
