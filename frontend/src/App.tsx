@@ -135,22 +135,6 @@ const App = () => (
             </Route>
           </Route>
           <Route
-            path="/setor/portal-bi"
-            element={
-              <RequireLogin>
-                <BIPage />
-              </RequireLogin>
-            }
-          />
-          <Route
-            path="/setor/portal-bi/:dashboardId"
-            element={
-              <RequireLogin>
-                <DashboardPage />
-              </RequireLogin>
-            }
-          />
-          <Route
             path="/setor/compras"
             element={
               <RequireLogin>
@@ -203,6 +187,22 @@ const App = () => (
             element={
               <RequireLogin>
                 <OutrosServicosPage />
+              </RequireLogin>
+            }
+          />
+          <Route
+            path="/setor/portal-bi/:dashboardId"
+            element={
+              <RequireLogin>
+                <DashboardPage />
+              </RequireLogin>
+            }
+          />
+          <Route
+            path="/setor/portal-bi"
+            element={
+              <RequireLogin>
+                <BIPage />
               </RequireLogin>
             }
           />
