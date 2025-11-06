@@ -15,6 +15,8 @@ import ChangePassword from "./pages/auth/ChangePassword";
 import AccessDenied from "./pages/AccessDenied";
 import SectorPage from "./pages/Sector";
 import TiPage from "./pages/sectors/ti/TiPage";
+import BIPage from "./pages/sectors/bi/BIPage";
+import DashboardPage from "./pages/sectors/bi/dashboards/DashboardPage";
 import {
   ComprasPage,
   ManutencaoPage,
@@ -132,6 +134,22 @@ const App = () => (
               <Route path="acoes" element={<ConfAcoes />} />
             </Route>
           </Route>
+          <Route
+            path="/setor/portal-bi"
+            element={
+              <RequireLogin>
+                <BIPage />
+              </RequireLogin>
+            }
+          />
+          <Route
+            path="/setor/portal-bi/:dashboardId"
+            element={
+              <RequireLogin>
+                <DashboardPage />
+              </RequireLogin>
+            }
+          />
           <Route
             path="/setor/compras"
             element={

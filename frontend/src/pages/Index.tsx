@@ -106,6 +106,7 @@ export default function Index() {
     ti: "TI",
     compras: "Compras",
     manutencao: "Manutencao",
+    "portal-bi": "PortalBI",
     financeiro: "Financeiro",
     marketing: "Marketing",
     produtos: "Produtos",
@@ -124,6 +125,10 @@ export default function Index() {
       (s) => s && (s === req || s.includes(req) || req.includes(s)),
     );
   };
+
+  const displayedSectors = sectors.filter(
+    (s) => ["ti", "compras", "manutencao", "portal-bi"].includes(s.slug)
+  );
 
   return (
     <Layout>
@@ -185,7 +190,7 @@ export default function Index() {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="center">
-                    {sectors.map((s) => {
+                    {displayedSectors.map((s) => {
                       const allowed = canAccess(s.slug);
                       const href = user
                         ? `/setor/${s.slug}`
@@ -217,7 +222,7 @@ export default function Index() {
         <div className="container">
           <h2 className="text-xl sm:text-2xl font-bold mb-6">Nossos setores</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-            {sectors.map((s) => {
+            {displayedSectors.map((s) => {
               const allowed = canAccess(s.slug);
               const href = user
                 ? `/setor/${s.slug}`

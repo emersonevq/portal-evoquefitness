@@ -7,6 +7,7 @@ import {
   Wrench,
   Briefcase,
   Layers3,
+  BarChart3,
 } from "lucide-react";
 import type { ComponentType, SVGProps } from "react";
 
@@ -37,6 +38,12 @@ export const sectors: Sector[] = [
     title: "Setor de Manutenção",
     description: "Gerencie solicitações e acompanhe reparos.",
     icon: Wrench,
+  },
+  {
+    slug: "portal-bi",
+    title: "Portal BI",
+    description: "Acesse relatórios e dashboards de análise de dados.",
+    icon: BarChart3,
   },
   {
     slug: "financeiro",
