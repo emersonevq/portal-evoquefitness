@@ -1,9 +1,21 @@
 import Layout from "@/components/layout/Layout";
 import { sectors } from "@/data/sectors";
 
-const sector = sectors.find((s) => s.slug === "compras")!;
-
 export default function ComprasPage() {
+  const sector = sectors.find((s) => s.slug === "compras");
+
+  if (!sector) {
+    return (
+      <Layout>
+        <section className="container py-8">
+          <div className="rounded-xl border border-border/60 bg-card p-6 sm:p-8">
+            <p className="text-muted-foreground">Setor não encontrado.</p>
+          </div>
+        </section>
+      </Layout>
+    );
+  }
+
   return (
     <Layout>
       <section className="w-full">
