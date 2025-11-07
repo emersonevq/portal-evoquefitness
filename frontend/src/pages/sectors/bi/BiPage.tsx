@@ -6,6 +6,7 @@ import DashboardGrid from "./components/DashboardGrid";
 import { dashboardsData, getAllDashboards, Dashboard } from "./data/dashboards";
 
 export default function BiPage() {
+  console.log("[BiPage] Rendering BiPage component!");
   const [selectedDashboard, setSelectedDashboard] = useState<Dashboard | null>(
     null,
   );
