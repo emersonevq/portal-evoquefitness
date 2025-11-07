@@ -12,18 +12,13 @@ export default function DashboardViewer({ dashboard }: DashboardViewerProps) {
 
   return (
     <div className="w-full h-full flex flex-col">
-      <div className="bg-white border-b">
-        <div className="px-6 py-4">
-          <h1 className="text-2xl font-bold text-primary">{dashboard.title}</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            {dashboard.description}
-          </p>
-        </div>
+      <div className="px-6 py-3 border-b bg-transparent">
+        <h1 className="text-lg font-semibold text-primary">{dashboard.title}</h1>
       </div>
 
-      <div className="flex-1 relative bg-gray-50">
+      <div className="flex-1 p-6 bi-viewer-outer">
         {isLoading && (
-          <div className="absolute inset-0 flex items-center justify-center bg-white">
+          <div className="absolute inset-0 flex items-center justify-center">
             <div className="flex flex-col items-center gap-3">
               <Loader className="w-8 h-8 animate-spin text-primary" />
               <p className="text-sm text-muted-foreground">
@@ -33,16 +28,16 @@ export default function DashboardViewer({ dashboard }: DashboardViewerProps) {
           </div>
         )}
 
-        <iframe
-          title={dashboard.title}
-          width="100%"
-          height="100%"
-          src={embedUrl}
-          frameBorder="0"
-          allowFullScreen
-          onLoad={() => setIsLoading(false)}
-          className="w-full h-full"
-        />
+        <div className="bi-embed-card">
+          <iframe
+            title={dashboard.title}
+            src={embedUrl}
+            frameBorder="0"
+            allowFullScreen
+            onLoad={() => setIsLoading(false)}
+            className="bi-embed-iframe"
+          />
+        </div>
       </div>
     </div>
   );
