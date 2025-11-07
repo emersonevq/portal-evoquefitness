@@ -1,12 +1,8 @@
 import {
-  Landmark,
-  Megaphone,
-  Package,
   Server,
   ShoppingCart,
   Wrench,
-  Briefcase,
-  Layers3,
+  BarChart3,
 } from "lucide-react";
 import type { ComponentType, SVGProps } from "react";
 
@@ -39,33 +35,9 @@ export const sectors: Sector[] = [
     icon: Wrench,
   },
   {
-    slug: "financeiro",
-    title: "Setor Financeiro",
-    description: "Controle financeiro e relatórios de pagamentos.",
-    icon: Landmark,
-  },
-  {
-    slug: "marketing",
-    title: "Setor de Marketing",
-    description: "Planeje campanhas e acompanhe resultados.",
-    icon: Megaphone,
-  },
-  {
-    slug: "produtos",
-    title: "Setor de Produtos",
-    description: "Gerencie produtos e estoques da academia.",
-    icon: Package,
-  },
-  {
-    slug: "comercial",
-    title: "Setor Comercial",
-    description: "Acompanhe vendas e metas comerciais.",
-    icon: Briefcase,
-  },
-  {
-    slug: "outros-servicos",
-    title: "Outros Serviços",
-    description: "Acesse diversos serviços complementares da academia.",
-    icon: Layers3,
+    slug: "bi",
+    title: "Portal de BI",
+    description: "Analise dados e visualize insights em dashboards.",
+    icon: BarChart3,
   },
 ];
