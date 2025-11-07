@@ -10,7 +10,7 @@ export default function DashboardViewer({ dashboard }: DashboardViewerProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [scale, setScale] = useState(1);
   const embedUrl = getPowerBIEmbedUrl(dashboard.reportId);
-  const containerRef = React.useRef<HTMLDivElement | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   const zoomIn = () => setScale((s) => Math.min(2, +(s + 0.1).toFixed(2)));
