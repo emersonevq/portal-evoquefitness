@@ -1,6 +1,6 @@
 import React, { useState, useRef } from "react";
 import { Dashboard, getPowerBIEmbedUrl } from "../data/dashboards";
-import { Loader, ZoomIn, ZoomOut, Maximize } from "lucide-react";
+import { Loader, Maximize } from "lucide-react";
 
 interface DashboardViewerProps {
   dashboard: Dashboard;
@@ -8,14 +8,12 @@ interface DashboardViewerProps {
 
 export default function DashboardViewer({ dashboard }: DashboardViewerProps) {
   const [isLoading, setIsLoading] = useState(true);
-  const [scale, setScale] = useState(1);
   const embedUrl = getPowerBIEmbedUrl(dashboard.reportId);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [fitMode, setFitMode] = useState(true);
 
-  const zoomIn = () => setScale((s) => Math.min(2, +(s + 0.1).toFixed(2)));
-  const zoomOut = () => setScale((s) => Math.max(0.5, +(s - 0.1).toFixed(2)));
-  const resetZoom = () => setScale(1);
+  const toggleFit = () => setFitMode((f) => !f);
 
   const toggleFullscreen = async () => {
     try {
@@ -43,26 +41,13 @@ export default function DashboardViewer({ dashboard }: DashboardViewerProps) {
 
         <div className="flex items-center gap-2">
           <button
-            aria-label="Zoom out"
-            onClick={zoomOut}
+            aria-label="Fit"
+            onClick={toggleFit}
             className="rounded-md p-2 bg-secondary/40 hover:bg-secondary/60"
           >
-            <ZoomOut className="w-4 h-4" />
+            <span className="text-sm">Fit</span>
           </button>
-          <button
-            aria-label="Reset zoom"
-            onClick={resetZoom}
-            className="rounded-md p-2 bg-secondary/40 hover:bg-secondary/60"
-          >
-            <Maximize className="w-4 h-4" />
-          </button>
-          <button
-            aria-label="Zoom in"
-            onClick={zoomIn}
-            className="rounded-md p-2 bg-secondary/40 hover:bg-secondary/60"
-          >
-            <ZoomIn className="w-4 h-4" />
-          </button>
+
           <button
             aria-label="Fullscreen"
             onClick={toggleFullscreen}
@@ -82,12 +67,10 @@ export default function DashboardViewer({ dashboard }: DashboardViewerProps) {
               </svg>
             )}
           </button>
-
-          <div className="text-sm text-muted-foreground ml-2">{Math.round(scale * 100)}%</div>
         </div>
       </div>
 
-      <div className="flex-1 p-4 bi-viewer-outer" ref={containerRef}>
+      <div className="flex-1 p-2 bi-viewer-outer" ref={containerRef}>
         {isLoading && (
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="flex flex-col items-center gap-3">
@@ -98,14 +81,8 @@ export default function DashboardViewer({ dashboard }: DashboardViewerProps) {
         )}
 
         <div className="bi-embed-card">
-          <div
-            className="bi-embed-viewport"
-            style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "100%", height: "100%", overflow: "hidden" }}
-          >
-            <div
-              className="bi-embed-inner"
-              style={{ transform: `scale(${scale})`, transformOrigin: "center center", width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}
-            >
+          <div className="bi-embed-viewport">
+            <div className={`bi-embed-inner ${fitMode ? "fit" : "constrained"}`}>
               <iframe
                 title={dashboard.title}
                 src={embedUrl}
