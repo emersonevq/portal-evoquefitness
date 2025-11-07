@@ -79,12 +79,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     ti: "TI",
     compras: "Compras",
     manutencao: "Manutencao",
-    financeiro: "Financeiro",
-    marketing: "Marketing",
-    produtos: "Produtos",
-    comercial: "Comercial",
-    "outros-servicos": "Outros",
-    servicos: "Outros",
+    bi: "BI",
   };
   const canAccess = (slug: string) => {
     if (!user) return false;
@@ -195,19 +190,30 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                   className="ml-2 hidden md:flex items-center gap-2 rounded-full px-3 py-1.5 text-sm"
                 >
                   <div className="h-6 w-6 rounded-full bg-primary/90" />
-                  <span>{user?.name || "Administrador"}</span>
+                  <span>{user?.name || "Faça login"}</span>
                   <ChevronDown className="size-3" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem className="text-xs text-muted-foreground">
-                  {user?.email || "admin@evoque.com"}
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={doLogout} className="text-red-600">
-                  <LogOut className="size-4 mr-2" />
-                  Sair
-                </DropdownMenuItem>
+                {user ? (
+                  <>
+                    <DropdownMenuItem className="text-xs text-muted-foreground">
+                      {user?.email}
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onClick={doLogout}
+                      className="text-red-600"
+                    >
+                      <LogOut className="size-4 mr-2" />
+                      Sair
+                    </DropdownMenuItem>
+                  </>
+                ) : (
+                  <Link to="/login">
+                    <DropdownMenuItem>Fazer login</DropdownMenuItem>
+                  </Link>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
           </nav>

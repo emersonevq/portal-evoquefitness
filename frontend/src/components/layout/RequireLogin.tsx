@@ -164,6 +164,7 @@ export default function RequireLogin({
       ti: "TI",
       compras: "Compras",
       manutencao: "Manutencao",
+      bi: "BI",
       financeiro: "Financeiro",
       marketing: "Marketing",
       produtos: "Produtos",

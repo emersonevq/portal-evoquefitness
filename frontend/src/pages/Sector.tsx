@@ -80,12 +80,7 @@ export default function SectorPage() {
       ti: "TI",
       compras: "Compras",
       manutencao: "Manutencao",
-      financeiro: "Financeiro",
-      marketing: "Marketing",
-      produtos: "Produtos",
-      comercial: "Comercial",
-      "outros-servicos": "Outros",
-      servicos: "Outros",
+      bi: "BI",
     };
     const required = mapa[slug || ""];
     if (!required) return false;
