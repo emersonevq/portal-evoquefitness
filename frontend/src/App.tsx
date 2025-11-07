@@ -15,15 +15,9 @@ import ChangePassword from "./pages/auth/ChangePassword";
 import AccessDenied from "./pages/AccessDenied";
 import SectorPage from "./pages/Sector";
 import TiPage from "./pages/sectors/ti/TiPage";
-import {
-  ComprasPage,
-  ManutencaoPage,
-  FinanceiroPage,
-  MarketingPage,
-  ProdutosPage,
-  ComercialPage,
-  OutrosServicosPage,
-} from "./pages/sectors/_placeholders";
+import ComprasPage from "./pages/sectors/compras/ComprasPage";
+import ManutencaoPage from "./pages/sectors/manutencao/ManutencaoPage";
+import BiPage from "./pages/sectors/bi/BiPage";
 import AdminLayout from "./pages/sectors/ti/admin/AdminLayout";
 import Overview from "./pages/sectors/ti/admin/Overview";
 import ChamadosPage from "./pages/sectors/ti/admin/chamados/Index";
@@ -149,42 +143,10 @@ const App = () => (
             }
           />
           <Route
-            path="/setor/financeiro"
+            path="/setor/bi"
             element={
               <RequireLogin>
-                <FinanceiroPage />
-              </RequireLogin>
-            }
-          />
-          <Route
-            path="/setor/marketing"
-            element={
-              <RequireLogin>
-                <MarketingPage />
-              </RequireLogin>
-            }
-          />
-          <Route
-            path="/setor/produtos"
-            element={
-              <RequireLogin>
-                <ProdutosPage />
-              </RequireLogin>
-            }
-          />
-          <Route
-            path="/setor/comercial"
-            element={
-              <RequireLogin>
-                <ComercialPage />
-              </RequireLogin>
-            }
-          />
-          <Route
-            path="/setor/outros-servicos"
-            element={
-              <RequireLogin>
-                <OutrosServicosPage />
+                <BiPage />
               </RequireLogin>
             }
           />
