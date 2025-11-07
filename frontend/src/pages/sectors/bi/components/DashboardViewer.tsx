@@ -14,21 +14,37 @@ export default function DashboardViewer({ dashboard }: DashboardViewerProps) {
 
   // Sync fullscreen state with browser events (handles Esc key and other exits)
   useEffect(() => {
-    const handler = () => setIsFullscreen(Boolean(document.fullscreenElement));
+    const handler = () => setIsFullscreen(Boolean((document as any).fullscreenElement || (document as any).webkitFullscreenElement || (document as any).mozFullScreenElement));
     document.addEventListener("fullscreenchange", handler);
-    return () => document.removeEventListener("fullscreenchange", handler);
+    document.addEventListener("webkitfullscreenchange", handler);
+    document.addEventListener("mozfullscreenchange", handler);
+    return () => {
+      document.removeEventListener("fullscreenchange", handler);
+      document.removeEventListener("webkitfullscreenchange", handler);
+      document.removeEventListener("mozfullscreenchange", handler);
+    };
   }, []);
 
   const toggleFullscreen = async () => {
     try {
-      if (!document.fullscreenElement) {
+      const docAny = document as any;
+      const isInFs = !!(docAny.fullscreenElement || docAny.webkitFullscreenElement || docAny.mozFullScreenElement);
+
+      if (!isInFs) {
         if (containerRef.current) {
-          await containerRef.current.requestFullscreen();
+          const el: any = containerRef.current;
+          if (el.requestFullscreen) await el.requestFullscreen();
+          else if (el.webkitRequestFullscreen) await el.webkitRequestFullscreen();
+          else if (el.mozRequestFullScreen) await el.mozRequestFullScreen();
+          // optimistically set state so controls appear even if vendor events don't fire
+          setIsFullscreen(true);
         }
       } else {
-        await document.exitFullscreen();
+        if (document.exitFullscreen) await document.exitFullscreen();
+        else if (docAny.webkitExitFullscreen) await docAny.webkitExitFullscreen();
+        else if (docAny.mozCancelFullScreen) await docAny.mozCancelFullScreen();
+        setIsFullscreen(false);
       }
-      // state will be synced by fullscreenchange listener
     } catch (e) {
       // ignore
     }

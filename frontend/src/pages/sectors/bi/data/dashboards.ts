@@ -121,7 +121,8 @@ export const dashboardsData: DashboardCategory[] = [
 ];
 
 export function getPowerBIEmbedUrl(reportId: string): string {
-  return `https://app.powerbi.com/reportEmbed?reportId=${reportId}&autoAuth=true&ctid=${TENANT_ID}`;
+  // Ensure navigation and filter panes are available inside the embed so pages like "Capa" and "Análise" remain visible
+  return `https://app.powerbi.com/reportEmbed?reportId=${reportId}&autoAuth=true&ctid=${TENANT_ID}&navContentPaneEnabled=true&filterPaneEnabled=true`;
 }
 
 export function getAllDashboards(): Dashboard[] {
