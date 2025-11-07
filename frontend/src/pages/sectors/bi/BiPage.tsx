@@ -1,62 +1,72 @@
+import { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { BarChart3, LineChart } from "lucide-react";
+import DashboardViewer from "./components/DashboardViewer";
+import DashboardSidebar from "./components/DashboardSidebar";
+import DashboardGrid from "./components/DashboardGrid";
+import { dashboardsData, getAllDashboards, Dashboard } from "./data/dashboards";
 
 export default function BiPage() {
+  const [selectedDashboard, setSelectedDashboard] = useState<Dashboard | null>(
+    null
+  );
+  const [viewMode, setViewMode] = useState<"grid" | "viewer">("grid");
+
+  useEffect(() => {
+    if (viewMode === "viewer" && !selectedDashboard) {
+      const firstDashboard = getAllDashboards()[0];
+      if (firstDashboard) {
+        setSelectedDashboard(firstDashboard);
+      }
+    }
+  }, [viewMode, selectedDashboard]);
+
+  const handleSelectDashboard = (dashboard: Dashboard) => {
+    setSelectedDashboard(dashboard);
+    setViewMode("viewer");
+  };
+
   return (
     <Layout>
-      <div className="container py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-primary mb-2">
-            Portal de BI
-          </h1>
-          <p className="text-muted-foreground">
-            Analise dados e visualize insights em dashboards interativos
-          </p>
+      {viewMode === "grid" ? (
+        <div className="container py-8">
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-primary mb-2">
+              Portal de BI
+            </h1>
+            <p className="text-muted-foreground">
+              Analise dados e visualize insights em dashboards interativos
+            </p>
+          </div>
+
+          <DashboardGrid
+            dashboards={getAllDashboards()}
+            onSelectDashboard={handleSelectDashboard}
+          />
         </div>
+      ) : selectedDashboard ? (
+        <div className="flex h-screen bg-white">
+          <DashboardSidebar
+            categories={dashboardsData}
+            selectedDashboard={selectedDashboard}
+            onSelectDashboard={handleSelectDashboard}
+          />
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <Card className="p-6 hover:shadow-lg transition">
-            <div className="flex items-start justify-between mb-4">
-              <BarChart3 className="w-8 h-8 text-primary" />
+          <div className="flex-1 flex flex-col">
+            <div className="px-6 py-3 border-b bg-gray-50 flex items-center justify-between">
+              <button
+                onClick={() => setViewMode("grid")}
+                className="text-sm text-primary hover:text-primary/80 font-medium"
+              >
+                ← Voltar para Dashboards
+              </button>
             </div>
-            <h2 className="font-semibold text-lg mb-2">Dashboard Principal</h2>
-            <p className="text-sm text-muted-foreground mb-4">
-              Visualize KPIs e métricas principais da empresa
-            </p>
-            <Button variant="outline" className="w-full">
-              Acessar Dashboard
-            </Button>
-          </Card>
 
-          <Card className="p-6 hover:shadow-lg transition">
-            <div className="flex items-start justify-between mb-4">
-              <LineChart className="w-8 h-8 text-primary" />
+            <div className="flex-1 overflow-hidden">
+              <DashboardViewer dashboard={selectedDashboard} />
             </div>
-            <h2 className="font-semibold text-lg mb-2">Relatórios de Desempenho</h2>
-            <p className="text-sm text-muted-foreground mb-4">
-              Análise detalhada de performance por setor
-            </p>
-            <Button variant="outline" className="w-full">
-              Ver Relatórios
-            </Button>
-          </Card>
-
-          <Card className="p-6 hover:shadow-lg transition">
-            <div className="flex items-start justify-between mb-4">
-              <BarChart3 className="w-8 h-8 text-primary" />
-            </div>
-            <h2 className="font-semibold text-lg mb-2">Análise de Dados</h2>
-            <p className="text-sm text-muted-foreground mb-4">
-              Explore dados e crie visualizações customizadas
-            </p>
-            <Button variant="outline" className="w-full">
-              Explorar Dados
-            </Button>
-          </Card>
+          </div>
         </div>
-      </div>
+      ) : null}
     </Layout>
   );
 }
