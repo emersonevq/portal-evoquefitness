@@ -52,7 +52,7 @@ export default function BiPage() {
             onSelectDashboard={handleSelectDashboard}
           />
 
-          <div className="flex-1 flex flex-col bg-[transparent]">
+          <div className="flex-1 flex flex-col bg-[color:var(--background)]">
             <div className="px-6 py-3 border-b bg-transparent flex items-center justify-between">
               <button
                 onClick={() => setViewMode("grid")}
