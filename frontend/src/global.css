@@ -110,7 +110,13 @@
   }
 
   body {
-    @apply bg-background text-foreground min-h-[100svh] md:min-h-screen w-full;
+    @apply bg-background text-foreground min-h-[100svh] w-full;
+  }
+
+  @screen md {
+    body {
+      @apply min-h-screen;
+    }
   }
 }
 
