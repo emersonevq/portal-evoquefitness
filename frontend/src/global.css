@@ -6,6 +6,7 @@
 @tailwind utilities;
 
 @layer base {
+
   /**
    * Tailwind CSS theme
    * tailwind.config.ts expects the following color variables to be expressed as HSL values.
@@ -121,11 +122,9 @@
 
 @layer components {
   .brand-gradient {
-    background-image: linear-gradient(
-      90deg,
-      hsl(var(--brand-start)) 0%,
-      hsl(var(--brand-end)) 100%
-    );
+    background-image: linear-gradient(90deg,
+        hsl(var(--brand-start)) 0%,
+        hsl(var(--brand-end)) 100%);
   }
 
   .card-surface {
@@ -157,11 +156,9 @@
     width: 0.35rem;
     border-top-right-radius: 6px;
     border-bottom-right-radius: 6px;
-    background-image: linear-gradient(
-      180deg,
-      hsl(var(--brand-start)) 0%,
-      hsl(var(--brand-end)) 100%
-    );
+    background-image: linear-gradient(180deg,
+        hsl(var(--brand-start)) 0%,
+        hsl(var(--brand-end)) 100%);
     opacity: 0;
     transition: opacity 200ms ease;
   }
@@ -169,11 +166,9 @@
   .sidebar-link.active {
     @apply text-foreground shadow-sm;
     outline: 1px solid hsl(var(--brand-start) / 0.35);
-    background-image: linear-gradient(
-      0deg,
-      hsl(0 0% 100% / 0.02),
-      hsl(0 0% 100% / 0.02)
-    );
+    background-image: linear-gradient(0deg,
+        hsl(0 0% 100% / 0.02),
+        hsl(0 0% 100% / 0.02));
   }
 
   .sidebar-link.active::before {
@@ -185,44 +180,34 @@
   }
 
   .metric-card[data-variant="orange"] {
-    background-image: linear-gradient(
-      135deg,
-      hsl(var(--brand-start)) 0%,
-      hsl(var(--brand-end)) 100%
-    );
+    background-image: linear-gradient(135deg,
+        hsl(var(--brand-start)) 0%,
+        hsl(var(--brand-end)) 100%);
   }
 
   .metric-card[data-variant="green"] {
-    background-image: linear-gradient(
-      135deg,
-      hsl(142 70% 45%) 0%,
-      hsl(150 70% 35%) 100%
-    );
+    background-image: linear-gradient(135deg,
+        hsl(142 70% 45%) 0%,
+        hsl(150 70% 35%) 100%);
   }
 
   .metric-card[data-variant="blue"] {
-    background-image: linear-gradient(
-      135deg,
-      hsl(200 95% 55%) 0%,
-      hsl(210 95% 45%) 100%
-    );
+    background-image: linear-gradient(135deg,
+        hsl(200 95% 55%) 0%,
+        hsl(210 95% 45%) 100%);
   }
 
   .metric-card[data-variant="purple"] {
-    background-image: linear-gradient(
-      135deg,
-      hsl(270 75% 60%) 0%,
-      hsl(290 70% 50%) 100%
-    );
+    background-image: linear-gradient(135deg,
+        hsl(270 75% 60%) 0%,
+        hsl(290 70% 50%) 100%);
   }
 
   /* Login unified backdrop and media tweaks */
   .login-backdrop {
-    background-image: linear-gradient(
-      90deg,
-      rgba(var(--brand-start), 0.06),
-      rgba(var(--brand-end), 0.06)
-    );
+    background-image: linear-gradient(90deg,
+        rgba(var(--brand-start), 0.06),
+        rgba(var(--brand-end), 0.06));
     backdrop-filter: blur(6px);
   }
 
@@ -263,7 +248,6 @@
     display: flex;
     position: fixed;
     top: 56px;
-    /* altura do header principal */
     left: 0;
     right: 0;
     bottom: 0;
@@ -271,152 +255,204 @@
     background: #f8fafc;
   }
 
-  /* Sidebar compacta e eficiente (ajustado) */
+  /* ===== SIDEBAR RENOVADA - VISUAL PREMIUM ===== */
   .bi-sidebar {
-    width: 200px; /* compact width */
-    background: linear-gradient(180deg, rgba(10,10,12,0.98), rgba(18,18,20,0.99));
-    border-right: 1px solid rgba(255, 255, 255, 0.04);
+    width: 280px;
+    background: linear-gradient(180deg, 
+      rgba(10, 10, 12, 0.98) 0%, 
+      rgba(18, 18, 22, 0.99) 50%,
+      rgba(12, 12, 15, 1) 100%
+    );
+    border-right: 1px solid rgba(249, 115, 22, 0.1);
     display: flex;
     flex-direction: column;
-    overflow: hidden; /* avoid double scrollbars */
+    overflow-y: auto;
+    overflow-x: hidden;
     flex-shrink: 0;
     z-index: 30;
-    padding-top: 4px;
+    position: relative;
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.4);
+  }
+
+  /* Brilho sutil laranja no topo */
+  .bi-sidebar::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 200px;
+    background: radial-gradient(ellipse at top, rgba(249, 115, 22, 0.08) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 1;
   }
 
   .bi-sidebar-header {
-    padding: 14px 14px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    padding: 20px 18px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
     display: flex;
-    gap: 10px;
+    gap: 12px;
     align-items: center;
     flex-shrink: 0;
+    position: relative;
+    z-index: 2;
   }
 
   .bi-logo {
-    height: 30px;
+    height: 36px;
     width: auto;
-    border-radius: 4px;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   }
 
   .bi-sidebar-title {
-    font-weight: 700;
-    font-size: 0.98rem;
-    color: white;
-    letter-spacing: -0.01em;
+    font-weight: 800;
+    font-size: 1.1rem;
+    background: linear-gradient(135deg, #ffffff 0%, #f0f0f0 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: -0.02em;
   }
 
+  /* Navegação com espaçamento refinado */
   .bi-nav {
-    padding: 6px 6px;
+    padding: 16px 12px;
     display: flex;
     flex-direction: column;
     gap: 6px;
     flex: 1;
-    overflow: auto;
+    position: relative;
+    z-index: 2;
   }
 
-  .bi-category {
-    padding: 4px 0 6px;
-    border-top: 1px solid rgba(255,255,255,0.02);
-  }
-
-  .bi-category:first-of-type {
-    border-top: none;
-    padding-top: 2px;
-  }
-
-  .bi-category-title {
-    font-size: 0.72rem;
-    color: rgba(255,255,255,0.45);
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    padding: 6px 12px;
-    font-weight: 600;
-  }
-
-  .bi-group-list {
-    list-style: none;
-    margin: 0;
-    padding: 0 6px;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-
+  /* Item do menu - DESIGN PREMIUM */
   .bi-item {
     display: flex;
-    align-items: center; /* compact single-line alignment */
-    gap: 8px;
-    padding: 10px 14px 10px 18px; /* compact padding */
-    border-radius: 6px;
-    color: rgba(255, 255, 255, 0.95);
-    background: transparent;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 18px;
+    border-radius: 12px;
+    color: rgba(255, 255, 255, 0.85);
+    background: rgba(255, 255, 255, 0.02);
     text-align: left;
     width: 100%;
-    border: none;
+    border: 1px solid rgba(255, 255, 255, 0.04);
     cursor: pointer;
-    transition: background 140ms ease, color 140ms ease;
-    font-size: 0.92rem;
+    transition: all 250ms cubic-bezier(0.4, 0, 0.2, 1);
+    font-size: 0.9rem;
+    font-weight: 500;
     position: relative;
-    min-height: 44px;
     overflow: hidden;
+    backdrop-filter: blur(8px);
+    letter-spacing: -0.01em;
   }
 
-  /* left accent indicator (hidden when not active) */
+  /* Efeito de brilho ao passar o mouse */
+  .bi-item::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(249, 115, 22, 0.1) 50%,
+      transparent 100%
+    );
+    transition: left 500ms ease;
+  }
+
+  .bi-item:hover::after {
+    left: 100%;
+  }
+
+  /* Barra lateral laranja - mais suave */
   .bi-item::before {
     content: "";
     position: absolute;
-    left: 10px;
-    top: 10px;
-    bottom: 10px;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    height: 0%;
     width: 4px;
-    border-radius: 6px;
-    background: transparent;
-    transition: all 180ms ease;
-    box-shadow: none;
+    border-radius: 0 4px 4px 0;
+    background: linear-gradient(180deg, 
+      hsl(24 94% 60%), 
+      hsl(16 100% 50())
+    );
+    transition: height 300ms cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 0 16px rgba(249, 115, 22, 0.4);
     opacity: 0;
   }
 
   .bi-item:hover::before {
-    opacity: 0.14;
-    background: linear-gradient(180deg, hsl(24 94% 50%), hsl(16 100% 45%));
+    height: 70%;
+    opacity: 0.6;
   }
 
   .bi-item.active::before {
+    height: 85%;
     opacity: 1;
-    background: linear-gradient(180deg, hsl(24 94% 50%), hsl(16 100% 45%));
-    box-shadow: 0 6px 18px rgba(255, 107, 0, 0.12);
   }
 
+  /* Hover state - elegante */
   .bi-item:hover {
-    background: rgba(255, 255, 255, 0.035);
-    color: white;
-    transform: none;
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(249, 115, 22, 0.2);
+    color: #ffffff;
+    transform: translateX(4px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
   }
 
+  /* Active state - DESTAQUE LARANJA */
   .bi-item.active {
-    background: linear-gradient(90deg, hsl(24 94% 50%), hsl(16 100% 45%));
-    color: white;
-    box-shadow: 0 6px 18px rgba(255, 107, 0, 0.18);
+    background: linear-gradient(
+      135deg,
+      rgba(249, 115, 22, 0.15) 0%,
+      rgba(234, 88, 12, 0.1) 100%
+    );
+    border-color: rgba(249, 115, 22, 0.4);
+    color: #ffffff;
     font-weight: 700;
-    transform: none;
+    box-shadow: 
+      0 4px 20px rgba(249, 115, 22, 0.15),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    transform: translateX(0);
   }
 
+  /* Ícone do item */
   .bi-item-icon {
-    width: 16px;
-    text-align: center;
-    font-size: 12px;
-    opacity: 0.95;
+    width: 20px;
+    height: 20px;
+    display: grid;
+    place-items: center;
+    font-size: 16px;
     flex-shrink: 0;
-    margin-top: 6px; /* align with multiline label top */
+    opacity: 0.9;
+    transition: all 250ms ease;
   }
 
+  .bi-item:hover .bi-item-icon {
+    opacity: 1;
+    transform: scale(1.1);
+  }
+
+  .bi-item.active .bi-item-icon {
+    opacity: 1;
+    color: hsl(24 94% 60%);
+    filter: drop-shadow(0 0 8px rgba(249, 115, 22, 0.4));
+  }
+
+  /* Label do item - permite quebra de linha */
   .bi-item-label {
     flex: 1;
-    white-space: normal; /* allow wrapping */
+    white-space: normal;
     overflow: visible;
     text-overflow: clip;
-    line-height: 1.25;
+    line-height: 1.3;
     display: block;
     word-break: break-word;
   }
@@ -519,7 +555,6 @@
     align-items: center !important;
     gap: 8px !important;
     background: #f97316 !important;
-    /* laranja */
     color: white !important;
     border: none !important;
     padding: 10px 16px !important;
@@ -527,340 +562,4 @@
     font-weight: 600 !important;
     font-size: 14px !important;
     box-shadow: 0 2px 8px rgba(249, 115, 22, 0.3) !important;
-    cursor: pointer !important;
-    transition: all 0.2s ease !important;
-    min-width: 140px !important;
-    justify-content: center !important;
-  }
-
-  .bi-fullscreen-button:hover {
-    background: #ea580c !important;
-    transform: translateY(-1px) !important;
-    box-shadow: 0 4px 12px rgba(249, 115, 22, 0.4) !important;
-  }
-
-  .bi-fullscreen-button:active {
-    transform: translateY(0) !important;
-  }
-
-  /* Estados de fullscreen - HEADER VISÍVEL */
-  :fullscreen .bi-dashboard-header {
-    visibility: visible !important;
-    opacity: 1 !important;
-    display: flex !important;
-    position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
-    right: 0 !important;
-    background: white !important;
-    z-index: 9999 !important;
-    padding: 12px 20px !important;
-    border-bottom: 2px solid #e5e7eb !important;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1) !important;
-  }
-
-  :-webkit-full-screen .bi-dashboard-header {
-    visibility: visible !important;
-    opacity: 1 !important;
-    display: flex !important;
-    position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
-    right: 0 !important;
-    background: white !important;
-    z-index: 9999 !important;
-    padding: 12px 20px !important;
-    border-bottom: 2px solid #e5e7eb !important;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1) !important;
-  }
-
-  /* Ajuste do conteúdo para compensar o header fixo */
-  :fullscreen .bi-viewer-outer {
-    padding-top: 70px !important;
-    height: calc(100vh - 70px) !important;
-  }
-
-  :-webkit-full-screen .bi-viewer-outer {
-    padding-top: 70px !important;
-    height: calc(100vh - 70px) !important;
-  }
-
-  /* Iframe em fullscreen */
-  :fullscreen .bi-embed-iframe {
-    height: calc(100vh - 70px) !important;
-  }
-
-  :-webkit-full-screen .bi-embed-iframe {
-    height: calc(100vh - 70px) !important;
-  }
-
-  /* Loading overlay visível */
-  .bi-loading-overlay {
-    visibility: visible !important;
-    opacity: 1 !important;
-    display: flex !important;
-    position: absolute !important;
-    inset: 0 !important;
-    background: rgba(255, 255, 255, 0.95) !important;
-    z-index: 100 !important;
-    align-items: center !important;
-    justify-content: center !important;
-  }
-
-  /* Override de qualquer estilo que esteja escondendo elementos */
-  .bi-content [class*="invisible"],
-  .bi-content [class*="hidden"],
-  .bi-content [style*="visibility: hidden"],
-  .bi-content [style*="opacity: 0"],
-  .bi-content [style*="display: none"] {
-    visibility: visible !important;
-    opacity: 1 !important;
-    display: flex !important;
-  }
-
-  /* Garantir que os botões na área BI sejam sempre visíveis */
-  .bi-content button,
-  .bi-content [role="button"],
-  .bi-content .bi-control-button {
-    visibility: visible !important;
-    opacity: 1 !important;
-    display: flex !important;
-    background: #f97316 !important;
-    color: white !important;
-    border: none !important;
-    padding: 8px 16px !important;
-    border-radius: 6px !important;
-    font-weight: 500 !important;
-    cursor: pointer !important;
-  }
-
-  /* Forçar cores contrastantes */
-  .bi-control-button {
-    background: #f97316 !important;
-    color: white !important;
-    border: 2px solid #f97316 !important;
-  }
-
-  .bi-control-button:hover {
-    background: #ea580c !important;
-    border-color: #ea580c !important;
-  }
-
-  /* Estados de fullscreen - REMOVE TUDO QUE ATRAPALHA (ajustado para respeitar header) */
-  :fullscreen .bi-embed-card,
-  :-webkit-full-screen .bi-embed-card {
-    width: 100vw !important;
-    height: calc(
-      100vh - 70px
-    ) !important; /* reserve space for the fixed header */
-    max-width: 100vw !important;
-    max-height: calc(100vh - 70px) !important;
-    border-radius: 0 !important;
-    padding: 0 !important;
-    margin: 0 !important;
-    box-shadow: none !important;
-    border: 0 !important;
-    overflow: hidden !important;
-  }
-
-  :fullscreen .bi-embed-card *,
-  :-webkit-full-screen .bi-embed-card * {
-    width: 100% !important;
-    height: 100% !important;
-    max-width: 100% !important;
-    max-height: 100% !important;
-    box-sizing: border-box !important;
-  }
-
-  :fullscreen .bi-embed-iframe,
-  :-webkit-full-screen .bi-embed-iframe {
-    width: 100% !important;
-    height: 100% !important; /* will match card's calc(100vh - 70px) */
-    border-radius: 0 !important;
-  }
-
-  /* Scrollbar customizada para sidebar */
-  .bi-sidebar::-webkit-scrollbar {
-    width: 4px;
-  }
-
-  .bi-sidebar::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.02);
-  }
-
-  .bi-sidebar::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.15);
-    border-radius: 2px;
-  }
-
-  .bi-sidebar::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.25);
-  }
-
-  /* Responsivo para tablets */
-  @media (max-width: 1024px) {
-    .bi-sidebar {
-      width: 200px;
-    }
-
-    .bi-nav {
-      padding: 6px;
-    }
-
-    .bi-item {
-      padding: 8px 10px;
-      font-size: 0.85rem;
-    }
-
-    .bi-fullscreen-button {
-      min-width: 120px !important;
-      padding: 8px 12px !important;
-    }
-  }
-
-  /* Responsivo para mobile */
-  @media (max-width: 768px) {
-    .bi-page-root {
-      flex-direction: column;
-    }
-
-    .bi-sidebar {
-      width: 100%;
-      height: auto;
-      max-height: 180px;
-      border-right: none;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-    }
-
-    .bi-nav {
-      flex-direction: row;
-      overflow-x: auto;
-      padding: 8px;
-      gap: 4px;
-    }
-
-    .bi-item {
-      flex-shrink: 0;
-      min-width: 140px;
-    }
-
-    .bi-content {
-      border-left: none;
-      border-top: 1px solid #e2e8f0;
-    }
-
-    .bi-fullscreen-button {
-      min-width: auto !important;
-      padding: 6px 10px !important;
-    }
-
-    .bi-fullscreen-button span {
-      display: none !important;
-    }
-  }
-
-  /* Melhorias para telas muito grandes */
-  @media (min-width: 1920px) {
-    .bi-sidebar {
-      width: 240px;
-    }
-
-    .bi-nav {
-      padding: 12px;
-      gap: 4px;
-    }
-
-    .bi-item {
-      padding: 12px 14px;
-      font-size: 0.9rem;
-    }
-  }
-
-  /* CSS DE EMERGÊNCIA - VISIBILIDADE GARANTIDA */
-
-  /* Specific overrides to keep fullscreen controls usable and not orange */
-  /* Keep control buttons subtle inside the dashboard header */
-  .bi-dashboard-header .bi-control-button {
-    background: rgba(255, 255, 255, 0.06) !important;
-    color: rgba(26, 32, 44, 1) !important;
-    border: 1px solid rgba(0, 0, 0, 0.06) !important;
-    box-shadow: none !important;
-    padding: 8px !important;
-    min-width: auto !important;
-  }
-
-  /* Floating close button for fullscreen must be prominent and not overridden */
-  .bi-fullscreen-toggle {
-    position: fixed !important;
-    top: 12px !important;
-    right: 12px !important;
-    z-index: 2147483647 !important; /* max z-index */
-    width: 44px !important;
-    height: 44px !important;
-    display: grid !important;
-    place-items: center !important;
-    border-radius: 10px !important;
-    background: rgba(0, 0, 0, 0.6) !important;
-    color: #ffffff !important;
-    font-weight: 700 !important;
-    font-size: 20px !important;
-    border: none !important;
-  }
-
-  :fullscreen .bi-fullscreen-toggle,
-  :-webkit-full-screen .bi-fullscreen-toggle {
-    display: grid !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-  }
-
-  /* Ensure header controls are not accidentally styled as big orange buttons */
-  .bi-content .bi-control-button,
-  .bi-content button.bi-control-button {
-    background: rgba(255, 255, 255, 0.06) !important;
-    color: rgba(26, 32, 44, 1) !important;
-    border: 1px solid rgba(0, 0, 0, 0.06) !important;
-    padding: 8px !important;
-    min-width: auto !important;
-    box-shadow: none !important;
-  }
-
-  /* Make sure the large orange overrides don't apply to our subtle controls */
-  .bi-content .bi-fullscreen-button,
-  .bi-content .bi-control-button:not(.force-orange) {
-    background: transparent !important;
-  }
-  .bi-content * {
-    visibility: visible !important;
-    opacity: 1 !important;
-  }
-
-  .bi-content button,
-  .bi-content [role="button"],
-  .bi-content [onclick] {
-    visibility: visible !important;
-    opacity: 1 !important;
-    display: flex !important;
-    background: #f97316 !important;
-    color: white !important;
-    border: 2px solid #f97316 !important;
-    padding: 10px 20px !important;
-    border-radius: 8px !important;
-    font-weight: bold !important;
-    font-size: 14px !important;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
-    cursor: pointer !important;
-    z-index: 99999 !important;
-    position: relative !important;
-  }
-
-  :fullscreen .bi-content button,
-  :-webkit-full-screen .bi-content button {
-    visibility: visible !important;
-    opacity: 1 !important;
-    display: flex !important;
-    background: #f97316 !important;
-    color: white !important;
-    z-index: 100000 !important;
-  }
-}
+    cursor: pointer !importan
