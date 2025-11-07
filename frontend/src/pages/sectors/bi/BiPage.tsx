@@ -28,11 +28,15 @@ export default function BiPage() {
         <div className="flex-1 flex flex-col bg-[color:var(--background)]">
           <div className="px-6 py-3 border-b bg-transparent flex items-center gap-4">
             <div className="text-sm text-muted-foreground">☰</div>
-            <h1 className="text-sm font-medium text-primary-foreground">{selectedDashboard?.title}</h1>
+            <h1 className="text-sm font-medium text-primary-foreground">
+              {selectedDashboard?.title}
+            </h1>
           </div>
 
           <div className="flex-1 overflow-hidden">
-            {selectedDashboard && <DashboardViewer dashboard={selectedDashboard} />}
+            {selectedDashboard && (
+              <DashboardViewer dashboard={selectedDashboard} />
+            )}
           </div>
         </div>
       </div>

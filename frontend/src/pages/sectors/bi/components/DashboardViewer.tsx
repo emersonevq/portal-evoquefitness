@@ -13,7 +13,9 @@ export default function DashboardViewer({ dashboard }: DashboardViewerProps) {
   return (
     <div className="w-full h-full flex flex-col">
       <div className="px-6 py-3 border-b bg-transparent">
-        <h1 className="text-lg font-semibold text-primary">{dashboard.title}</h1>
+        <h1 className="text-lg font-semibold text-primary">
+          {dashboard.title}
+        </h1>
       </div>
 
       <div className="flex-1 p-6 bi-viewer-outer">
