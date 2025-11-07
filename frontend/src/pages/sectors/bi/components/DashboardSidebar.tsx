@@ -1,13 +1,13 @@
 import { Dashboard, DashboardCategory } from "../data/dashboards";
-import { 
-  LayoutDashboard, 
-  TrendingUp, 
-  Users, 
-  Target, 
+import {
+  LayoutDashboard,
+  TrendingUp,
+  Users,
+  Target,
   BarChart3,
   PieChart,
   Activity,
-  Zap
+  Zap,
 } from "lucide-react";
 
 interface DashboardSidebarProps {
@@ -19,7 +19,7 @@ interface DashboardSidebarProps {
 // Mapeamento de ícones por título do dashboard
 const getDashboardIcon = (title: string) => {
   const lowerTitle = title.toLowerCase();
-  
+
   if (lowerTitle.includes("visão geral") || lowerTitle.includes("overview")) {
     return <LayoutDashboard className="w-full h-full" />;
   }
@@ -41,7 +41,7 @@ const getDashboardIcon = (title: string) => {
   if (lowerTitle.includes("operacion")) {
     return <Zap className="w-full h-full" />;
   }
-  
+
   // Ícone padrão
   return <BarChart3 className="w-full h-full" />;
 };
