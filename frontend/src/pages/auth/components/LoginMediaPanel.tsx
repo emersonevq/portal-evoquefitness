@@ -14,6 +14,7 @@ interface MediaItem {
   ctaText?: string;
   ctaHref?: string;
   alt?: string;
+  mime?: string;
 }
 
 async function fetchLoginMedia(signal?: AbortSignal): Promise<MediaItem[]> {
