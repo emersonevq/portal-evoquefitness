@@ -104,12 +104,22 @@ async def get_embed_token(report_id: str, db: Session = Depends(get_db)):
             )
 
             if response.status_code != 200:
-                print(f"Embed token error: {response.text}")
-                raise HTTPException(status_code=401, detail="Failed to generate embed token")
+                error_detail = response.text
+                print(f"Embed token error: {error_detail}")
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Failed to generate embed token. Report ID may be invalid or not accessible: {report_id}"
+                )
 
             token_data = response.json()
+            token = token_data.get("token")
+            if not token:
+                raise HTTPException(
+                    status_code=400,
+                    detail="No embed token received from Power BI service"
+                )
             return {
-                "token": token_data.get("token"),
+                "token": token,
                 "expiration": token_data.get("expiration"),
                 "report_id": report_id,
             }
@@ -117,7 +127,10 @@ async def get_embed_token(report_id: str, db: Session = Depends(get_db)):
         raise
     except Exception as e:
         print(f"Error generating embed token: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(
+            status_code=400,
+            detail=f"Failed to generate embed token: {str(e)}"
+        )
 
 
 @router.get("/dashboards")
