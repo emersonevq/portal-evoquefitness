@@ -10,15 +10,30 @@ load_dotenv()
 
 router = APIRouter(prefix="/powerbi", tags=["Power BI"])
 
-# Power BI Configuration
+def get_powerbi_config():
+    """Get Power BI configuration from environment variables (dynamic reading)"""
+    return {
+        "client_id": os.getenv("POWERBI_CLIENT_ID", "7cc65d27-294f-47a4-a525-d5efb61871f5"),
+        "client_secret": os.getenv("POWERBI_CLIENT_SECRET", "").strip(),
+        "object_id": os.getenv("POWERBI_OBJECT_ID", "ed04a53f-153b-4a99-8104-47e88c0a5476"),
+        "tenant_id": os.getenv("POWERBI_TENANT_ID", "9f45f492-87a3-4214-862d-4c0d080aa136"),
+        "display_name": os.getenv("POWERBI_DISPLAY_NAME", "PORTAL BI"),
+    }
+
+# Defaults for backwards compatibility
 POWERBI_CLIENT_ID = os.getenv("POWERBI_CLIENT_ID", "7cc65d27-294f-47a4-a525-d5efb61871f5")
-POWERBI_CLIENT_SECRET = os.getenv("POWERBI_CLIENT_SECRET", "").strip()
-POWERBI_OBJECT_ID = os.getenv("POWERBI_OBJECT_ID", "ed04a53f-153b-4a99-8104-47e88c0a5476")
 POWERBI_TENANT_ID = os.getenv("POWERBI_TENANT_ID", "9f45f492-87a3-4214-862d-4c0d080aa136")
 POWERBI_DISPLAY_NAME = os.getenv("POWERBI_DISPLAY_NAME", "PORTAL BI")
 
-AUTHORITY_URL = f"https://login.microsoftonline.com/{POWERBI_TENANT_ID}"
-TOKEN_ENDPOINT = f"{AUTHORITY_URL}/oauth2/v2.0/token"
+def get_authority_url():
+    """Get authority URL from current config"""
+    config = get_powerbi_config()
+    return f"https://login.microsoftonline.com/{config['tenant_id']}"
+
+def get_token_endpoint():
+    """Get token endpoint from current config"""
+    return f"{get_authority_url()}/oauth2/v2.0/token"
+
 POWERBI_API_URL = "https://api.powerbi.com/v1.0/myorg"
 
 
