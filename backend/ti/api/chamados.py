@@ -566,6 +566,10 @@ def atualizar_status(chamado_id: int, payload: ChamadoStatusUpdate, db: Session 
         db.add(ch)
         db.commit()  # garante persistência do status antes dos logs
         db.refresh(ch)
+
+        # Sincroniza automaticamente com tabela de SLA
+        _sincronizar_sla(db, ch, status_anterior=prev)
+
         try:
             Notification.__table__.create(bind=engine, checkfirst=True)
             HistoricoTicket.__table__.create(bind=engine, checkfirst=True)
@@ -598,22 +602,6 @@ def atualizar_status(chamado_id: int, payload: ChamadoStatusUpdate, db: Session 
             db.add(hs)
             db.commit()
             db.refresh(n)
-
-            try:
-                sla_status = SLACalculator.get_sla_status(db, ch)
-                SLACalculator.record_sla_history(
-                    db,
-                    chamado_id=ch.id,
-                    usuario_id=None,
-                    acao="status_atualizado",
-                    status_anterior=prev,
-                    status_novo=ch.status,
-                    tempo_resolucao_horas=sla_status.get("tempo_resolucao_horas"),
-                    limite_sla_horas=sla_status.get("tempo_resolucao_limite_horas"),
-                    status_sla=sla_status.get("tempo_resolucao_status"),
-                )
-            except Exception:
-                pass
 
             import anyio
             anyio.from_thread.run(sio.emit, "chamado:status", {"id": ch.id, "status": ch.status})
