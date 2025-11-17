@@ -83,8 +83,15 @@ def download_login_media(item_id: int, db: Session = Depends(get_db)):
         if not m or not m.arquivo_blob:
             raise HTTPException(status_code=404, detail="Mídia não encontrada")
         filename = m.titulo or "media"
+
+        def generate_chunks():
+            chunk_size = 262144
+            data = m.arquivo_blob
+            for i in range(0, len(data), chunk_size):
+                yield data[i:i + chunk_size]
+
         return StreamingResponse(
-            iter([m.arquivo_blob]),
+            generate_chunks(),
             media_type=m.mime_type or "application/octet-stream",
             headers={"Content-Disposition": f"inline; filename={filename}"}
         )
