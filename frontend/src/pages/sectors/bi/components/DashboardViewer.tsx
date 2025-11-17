@@ -282,7 +282,9 @@ export default function DashboardViewer({ dashboard }: DashboardViewerProps) {
           <div className="bi-loading-overlay">
             <div className="flex flex-col items-center gap-3">
               <Loader className="w-6 h-6 animate-spin text-primary" />
-              <p className="text-sm text-gray-600">Carregando dashboard...</p>
+              <p className="text-sm text-gray-600">
+                {isAuthenticating ? "Logando..." : "Carregando dashboard..."}
+              </p>
             </div>
           </div>
         )}
