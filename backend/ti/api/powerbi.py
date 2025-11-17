@@ -99,8 +99,11 @@ async def get_powerbi_token(db: Session = Depends(get_db)):
 @router.get("/embed-token/{report_id}")
 async def get_embed_token(report_id: str, db: Session = Depends(get_db)):
     """Generate an embed token for a specific Power BI report"""
+    print(f"[EMBED-TOKEN] Requisição recebida para report_id: {report_id}")
     try:
+        print(f"[EMBED-TOKEN] Obtendo token de serviço...")
         service_token = await get_service_principal_token()
+        print(f"[EMBED-TOKEN] Token de serviço obtido com sucesso")
         headers = {"Authorization": f"Bearer {service_token}"}
 
         payload = {
@@ -114,6 +117,7 @@ async def get_embed_token(report_id: str, db: Session = Depends(get_db)):
             ]
         }
 
+        print(f"[EMBED-TOKEN] Chamando Power BI API: {POWERBI_API_URL}/reports/{report_id}/GenerateToken")
         async with httpx.AsyncClient() as client:
             response = await client.post(
                 f"{POWERBI_API_URL}/reports/{report_id}/GenerateToken",
@@ -121,9 +125,10 @@ async def get_embed_token(report_id: str, db: Session = Depends(get_db)):
                 headers=headers,
             )
 
+            print(f"[EMBED-TOKEN] Resposta: {response.status_code}")
             if response.status_code != 200:
                 error_detail = response.text
-                print(f"Embed token error: {error_detail}")
+                print(f"[EMBED-TOKEN] Erro: {error_detail}")
                 raise HTTPException(
                     status_code=400,
                     detail=f"Failed to generate embed token. Report ID may be invalid or not accessible: {report_id}"
@@ -132,19 +137,24 @@ async def get_embed_token(report_id: str, db: Session = Depends(get_db)):
             token_data = response.json()
             token = token_data.get("token")
             if not token:
+                print(f"[EMBED-TOKEN] Nenhum token recebido da API do Power BI")
                 raise HTTPException(
                     status_code=400,
                     detail="No embed token received from Power BI service"
                 )
+            print(f"[EMBED-TOKEN] Sucesso! Token gerado para report_id: {report_id}")
             return {
                 "token": token,
                 "expiration": token_data.get("expiration"),
                 "report_id": report_id,
             }
-    except HTTPException:
+    except HTTPException as http_exc:
+        print(f"[EMBED-TOKEN] HTTPException: {http_exc.detail}")
         raise
     except Exception as e:
-        print(f"Error generating embed token: {e}")
+        print(f"[EMBED-TOKEN] Erro inesperado: {str(e)}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(
             status_code=400,
             detail=f"Failed to generate embed token: {str(e)}"
