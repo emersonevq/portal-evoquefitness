@@ -93,7 +93,11 @@ def download_login_media(item_id: int, db: Session = Depends(get_db)):
         return StreamingResponse(
             generate_chunks(),
             media_type=m.mime_type or "application/octet-stream",
-            headers={"Content-Disposition": f"inline; filename={filename}"}
+            headers={
+                "Content-Disposition": f"inline; filename={filename}",
+                "Accept-Ranges": "bytes",
+                "Cache-Control": "public, max-age=3600"
+            }
         )
     except HTTPException:
         raise
