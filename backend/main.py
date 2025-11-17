@@ -226,6 +226,30 @@ def download_login_media(item_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=f"Erro ao baixar mídia: {str(e)}")
 
 
+@_http.get("/api/login-media/{item_id}/debug")
+def login_media_debug(item_id: int, db: Session = Depends(get_db)):
+    """Debug de um vídeo específico"""
+    try:
+        m = db.query(Media).filter(Media.id == int(item_id)).first()
+        if not m:
+            return {"erro": "Não encontrada", "id": item_id}
+        return {
+            "id": m.id,
+            "tipo": m.tipo,
+            "titulo": m.titulo,
+            "mime_type": m.mime_type,
+            "tamanho_bytes": m.tamanho_bytes,
+            "arquivo_blob_size": len(m.arquivo_blob) if m.arquivo_blob else 0,
+            "arquivo_blob_type": type(m.arquivo_blob).__name__,
+            "status": m.status,
+        }
+    except Exception as e:
+        print(f"[DEBUG_{item_id}] Erro: {e}")
+        import traceback
+        traceback.print_exc()
+        return {"erro": str(e)}
+
+
 @_http.delete("/api/login-media/{item_id}")
 async def delete_login_media(item_id: int, db: Session = Depends(get_db)):
     try:
