@@ -3,6 +3,7 @@ import { Dashboard } from "../data/dashboards";
 import { Loader } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import * as pbi from "powerbi-client";
+import confetti from "canvas-confetti";
 
 interface DashboardViewerProps {
   dashboard: Dashboard;
@@ -12,11 +13,36 @@ const TENANT_ID = "9f45f492-87a3-4214-862d-4c0d080aa136";
 
 export default function DashboardViewer({ dashboard }: DashboardViewerProps) {
   const [isLoading, setIsLoading] = useState(true);
+  const [isAuthenticating, setIsAuthenticating] = useState(true);
   const [embedError, setEmbedError] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const embedContainerRef = useRef<HTMLDivElement | null>(null);
   const reportRef = useRef<pbi.Report | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
+
+  const triggerConfetti = () => {
+    const duration = 2000;
+    const animationEnd = Date.now() + duration;
+    const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
+
+    const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min;
+
+    const interval: NodeJS.Timeout = setInterval(() => {
+      const timeLeft = animationEnd - Date.now();
+
+      if (timeLeft <= 0) {
+        clearInterval(interval);
+        return;
+      }
+
+      const particleCount = 50 * (timeLeft / duration);
+      confetti({
+        ...defaults,
+        particleCount,
+        origin: { x: randomInRange(0.1, 0.9), y: Math.random() - 0.2 },
+      });
+    }, 250);
+  };
 
   // Load and embed Power BI report with token
   useEffect(() => {
@@ -26,6 +52,7 @@ export default function DashboardViewer({ dashboard }: DashboardViewerProps) {
     const embedReport = async () => {
       try {
         setIsLoading(true);
+        setIsAuthenticating(true);
         setEmbedError(null);
 
         // Get embed token
@@ -34,15 +61,18 @@ export default function DashboardViewer({ dashboard }: DashboardViewerProps) {
         );
 
         if (!tokenResponse.ok) {
-          throw new Error(`Failed to get embed token: ${tokenResponse.status}`);
+          throw new Error(`Falha ao obter token de embed: ${tokenResponse.status}`);
         }
 
         const tokenData = await tokenResponse.json();
         const embedToken = tokenData.token;
 
         if (!embedToken) {
-          throw new Error("No embed token received");
+          throw new Error("Nenhum token de embed recebido");
         }
+
+        if (!isMounted) return;
+        setIsAuthenticating(false);
 
         // Create Power BI client
         const powerBiClient = new pbi.service.Service(
@@ -82,13 +112,14 @@ export default function DashboardViewer({ dashboard }: DashboardViewerProps) {
           report.on("loaded", () => {
             if (isMounted) {
               setIsLoading(false);
+              triggerConfetti();
             }
           });
 
           report.on("error", (event: any) => {
             console.error("Report error:", event.detail);
             if (isMounted) {
-              setEmbedError("Failed to load report");
+              setEmbedError("Erro ao carregar relatório");
               setIsLoading(false);
             }
           });
@@ -97,9 +128,10 @@ export default function DashboardViewer({ dashboard }: DashboardViewerProps) {
         console.error("Error embedding report:", error);
         if (isMounted) {
           setEmbedError(
-            error instanceof Error ? error.message : "Failed to load dashboard",
+            error instanceof Error ? error.message : "Erro ao carregar dashboard",
           );
           setIsLoading(false);
+          setIsAuthenticating(false);
         }
       }
     };
