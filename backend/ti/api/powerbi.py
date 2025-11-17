@@ -201,11 +201,12 @@ async def get_powerbi_reports(db: Session = Depends(get_db)):
 async def check_powerbi_status(db: Session = Depends(get_db)):
     """Check Power BI connection status"""
     try:
+        config = get_powerbi_config()
         token = await get_service_principal_token()
         return {
             "status": "connected",
-            "display_name": POWERBI_DISPLAY_NAME,
-            "tenant_id": POWERBI_TENANT_ID,
+            "display_name": config["display_name"],
+            "tenant_id": config["tenant_id"],
         }
     except Exception as e:
         print(f"Error checking status: {e}")
