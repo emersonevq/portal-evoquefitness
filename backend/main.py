@@ -47,57 +47,6 @@ from core.db import get_db, engine
 from ti.models.media import Media
 
 
-@_http.get("/api/login-media/debug/all")
-def login_media_debug_all(db: Session = Depends(get_db)):
-    """Lista TODOS os vídeos (ativo e inativo) para debug"""
-    try:
-        all_media = db.query(Media).all()
-        return {
-            "total": len(all_media),
-            "items": [
-                {
-                    "id": m.id,
-                    "tipo": m.tipo,
-                    "titulo": m.titulo,
-                    "mime_type": m.mime_type,
-                    "tamanho_bytes": m.tamanho_bytes,
-                    "arquivo_blob_size": len(m.arquivo_blob) if m.arquivo_blob else 0,
-                    "status": m.status,
-                }
-                for m in all_media
-            ]
-        }
-    except Exception as e:
-        print(f"[DEBUG_ALL] Erro: {e}")
-        import traceback
-        traceback.print_exc()
-        return {"erro": str(e)}
-
-
-@_http.get("/api/login-media/debug/{item_id}")
-def login_media_debug(item_id: int, db: Session = Depends(get_db)):
-    """Debug de um vídeo específico"""
-    try:
-        m = db.query(Media).filter(Media.id == int(item_id)).first()
-        if not m:
-            return {"erro": "Não encontrada", "id": item_id}
-        return {
-            "id": m.id,
-            "tipo": m.tipo,
-            "titulo": m.titulo,
-            "mime_type": m.mime_type,
-            "tamanho_bytes": m.tamanho_bytes,
-            "arquivo_blob_size": len(m.arquivo_blob) if m.arquivo_blob else 0,
-            "arquivo_blob_type": type(m.arquivo_blob).__name__,
-            "status": m.status,
-        }
-    except Exception as e:
-        print(f"[DEBUG_{item_id}] Erro: {e}")
-        import traceback
-        traceback.print_exc()
-        return {"erro": str(e)}
-
-
 @_http.post("/api/login-media/upload")
 async def upload_login_media(file: UploadFile = File(...), db: Session = Depends(get_db)):
     if not file:
