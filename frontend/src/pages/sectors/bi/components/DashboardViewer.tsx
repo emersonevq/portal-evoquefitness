@@ -201,11 +201,12 @@ export default function DashboardViewer({ dashboard }: DashboardViewerProps) {
             <div className="bi-embed-inner">
               <iframe
                 title={dashboard.title}
-                src={embedUrl}
+                src={`https://app.powerbi.com/reportEmbed?reportId=${dashboard.reportId}&ctid=${TENANT_ID}&navContentPaneEnabled=true&filterPaneEnabled=true`}
                 frameBorder="0"
                 allowFullScreen
                 onLoad={() => setIsLoading(false)}
                 className="bi-embed-iframe"
+                data-token={embedToken}
               />
             </div>
           </div>
