@@ -99,7 +99,7 @@ export default function Login() {
                 {isLoading ? "Entrando..." : "Entrar"}
               </Button>
             </form>
-            <p className="text-xs text-muted-foreground text-center mt-4 sm:mt-6">
+            <p className="text-xs text-muted-foreground text-center mt-6 sm:mt-8">
               © {new Date().getFullYear()} Evoque Fitness — Sistema interno
             </p>
           </div>
