@@ -27,7 +27,7 @@ async def get_service_principal_token() -> str:
     if not POWERBI_CLIENT_SECRET:
         raise HTTPException(
             status_code=400,
-            detail="Power BI client secret not configured. Please add POWERBI_CLIENT_SECRET to environment variables."
+            detail="Power BI client secret not configured. Please add POWERBI_CLIENT_SECRET to environment variables. Failed to get Power BI token"
         )
 
     try:
@@ -44,21 +44,21 @@ async def get_service_principal_token() -> str:
 
             if response.status_code != 200:
                 print(f"Token error: {response.text}")
-                raise HTTPException(status_code=401, detail="Failed to get Power BI token")
+                raise HTTPException(status_code=400, detail="Failed to get Power BI token")
 
             token_data = response.json()
             access_token = token_data.get("access_token")
             if not access_token:
-                raise HTTPException(status_code=401, detail="No access token in response")
+                raise HTTPException(status_code=400, detail="No access token in response. Failed to get Power BI token")
             return access_token
     except httpx.RequestError as e:
         print(f"Request error: {e}")
-        raise HTTPException(status_code=500, detail="Failed to connect to token service")
+        raise HTTPException(status_code=400, detail="Failed to connect to token service. Failed to get Power BI token")
     except HTTPException:
         raise
     except Exception as e:
         print(f"Unexpected error: {e}")
-        raise HTTPException(status_code=500, detail="Failed to authenticate with Power BI")
+        raise HTTPException(status_code=400, detail="Failed to authenticate with Power BI")
 
 
 @router.get("/token")
