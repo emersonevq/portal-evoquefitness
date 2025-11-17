@@ -1,4 +1,3 @@
-// Login.tsx
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -54,14 +53,12 @@ export default function Login() {
   };
 
   return (
-    <div className="relative min-h-[100svh] w-full overflow-hidden bg-background">
+    <div className="relative min-h-[100svh] w-full flex items-center justify-center overflow-hidden bg-background">
       {/* Fundo com mídia */}
-      <div className="absolute inset-0">
-        <LoginMediaPanel />
-      </div>
+      <LoginMediaPanel />
 
       {/* Conteúdo principal */}
-      <div className="relative z-10 w-full min-h-[100svh] flex items-center justify-center p-6 md:p-10">
+      <div className="relative z-10 w-full h-screen flex items-center justify-center p-6 md:p-10">
         <div
           className={`w-full max-w-[480px] transition-all duration-1000 ${
             mounted ? "opacity-100 scale-100" : "opacity-0 scale-95"
@@ -122,7 +119,7 @@ export default function Login() {
                   <Input
                     id="password"
                     type={showPassword ? "text" : "password"}
-                    placeholder="••••••���•"
+                    placeholder="••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
