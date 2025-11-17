@@ -1,107 +1,131 @@
 import { Button } from "@/components/ui/button";
 import { Link, useLocation } from "react-router-dom";
-import { CheckCircle, Mail, ArrowLeft } from "lucide-react";
+import { CheckCircle, Mail, ArrowLeft, Headphones } from "lucide-react";
+import { useEffect, useState } from "react";
+import LoginMediaPanel from "./components/LoginMediaPanel";
 
 export default function ResetPasswordSuccess() {
   const location = useLocation();
   const email = location.state?.email || "";
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   return (
-    <div className="min-h-[100svh] w-full grid md:grid-cols-2 bg-background">
-      {/* Brand side (desktop) */}
-      <div className="hidden md:flex items-center justify-center p-10">
-        <div className="w-full h-full rounded-2xl brand-gradient flex items-center justify-center">
-          <div className="max-w-md text-center text-primary-foreground px-8">
-            <img
-              src="https://images.totalpass.com/public/1280x720/czM6Ly90cC1pbWFnZS1hZG1pbi1wcm9kL2d5bXMva2g2OHF6OWNuajkoN2lkdnhzcHhhdWx4emFhbWEzYnc3MGx5cDRzZ3p5aTlpZGM0OHRvYnk0YW56azRk"
-              alt="Evoque Fitness Logo"
-              className="h-10 w-auto mx-auto mb-6 rounded-sm shadow-sm"
-            />
-            <h1 className="text-3xl font-extrabold drop-shadow">
-              Evoque Fitness
-            </h1>
-            <p className="mt-3 text-sm/6 opacity-90">
-              Instruções de recuperação enviadas com sucesso.
-            </p>
-          </div>
-        </div>
-      </div>
+    <div className="relative min-h-[100svh] w-full flex items-center justify-center overflow-hidden bg-background">
+      {/* Fundo com mídia */}
+      <LoginMediaPanel />
 
-      {/* Content side */}
-      <div className="flex items-center justify-center p-6 md:p-10">
-        <div className="w-full max-w-md">
-          {/* Mobile logo */}
-          <div className="md:hidden flex items-center justify-center mb-8">
-            <img
-              src="https://images.totalpass.com/public/1280x720/czM6Ly90cC1pbWFnZS1hZG1pbi1wcm9kL2d5bXMva2g2OHF6OWNuajloN2lkdnhzcHhhdWx4emFhbWEzYnc3MGx5cDRzZ3p5aTlpZGM0OHRvYnk0YW56azRk"
-              alt="Evoque Fitness Logo"
-              className="h-8 w-auto rounded-sm shadow-sm"
-            />
-          </div>
-
-          <div className="card-surface rounded-xl p-6 sm:p-8 text-center">
-            <div className="flex justify-center mb-6">
-              <div className="h-16 w-16 rounded-full bg-green-500/10 flex items-center justify-center">
-                <CheckCircle className="h-8 w-8 text-green-500" />
+      {/* Conteúdo principal */}
+      <div className="relative z-10 w-full h-screen flex items-center justify-center p-6 md:p-10">
+        <div 
+          className={`w-full max-w-[480px] transition-all duration-1000 ${
+            mounted ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
+          }`}
+        >
+          {/* Card de Sucesso */}
+          <div className="card-surface rounded-xl p-6 sm:p-8 shadow-2xl border">
+            {/* Header com logo */}
+            <div className="mb-6">
+              <div className="flex items-center gap-4 mb-4">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-primary/20 rounded-2xl blur-lg animate-pulse" />
+                  <div className="relative p-3.5 brand-gradient rounded-2xl shadow-lg">
+                    <Headphones className="w-7 h-7 text-primary-foreground" />
+                  </div>
+                </div>
+                <div>
+                  <h1 className="text-2xl font-bold tracking-tight">
+                    Central de Suporte
+                  </h1>
+                  <p className="text-sm text-primary font-medium">
+                    Sistema de Atendimento TI
+                  </p>
+                </div>
               </div>
             </div>
 
-            <h2 className="text-xl font-semibold mb-2">E-mail enviado!</h2>
-            <p className="text-sm text-muted-foreground mb-6">
-              Enviamos instruções para recuperação da senha para o e-mail:
-            </p>
+            {/* Ícone de sucesso */}
+            <div className="flex justify-center mb-6">
+              <div className="relative">
+                <div className="absolute inset-0 bg-green-500/20 rounded-full blur-xl animate-pulse" />
+                <div className="relative h-16 w-16 rounded-full bg-green-500/10 flex items-center justify-center border-2 border-green-500/20">
+                  <CheckCircle className="h-8 w-8 text-green-500" />
+                </div>
+              </div>
+            </div>
 
+            {/* Título */}
+            <div className="text-center mb-6">
+              <h2 className="text-xl font-semibold mb-2">E-mail enviado com sucesso!</h2>
+              <p className="text-sm text-muted-foreground">
+                Enviamos instruções para recuperação da senha
+              </p>
+            </div>
+
+            {/* E-mail */}
             {email && (
-              <div className="flex items-center justify-center gap-2 mb-6 p-3 bg-secondary/50 rounded-lg">
-                <Mail className="h-4 w-4 text-muted-foreground" />
+              <div className="flex items-center justify-center gap-2 mb-6 p-3 bg-secondary/50 rounded-lg border border-primary/10">
+                <Mail className="h-4 w-4 text-primary" />
                 <span className="text-sm font-medium">{email}</span>
               </div>
             )}
 
-            <div className="space-y-4 text-sm text-muted-foreground">
-              <p>
-                <strong>Próximos passos:</strong>
-              </p>
-              <ul className="space-y-2 text-left">
-                <li className="flex items-start gap-2">
-                  <span className="text-primary">1.</span>
-                  Verifique sua caixa de entrada (incluindo spam/lixo
-                  eletrônico)
+            {/* Instruções */}
+            <div className="mb-6 p-4 bg-secondary/30 rounded-lg border border-border/50">
+              <p className="text-sm font-semibold mb-3 text-center">Próximos passos:</p>
+              <ul className="space-y-2.5 text-sm text-muted-foreground">
+                <li className="flex items-start gap-3">
+                  <span className="flex items-center justify-center w-5 h-5 rounded-full bg-primary/10 text-primary text-xs font-semibold flex-shrink-0 mt-0.5">
+                    1
+                  </span>
+                  <span>Verifique sua caixa de entrada (incluindo spam/lixo eletrônico)</span>
                 </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-primary">2.</span>
-                  Clique no link de recuperação no e-mail
+                <li className="flex items-start gap-3">
+                  <span className="flex items-center justify-center w-5 h-5 rounded-full bg-primary/10 text-primary text-xs font-semibold flex-shrink-0 mt-0.5">
+                    2
+                  </span>
+                  <span>Clique no link de recuperação enviado por e-mail</span>
                 </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-primary">3.</span>
-                  Crie uma nova senha segura
+                <li className="flex items-start gap-3">
+                  <span className="flex items-center justify-center w-5 h-5 rounded-full bg-primary/10 text-primary text-xs font-semibold flex-shrink-0 mt-0.5">
+                    3
+                  </span>
+                  <span>Crie uma nova senha segura para sua conta</span>
                 </li>
               </ul>
             </div>
 
-            <div className="mt-8 space-y-3">
-              <Button asChild className="w-full h-11 rounded-md">
-                <Link to="/login">
-                  <ArrowLeft className="h-4 w-4 mr-2" />
-                  Voltar ao login
-                </Link>
-              </Button>
+            {/* Botão principal */}
+            <Button asChild className="w-full h-11 rounded-md mb-4 group">
+              <Link to="/login">
+                <ArrowLeft className="h-4 w-4 mr-2 group-hover:-translate-x-1 transition-transform" />
+                Voltar ao login
+              </Link>
+            </Button>
 
+            {/* Link secundário */}
+            <div className="text-center pt-4 border-t">
               <p className="text-xs text-muted-foreground">
                 Não recebeu o e-mail?{" "}
                 <Link
                   to="/auth/forgot-password"
-                  className="text-primary hover:underline"
+                  className="text-primary hover:underline font-medium"
                 >
-                  Tentar novamente
+                  Reenviar instruções
                 </Link>
               </p>
             </div>
-          </div>
 
-          <p className="text-xs text-muted-foreground text-center mt-6">
-            © {new Date().getFullYear()} Evoque Fitness — Sistema interno
-          </p>
+            {/* Footer */}
+            <div className="mt-6 pt-6 border-t">
+              <p className="text-xs text-muted-foreground text-center">
+                © {new Date().getFullYear()} Central de Suporte TI — Sistema interno
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     </div>

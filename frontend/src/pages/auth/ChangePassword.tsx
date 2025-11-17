@@ -1,17 +1,24 @@
-import { useState, FormEvent } from "react";
+import { useState, FormEvent, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthContext } from "@/lib/auth-context";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { Eye, EyeOff, Lock, Headphones, ShieldCheck } from "lucide-react";
+import LoginMediaPanel from "./components/LoginMediaPanel";
 
 export default function ChangePassword() {
   const { user, logout } = useAuthContext();
   const navigate = useNavigate();
   const [senha, setSenha] = useState("");
   const [senhaConfirm, setSenhaConfirm] = useState("");
-  const [show, setShow] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   if (!user) return null;
 
@@ -43,55 +50,160 @@ export default function ChangePassword() {
   };
 
   return (
-    <div className="min-h-[100svh] flex items-center justify-center">
-      <div className="w-full max-w-md p-6">
-        <div className="card-surface rounded-xl p-6">
-          <h2 className="text-xl font-semibold mb-2">Alterar senha</h2>
-          <p className="text-sm text-muted-foreground mb-4">
-            Você precisa alterar sua senha antes de continuar.
-          </p>
-          <form onSubmit={submit} className="grid gap-4">
-            <div className="grid gap-2">
-              <Label>Nova senha</Label>
-              <div className="relative">
-                <Input
-                  type={show ? "text" : "password"}
-                  value={senha}
-                  onChange={(e) => setSenha(e.target.value)}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShow((s) => !s)}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-sm text-muted-foreground"
-                >
-                  {show ? "Ocultar" : "Mostrar"}
-                </button>
+    <div className="relative min-h-[100svh] w-full flex items-center justify-center overflow-hidden bg-background">
+      {/* Fundo com mídia */}
+      <LoginMediaPanel />
+
+      {/* Conteúdo principal */}
+      <div className="relative z-10 w-full h-screen flex items-center justify-center p-6 md:p-10">
+        <div 
+          className={`w-full max-w-[480px] transition-all duration-1000 ${
+            mounted ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
+          }`}
+        >
+          {/* Card de Alteração de Senha */}
+          <div className="card-surface rounded-xl p-6 sm:p-8 shadow-2xl border">
+            {/* Header com logo */}
+            <div className="mb-6">
+              <div className="flex items-center gap-4 mb-4">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-primary/20 rounded-2xl blur-lg animate-pulse" />
+                  <div className="relative p-3.5 brand-gradient rounded-2xl shadow-lg">
+                    <Headphones className="w-7 h-7 text-primary-foreground" />
+                  </div>
+                </div>
+                <div>
+                  <h1 className="text-2xl font-bold tracking-tight">
+                    Central de Suporte
+                  </h1>
+                  <p className="text-sm text-primary font-medium">
+                    Sistema de Atendimento TI
+                  </p>
+                </div>
               </div>
             </div>
-            <div className="grid gap-2">
-              <Label>Confirmar nova senha</Label>
-              <Input
-                type={show ? "text" : "password"}
-                value={senhaConfirm}
-                onChange={(e) => setSenhaConfirm(e.target.value)}
-              />
+
+            {/* Título da página */}
+            <div className="mb-6">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="p-2 bg-primary/10 rounded-lg">
+                  <ShieldCheck className="w-5 h-5 text-primary" />
+                </div>
+                <h2 className="text-xl font-semibold">Alterar senha</h2>
+              </div>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Por segurança, você precisa alterar sua senha antes de continuar. 
+                Escolha uma senha forte com no mínimo 6 caracteres.
+              </p>
             </div>
-            <div className="flex justify-end gap-2">
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => {
-                  logout();
-                  navigate("/login");
-                }}
-              >
-                Cancelar
-              </Button>
-              <Button type="submit" disabled={loading}>
-                {loading ? "Salvando..." : "Salvar"}
-              </Button>
+
+            {/* Formulário */}
+            <form onSubmit={submit} className="space-y-4">
+              {/* Nova senha */}
+              <div className="grid gap-2">
+                <Label htmlFor="senha">Nova senha</Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="senha"
+                    type={showPassword ? "text" : "password"}
+                    value={senha}
+                    onChange={(e) => setSenha(e.target.value)}
+                    placeholder="Mínimo 6 caracteres"
+                    className="pl-10 pr-10 h-11"
+                    required
+                    disabled={loading}
+                    minLength={6}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Confirmar senha */}
+              <div className="grid gap-2">
+                <Label htmlFor="senhaConfirm">Confirmar nova senha</Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="senhaConfirm"
+                    type={showPassword ? "text" : "password"}
+                    value={senhaConfirm}
+                    onChange={(e) => setSenhaConfirm(e.target.value)}
+                    placeholder="Digite a senha novamente"
+                    className="pl-10 h-11"
+                    required
+                    disabled={loading}
+                    minLength={6}
+                  />
+                </div>
+              </div>
+
+              {/* Indicador de força da senha */}
+              {senha && (
+                <div className="space-y-1">
+                  <div className="flex gap-1">
+                    <div className={`h-1.5 flex-1 rounded-full transition-colors ${
+                      senha.length >= 6 ? 'bg-primary' : 'bg-muted'
+                    }`} />
+                    <div className={`h-1.5 flex-1 rounded-full transition-colors ${
+                      senha.length >= 8 ? 'bg-primary' : 'bg-muted'
+                    }`} />
+                    <div className={`h-1.5 flex-1 rounded-full transition-colors ${
+                      senha.length >= 10 && /[A-Z]/.test(senha) && /[0-9]/.test(senha) ? 'bg-primary' : 'bg-muted'
+                    }`} />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {senha.length < 6 ? 'Senha fraca' : 
+                     senha.length < 8 ? 'Senha média' : 
+                     senha.length >= 10 && /[A-Z]/.test(senha) && /[0-9]/.test(senha) ? 'Senha forte' : 'Senha boa'}
+                  </p>
+                </div>
+              )}
+
+              {/* Botões */}
+              <div className="flex gap-3 pt-4">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => {
+                    logout();
+                    navigate("/login");
+                  }}
+                  disabled={loading}
+                  className="flex-1 h-11 rounded-md"
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={loading}
+                  className="flex-1 h-11 rounded-md"
+                >
+                  {loading ? (
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                      <span>Salvando...</span>
+                    </div>
+                  ) : (
+                    "Salvar senha"
+                  )}
+                </Button>
+              </div>
+            </form>
+
+            {/* Footer */}
+            <div className="mt-6 pt-6 border-t">
+              <p className="text-xs text-muted-foreground text-center">
+                © {new Date().getFullYear()} Central de Suporte TI — Sistema interno
+              </p>
             </div>
-          </form>
+          </div>
         </div>
       </div>
     </div>
