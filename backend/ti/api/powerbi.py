@@ -82,11 +82,12 @@ async def get_service_principal_token() -> str:
 async def get_powerbi_token(db: Session = Depends(get_db)):
     """Get Power BI access token for embedded authentication"""
     try:
+        config = get_powerbi_config()
         token = await get_service_principal_token()
         return {
             "access_token": token,
             "token_type": "Bearer",
-            "display_name": POWERBI_DISPLAY_NAME,
+            "display_name": config["display_name"],
         }
     except HTTPException:
         raise
