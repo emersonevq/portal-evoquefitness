@@ -23,20 +23,7 @@ async function fetchLoginMedia(signal?: AbortSignal): Promise<MediaItem[]> {
 }
 
 export default function LoginMediaPanel() {
-  const defaultItems: MediaItem[] = [
-    {
-      id: "default-1",
-      type: "image",
-      url: "https://cdn.builder.io/api/v1/image/assets%2Ffebea1b69437410ebd88e454001ca510%2Fe38b6c90873e4ea48f163db39b62fff9?format=webp&width=1600",
-    },
-    {
-      id: "default-2",
-      type: "image",
-      url: "https://cdn.builder.io/api/v1/image/assets%2Ffebea1b69437410ebd88e454001ca510%2F3a4a4f300e384651b805810074ea77d3?format=webp&width=1600",
-    },
-  ];
-
-  const [items, setItems] = useState<MediaItem[]>(defaultItems);
+  const [items, setItems] = useState<MediaItem[]>([]);
   const [loadedVideos, setLoadedVideos] = useState<Set<string | number>>(
     new Set(),
   );
