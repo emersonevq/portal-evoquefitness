@@ -54,7 +54,7 @@ import {
   Monitoramento as AdminMonitoramento,
   Historico as AdminHistorico,
 } from "./pages/sectors/ti/admin/Sections";
-import RequireLogin from "./components/RequireLogin";
+import RequireLogin from "./components/layout/RequireLogin";
 
 const queryClient = new QueryClient();
 
