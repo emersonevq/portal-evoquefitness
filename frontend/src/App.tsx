@@ -47,6 +47,7 @@ import {
   Integracoes as ConfIntegracoes,
   Acoes as ConfAcoes,
 } from "./pages/sectors/ti/admin/configuracoes/pages";
+import { SLASync as ConfSLASync } from "./pages/sectors/ti/admin/configuracoes/SLASync";
 import LoginMediaConfig from "./pages/sectors/ti/admin/configuracoes/LoginMediaConfig";
 import AlertsConfig from "./pages/sectors/ti/admin/configuracoes/AlertsConfig";
 import {
@@ -114,6 +115,7 @@ const App = () => (
             <Route path="configuracoes" element={<ConfiguracoesLayout />}>
               <Route index element={<ConfSLA />} />
               <Route path="sla" element={<ConfSLA />} />
+              <Route path="sla-sync" element={<ConfSLASync />} />
               <Route path="prioridades" element={<ConfPrioridades />} />
               <Route path="notificacoes" element={<ConfNotificacoes />} />
               <Route path="sistema" element={<ConfSistema />} />

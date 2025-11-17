@@ -2,6 +2,7 @@ import { NavLink, Outlet } from "react-router-dom";
 
 const menu = [
   { to: "sla", label: "Configurações de SLA" },
+  { to: "sla-sync", label: "Sincronizar SLA" },
   { to: "prioridades", label: "Prioridades dos Problemas" },
   { to: "notificacoes", label: "Notificações" },
   { to: "sistema", label: "Sistema" },

@@ -10,6 +10,8 @@ from ti.schemas.chamado import (
     ALLOWED_STATUSES,
 )
 from ti.services.chamados import criar_chamado as service_criar
+from ti.services.sla import SLACalculator
+from ti.models.sla_config import HistoricoSLA
 from core.realtime import sio
 from werkzeug.security import check_password_hash
 from ..models.notification import Notification
@@ -24,6 +26,54 @@ from core.email_msgraph import send_async, send_chamado_abertura, send_chamado_s
 from fastapi.responses import Response
 
 router = APIRouter(prefix="/chamados", tags=["TI - Chamados"])
+
+
+def _sincronizar_sla(db: Session, chamado: Chamado, status_anterior: str | None = None) -> None:
+    """
+    Função auxiliar para sincronizar um chamado com a tabela de histórico de SLA.
+    Deve ser chamada sempre que um chamado é criado ou atualizado.
+    """
+    try:
+        try:
+            HistoricoSLA.__table__.create(bind=engine, checkfirst=True)
+        except Exception:
+            pass
+
+        sla_status = SLACalculator.get_sla_status(db, chamado)
+
+        # Procura por histórico existente
+        existing = db.query(HistoricoSLA).filter(
+            HistoricoSLA.chamado_id == chamado.id
+        ).order_by(HistoricoSLA.criado_em.desc()).first()
+
+        if existing:
+            # Atualiza o último histórico com novos cálculos
+            existing.status_novo = chamado.status
+            existing.status_anterior = status_anterior or existing.status_anterior
+            existing.tempo_resolucao_horas = sla_status.get("tempo_resolucao_horas")
+            existing.limite_sla_horas = sla_status.get("tempo_resolucao_limite_horas")
+            existing.status_sla = sla_status.get("tempo_resolucao_status")
+            db.add(existing)
+        else:
+            # Cria novo histórico
+            historico = HistoricoSLA(
+                chamado_id=chamado.id,
+                usuario_id=None,
+                acao="criacao" if not status_anterior else "atualizacao",
+                status_anterior=status_anterior,
+                status_novo=chamado.status,
+                tempo_resolucao_horas=sla_status.get("tempo_resolucao_horas"),
+                limite_sla_horas=sla_status.get("tempo_resolucao_limite_horas"),
+                status_sla=sla_status.get("tempo_resolucao_status"),
+                criado_em=chamado.data_abertura or now_brazil_naive(),
+            )
+            db.add(historico)
+
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        pass
+
 
 def _normalize_status(s: str) -> str:
     if not s:
@@ -68,6 +118,10 @@ def criar_chamado(payload: ChamadoCreate, db: Session = Depends(get_db)):
         except Exception:
             pass
         ch = service_criar(db, payload)
+
+        # Sincroniza o chamado com a tabela de SLA
+        _sincronizar_sla(db, ch)
+
         try:
             Notification.__table__.create(bind=engine, checkfirst=True)
             dados = json.dumps({
@@ -208,6 +262,10 @@ def criar_chamado_com_anexos(
             descricao=descricao,
         )
         ch = service_criar(db, payload)
+
+        # Sincroniza o chamado com a tabela de SLA
+        _sincronizar_sla(db, ch)
+
         if files:
             user_id = None
             if autor_email:
@@ -508,6 +566,10 @@ def atualizar_status(chamado_id: int, payload: ChamadoStatusUpdate, db: Session 
         db.add(ch)
         db.commit()  # garante persistência do status antes dos logs
         db.refresh(ch)
+
+        # Sincroniza automaticamente com tabela de SLA
+        _sincronizar_sla(db, ch, status_anterior=prev)
+
         try:
             Notification.__table__.create(bind=engine, checkfirst=True)
             HistoricoTicket.__table__.create(bind=engine, checkfirst=True)
@@ -540,6 +602,7 @@ def atualizar_status(chamado_id: int, payload: ChamadoStatusUpdate, db: Session 
             db.add(hs)
             db.commit()
             db.refresh(n)
+
             import anyio
             anyio.from_thread.run(sio.emit, "chamado:status", {"id": ch.id, "status": ch.status})
             anyio.from_thread.run(sio.emit, "notification:new", {
