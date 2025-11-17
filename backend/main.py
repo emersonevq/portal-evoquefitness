@@ -51,7 +51,7 @@ def login_media(db: Session = Depends(get_db)):
                 {
                     "id": m.id,
                     "type": m.media_type,
-                    "url": m.caminho_arquivo,
+                    "url": f"/api/login-media/{m.id}/download",
                     "title": m.title,
                     "description": m.description,
                     "mime": m.mime_type,
@@ -60,6 +60,24 @@ def login_media(db: Session = Depends(get_db)):
         return out
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro ao listar mídias: {e}")
+
+
+@_http.get("/api/login-media/{item_id}/download")
+def download_login_media(item_id: int, db: Session = Depends(get_db)):
+    try:
+        m = db.query(Media).filter(Media.id == int(item_id), Media.ativo == True).first()
+        if not m or not m.conteudo:
+            raise HTTPException(status_code=404, detail="Mídia não encontrada")
+        from fastapi.responses import StreamingResponse
+        return StreamingResponse(
+            iter([m.conteudo]),
+            media_type=m.mime_type or "application/octet-stream",
+            headers={"Content-Disposition": f"inline; filename={m.filename}"}
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao baixar mídia: {e}")
 
 
 @_http.post("/api/login-media/upload")
