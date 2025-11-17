@@ -162,68 +162,41 @@ def login_media(db: Session = Depends(get_db)):
 
 @_http.get("/api/login-media/{item_id}/download")
 def download_login_media(item_id: int, db: Session = Depends(get_db)):
+    print(f"\n[DL] ==== START ID:{item_id} ====")
     try:
-        print(f"[DOWNLOAD] ===== Requisição para ID: {item_id} =====")
-
         m = db.query(Media).filter(Media.id == int(item_id)).first()
+        print(f"[DL] Query result: {m is not None}")
 
         if not m:
-            print(f"[DOWNLOAD] ERRO: Mídia com ID {item_id} não encontrada no banco")
-            raise HTTPException(status_code=404, detail="Mídia não encontrada")
+            print(f"[DL] Not found")
+            raise HTTPException(status_code=404, detail="Not found")
 
-        print(f"[DOWNLOAD] Status: {m.status}, Tipo: {m.tipo}, Titulo: {m.titulo}")
+        print(f"[DL] Type:{m.tipo} Status:{m.status} Title:{m.titulo}")
 
-        if m.status != "ativo":
-            print(f"[DOWNLOAD] ERRO: Mídia com status '{m.status}' não pode ser baixada")
-            raise HTTPException(status_code=404, detail="Mídia não está ativa")
+        blob = m.arquivo_blob
+        print(f"[DL] Blob type: {type(blob).__name__} Size: {len(blob) if blob else 0}")
 
-        if m.arquivo_blob is None:
-            print(f"[DOWNLOAD] ERRO: arquivo_blob é None")
-            raise HTTPException(status_code=404, detail="Arquivo não existe")
+        if not blob:
+            raise HTTPException(status_code=404, detail="No data")
 
-        data = m.arquivo_blob
-        print(f"[DOWNLOAD] arquivo_blob tipo: {type(data)}, tamanho antes: {len(data) if data else 0}")
+        mime = m.mime_type or "application/octet-stream"
+        name = (m.titulo or "media").replace(" ", "_")
 
-        try:
-            if not isinstance(data, bytes):
-                print(f"[DOWNLOAD] Convertendo {type(data)} para bytes...")
-                if isinstance(data, bytearray):
-                    data = bytes(data)
-                elif isinstance(data, memoryview):
-                    data = bytes(data)
-                elif hasattr(data, 'read'):
-                    data = data.read()
-                else:
-                    data = bytes(data)
-        except Exception as conv_err:
-            print(f"[DOWNLOAD] ERRO ao converter para bytes: {conv_err}")
-            raise
-
-        if not data or len(data) == 0:
-            print(f"[DOWNLOAD] ERRO: Arquivo vazio")
-            raise HTTPException(status_code=404, detail="Arquivo vazio")
-
-        filename = (m.titulo or "media").replace(" ", "_")
-        media_type = m.mime_type or "application/octet-stream"
-
-        print(f"[DOWNLOAD] OK: Enviando {len(data)} bytes, tipo: {media_type}")
+        print(f"[DL] Returning: {len(blob)} bytes as {mime}")
+        print(f"[DL] ==== END ====\n")
 
         return Response(
-            content=data,
-            media_type=media_type,
-            headers={
-                "Content-Disposition": f"inline; filename={filename}",
-                "Content-Length": str(len(data)),
-                "Cache-Control": "public, max-age=3600"
-            }
+            content=blob,
+            media_type=mime,
+            headers={"Content-Disposition": f"inline; filename={name}"}
         )
     except HTTPException:
         raise
     except Exception as e:
-        print(f"[DOWNLOAD] ERRO CRÍTICO: {type(e).__name__}: {e}")
+        print(f"[DL] EXCEPTION: {e}")
         import traceback
         traceback.print_exc()
-        raise HTTPException(status_code=500, detail=f"Erro ao baixar mídia: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @_http.get("/api/login-media/{item_id}/debug")
