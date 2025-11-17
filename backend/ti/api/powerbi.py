@@ -78,6 +78,48 @@ async def get_powerbi_token(db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.get("/embed-token/{report_id}")
+async def get_embed_token(report_id: str, db: Session = Depends(get_db)):
+    """Generate an embed token for a specific Power BI report"""
+    try:
+        service_token = await get_service_principal_token()
+        headers = {"Authorization": f"Bearer {service_token}"}
+
+        payload = {
+            "accessLevel": "View",
+            "identities": [
+                {
+                    "username": "service-principal",
+                    "roles": [],
+                    "datasets": [report_id]
+                }
+            ]
+        }
+
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                f"{POWERBI_API_URL}/reports/{report_id}/GenerateToken",
+                json=payload,
+                headers=headers,
+            )
+
+            if response.status_code != 200:
+                print(f"Embed token error: {response.text}")
+                raise HTTPException(status_code=401, detail="Failed to generate embed token")
+
+            token_data = response.json()
+            return {
+                "token": token_data.get("token"),
+                "expiration": token_data.get("expiration"),
+                "report_id": report_id,
+            }
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error generating embed token: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.get("/dashboards")
 async def get_powerbi_dashboards(db: Session = Depends(get_db)):
     """Get list of Power BI dashboards"""
