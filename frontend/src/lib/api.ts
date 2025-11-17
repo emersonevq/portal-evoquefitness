@@ -77,7 +77,10 @@ export const api = {
     if (!response.ok) {
       const error = new Error("API Error") as any;
       try {
-        error.response = { status: response.status, data: await response.json() };
+        error.response = {
+          status: response.status,
+          data: await response.json(),
+        };
       } catch {
         error.response = { status: response.status, data: null };
       }
