@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { Dashboard } from "../data/dashboards";
 import { Loader } from "lucide-react";
 import { apiFetch } from "@/lib/api";
+import * as pbi from "powerbi-client";
 
 interface DashboardViewerProps {
   dashboard: Dashboard;
@@ -11,56 +12,119 @@ const TENANT_ID = "9f45f492-87a3-4214-862d-4c0d080aa136";
 
 export default function DashboardViewer({ dashboard }: DashboardViewerProps) {
   const [isLoading, setIsLoading] = useState(true);
-  const [embedToken, setEmbedToken] = useState<string | null>(null);
+  const [embedError, setEmbedError] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const embedContainerRef = useRef<HTMLDivElement | null>(null);
+  const reportRef = useRef<pbi.Report | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
-  // Load embed token on mount or when dashboard changes
+  // Load and embed Power BI report with token
   useEffect(() => {
     let isMounted = true;
+    let report: pbi.Report | null = null;
 
-    const loadEmbedToken = async () => {
+    const embedReport = async () => {
       try {
         setIsLoading(true);
-        const response = await apiFetch(`/powerbi/embed-token/${dashboard.reportId}`);
+        setEmbedError(null);
 
-        if (!response.ok) {
-          console.error("Failed to get embed token:", response.status);
-          // Fall back to iframe without token
-          setIsLoading(false);
-          return;
+        // Get embed token
+        const tokenResponse = await apiFetch(
+          `/powerbi/embed-token/${dashboard.reportId}`
+        );
+
+        if (!tokenResponse.ok) {
+          throw new Error(`Failed to get embed token: ${tokenResponse.status}`);
         }
 
-        const data = await response.json();
-        if (isMounted) {
-          setEmbedToken(data.token);
-          setIsLoading(false);
+        const tokenData = await tokenResponse.json();
+        const embedToken = tokenData.token;
+
+        if (!embedToken) {
+          throw new Error("No embed token received");
+        }
+
+        // Create Power BI client
+        const powerBiClient = new pbi.service.Service(
+          pbi.factories.hpmFactory,
+          pbi.factories.wpmpFactory,
+          pbi.factories.routerFactory
+        );
+
+        // Configure embed config
+        const embedConfig: pbi.IReportEmbedConfiguration = {
+          type: "report",
+          id: dashboard.reportId,
+          embedUrl: `https://app.powerbi.com/reportEmbed?reportId=${dashboard.reportId}&ctid=${TENANT_ID}`,
+          accessToken: embedToken,
+          tokenExpiration: new Date(Date.now() + 60 * 60 * 1000), // 1 hour
+          permissions: pbi.models.Permissions.All,
+          settings: {
+            filterPaneEnabled: true,
+            navContentPaneEnabled: true,
+            bars: {
+              statusBar: {
+                visible: true,
+              },
+            },
+          },
+        };
+
+        // Embed the report
+        if (embedContainerRef.current && isMounted) {
+          report = powerBiClient.embed(
+            embedContainerRef.current,
+            embedConfig as any
+          ) as pbi.Report;
+          reportRef.current = report;
+
+          // Handle events
+          report.on("loaded", () => {
+            if (isMounted) {
+              setIsLoading(false);
+            }
+          });
+
+          report.on("error", (event: any) => {
+            console.error("Report error:", event.detail);
+            if (isMounted) {
+              setEmbedError("Failed to load report");
+              setIsLoading(false);
+            }
+          });
         }
       } catch (error) {
-        console.error("Error loading embed token:", error);
-        // Fall back to iframe without token
+        console.error("Error embedding report:", error);
         if (isMounted) {
+          setEmbedError(
+            error instanceof Error
+              ? error.message
+              : "Failed to load dashboard"
+          );
           setIsLoading(false);
         }
       }
     };
 
-    loadEmbedToken();
+    embedReport();
 
     return () => {
       isMounted = false;
+      if (report) {
+        report = null;
+      }
     };
   }, [dashboard.reportId]);
 
-  // Sync fullscreen state with browser events (handles Esc key and other exits)
+  // Sync fullscreen state with browser events
   useEffect(() => {
     const handler = () =>
       setIsFullscreen(
         Boolean(
           (document as any).fullscreenElement ||
             (document as any).webkitFullscreenElement ||
-            (document as any).mozFullScreenElement,
-        ),
+            (document as any).mozFullScreenElement
+        )
       );
     document.addEventListener("fullscreenchange", handler);
     document.addEventListener("webkitfullscreenchange", handler);
@@ -88,7 +152,6 @@ export default function DashboardViewer({ dashboard }: DashboardViewerProps) {
           else if (el.webkitRequestFullscreen)
             await el.webkitRequestFullscreen();
           else if (el.mozRequestFullScreen) await el.mozRequestFullScreen();
-          // optimistically set state so controls appear even if vendor events don't fire
           setIsFullscreen(true);
         }
       } else {
@@ -105,7 +168,6 @@ export default function DashboardViewer({ dashboard }: DashboardViewerProps) {
 
   return (
     <div className="w-full h-full flex flex-col">
-      {/* Header compacto (aparece normalmente; in fullscreen será reposicionado por CSS) */}
       <div className="bi-dashboard-header px-4 py-2 border-b bg-white flex items-center justify-between">
         <div>
           <h1 className="text-base font-semibold text-gray-900">
@@ -185,7 +247,6 @@ export default function DashboardViewer({ dashboard }: DashboardViewerProps) {
         </div>
       </div>
 
-      {/* Container principal OTIMIZADO */}
       <div className="flex-1 bi-viewer-outer" ref={containerRef}>
         {isLoading && (
           <div className="bi-loading-overlay">
@@ -196,23 +257,25 @@ export default function DashboardViewer({ dashboard }: DashboardViewerProps) {
           </div>
         )}
 
-        <div className="bi-embed-card">
-          <div className="bi-embed-viewport">
-            <div className="bi-embed-inner">
-              <iframe
-                title={dashboard.title}
-                src={`https://app.powerbi.com/reportEmbed?reportId=${dashboard.reportId}&ctid=${TENANT_ID}&navContentPaneEnabled=true&filterPaneEnabled=true`}
-                frameBorder="0"
-                allowFullScreen
-                onLoad={() => setIsLoading(false)}
-                className="bi-embed-iframe"
-                data-token={embedToken}
-              />
+        {embedError && (
+          <div className="bi-loading-overlay">
+            <div className="flex flex-col items-center gap-3">
+              <div className="text-4xl">⚠️</div>
+              <p className="text-sm text-red-600">{embedError}</p>
             </div>
           </div>
-        </div>
+        )}
 
-        {/* Floating exit button visible in fullscreen mode */}
+        <div
+          className="bi-embed-card"
+          ref={embedContainerRef}
+          style={{
+            width: "100%",
+            height: "100%",
+            display: embedError ? "none" : "block",
+          }}
+        />
+
         {isFullscreen && (
           <button
             onClick={toggleFullscreen}
