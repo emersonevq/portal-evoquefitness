@@ -186,7 +186,11 @@ def download_login_media(item_id: int, request: Request, db: Session = Depends(g
             raise HTTPException(status_code=404, detail="No data")
 
         mime = m.mime_type or "application/octet-stream"
-        name = (m.titulo or "media").replace(" ", "_")
+        # Sanitize filename: remove emojis and non-ASCII characters for HTTP headers
+        title_clean = (m.titulo or "media").encode("ascii", errors="ignore").decode("ascii")
+        name = title_clean.replace(" ", "_").replace("/", "_").replace("\\", "_")
+        if not name or name.strip() == "":
+            name = "media"
         file_size = len(blob)
 
         # Check for Range header (HTTP 206 Partial Content)
