@@ -174,63 +174,6 @@ def download_login_media(item_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=f"Erro ao baixar mídia: {str(e)}")
 
 
-@_http.post("/api/login-media/upload")
-async def upload_login_media(file: UploadFile = File(...), db: Session = Depends(get_db)):
-    if not file:
-        raise HTTPException(status_code=400, detail="Arquivo ausente")
-
-    content_type = (file.content_type or "").lower()
-    print(f"[UPLOAD] Arquivo: {file.filename}, Content-Type: {content_type}")
-
-    if content_type.startswith("image/"):
-        kind = "foto"
-    elif content_type.startswith("video/"):
-        kind = "video"
-    else:
-        raise HTTPException(status_code=400, detail="Tipo de arquivo não suportado")
-
-    original_name = Path(file.filename or "arquivo").name
-    titulo = Path(original_name).stem or "mídia"
-
-    data = await file.read()
-    print(f"[UPLOAD] Tamanho do arquivo: {len(data)} bytes")
-
-    try:
-        m = Media(
-            tipo=kind,
-            titulo=titulo,
-            descricao=None,
-            arquivo_blob=data,
-            mime_type=content_type,
-            tamanho_bytes=len(data),
-            status="ativo",
-        )
-        db.add(m)
-        db.commit()
-        db.refresh(m)
-
-        print(f"[UPLOAD] Salvo com ID: {m.id}")
-
-        m.url = f"/api/login-media/{m.id}/download"
-        db.add(m)
-        db.commit()
-
-        media_type = "image" if kind == "foto" else "video"
-        result = {
-            "id": m.id,
-            "type": media_type,
-            "url": f"/api/login-media/{m.id}/download",
-            "mime": m.mime_type,
-        }
-        print(f"[UPLOAD] Resposta: {result}")
-        return result
-    except Exception as e:
-        print(f"[UPLOAD] Falha ao salvar registro: {e}")
-        import traceback
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail=f"Falha ao salvar registro: {str(e)}")
-
-
 @_http.delete("/api/login-media/{item_id}")
 async def delete_login_media(item_id: int, db: Session = Depends(get_db)):
     try:
