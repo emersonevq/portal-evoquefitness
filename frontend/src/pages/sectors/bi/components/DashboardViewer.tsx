@@ -75,6 +75,12 @@ export default function DashboardViewer({ dashboard }: DashboardViewerProps) {
         }
 
         if (!isMounted) return;
+
+        const isDevelopmentMode = tokenData.mode === "development";
+        if (isDevelopmentMode) {
+          console.warn("⚠️ Modo de desenvolvimento: usando token simulado");
+        }
+
         setIsAuthenticating(false);
 
         // Create Power BI client
