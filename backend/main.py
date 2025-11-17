@@ -47,6 +47,12 @@ from core.db import get_db, engine
 from ti.models.media import Media
 
 
+@_http.get("/api/test-backend")
+def test_backend():
+    """Simples teste para confirmar que o backend foi reiniciado"""
+    return {"status": "Backend está rodando com o código atualizado!", "timestamp": "OK"}
+
+
 @_http.post("/api/login-media/upload")
 async def upload_login_media(file: UploadFile = File(...), db: Session = Depends(get_db)):
     if not file:
