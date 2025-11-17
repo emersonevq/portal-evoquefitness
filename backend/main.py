@@ -41,8 +41,8 @@ def login_media(db: Session = Depends(get_db)):
     try:
         try:
             Media.__table__.create(bind=engine, checkfirst=True)
-        except Exception:
-            pass
+        except Exception as create_err:
+            print(f"Erro ao criar tabela: {create_err}")
         q = db.query(Media).filter(Media.status == "ativo").order_by(Media.id.desc()).all()
         out = []
         for m in q:
@@ -59,7 +59,10 @@ def login_media(db: Session = Depends(get_db)):
             )
         return out
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erro ao listar mídias: {e}")
+        print(f"Erro ao listar mídias: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Erro ao listar mídias: {str(e)}")
 
 
 @_http.get("/api/login-media/{item_id}/download")
