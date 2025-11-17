@@ -15,6 +15,43 @@ export default function DashboardViewer({ dashboard }: DashboardViewerProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
+  // Load embed token on mount or when dashboard changes
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadEmbedToken = async () => {
+      try {
+        setIsLoading(true);
+        const response = await apiFetch(`/powerbi/embed-token/${dashboard.reportId}`);
+
+        if (!response.ok) {
+          console.error("Failed to get embed token:", response.status);
+          // Fall back to iframe without token
+          setIsLoading(false);
+          return;
+        }
+
+        const data = await response.json();
+        if (isMounted) {
+          setEmbedToken(data.token);
+          setIsLoading(false);
+        }
+      } catch (error) {
+        console.error("Error loading embed token:", error);
+        // Fall back to iframe without token
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    loadEmbedToken();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [dashboard.reportId]);
+
   // Sync fullscreen state with browser events (handles Esc key and other exits)
   useEffect(() => {
     const handler = () =>
