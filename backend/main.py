@@ -65,13 +65,14 @@ def login_media(db: Session = Depends(get_db)):
 @_http.get("/api/login-media/{item_id}/download")
 def download_login_media(item_id: int, db: Session = Depends(get_db)):
     try:
-        m = db.query(Media).filter(Media.id == int(item_id), Media.ativo == True).first()
-        if not m or not m.conteudo:
+        m = db.query(Media).filter(Media.id == int(item_id), Media.status == "ativo").first()
+        if not m or not m.arquivo_blob:
             raise HTTPException(status_code=404, detail="Mídia não encontrada")
+        filename = m.titulo or "media"
         return StreamingResponse(
-            iter([m.conteudo]),
+            iter([m.arquivo_blob]),
             media_type=m.mime_type or "application/octet-stream",
-            headers={"Content-Disposition": f"inline; filename={m.filename}"}
+            headers={"Content-Disposition": f"inline; filename={filename}"}
         )
     except HTTPException:
         raise
