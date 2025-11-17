@@ -104,6 +104,33 @@ async def upload_login_media(file: UploadFile = File(...), db: Session = Depends
         raise HTTPException(status_code=500, detail=f"Falha ao salvar registro: {str(e)}")
 
 
+@_http.get("/api/login-media/debug/all")
+def login_media_debug_all(db: Session = Depends(get_db)):
+    """Lista TODOS os vídeos (ativo e inativo) para debug"""
+    try:
+        all_media = db.query(Media).all()
+        return {
+            "total": len(all_media),
+            "items": [
+                {
+                    "id": m.id,
+                    "tipo": m.tipo,
+                    "titulo": m.titulo,
+                    "mime_type": m.mime_type,
+                    "tamanho_bytes": m.tamanho_bytes,
+                    "arquivo_blob_size": len(m.arquivo_blob) if m.arquivo_blob else 0,
+                    "status": m.status,
+                }
+                for m in all_media
+            ]
+        }
+    except Exception as e:
+        print(f"[DEBUG_ALL] Erro: {e}")
+        import traceback
+        traceback.print_exc()
+        return {"erro": str(e)}
+
+
 @_http.get("/api/login-media")
 def login_media(db: Session = Depends(get_db)):
     try:
