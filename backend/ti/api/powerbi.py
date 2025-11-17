@@ -10,71 +10,59 @@ load_dotenv()
 
 router = APIRouter(prefix="/powerbi", tags=["Power BI"])
 
-def get_powerbi_config():
-    """Get Power BI configuration from environment variables (dynamic reading)"""
-    return {
-        "client_id": os.getenv("POWERBI_CLIENT_ID", "7cc65d27-294f-47a4-a525-d5efb61871f5"),
-        "client_secret": os.getenv("POWERBI_CLIENT_SECRET", "").strip(),
-        "object_id": os.getenv("POWERBI_OBJECT_ID", "ed04a53f-153b-4a99-8104-47e88c0a5476"),
-        "tenant_id": os.getenv("POWERBI_TENANT_ID", "9f45f492-87a3-4214-862d-4c0d080aa136"),
-        "display_name": os.getenv("POWERBI_DISPLAY_NAME", "PORTAL BI"),
-    }
-
-# Defaults for backwards compatibility
+# Power BI Configuration - ler do .env
 POWERBI_CLIENT_ID = os.getenv("POWERBI_CLIENT_ID", "7cc65d27-294f-47a4-a525-d5efb61871f5")
+POWERBI_CLIENT_SECRET = os.getenv("POWERBI_CLIENT_SECRET", "").strip()
+POWERBI_OBJECT_ID = os.getenv("POWERBI_OBJECT_ID", "ed04a53f-153b-4a99-8104-47e88c0a5476")
 POWERBI_TENANT_ID = os.getenv("POWERBI_TENANT_ID", "9f45f492-87a3-4214-862d-4c0d080aa136")
 POWERBI_DISPLAY_NAME = os.getenv("POWERBI_DISPLAY_NAME", "PORTAL BI")
 
-def get_authority_url():
-    """Get authority URL from current config"""
-    config = get_powerbi_config()
-    return f"https://login.microsoftonline.com/{config['tenant_id']}"
-
-def get_token_endpoint():
-    """Get token endpoint from current config"""
-    return f"{get_authority_url()}/oauth2/v2.0/token"
-
+AUTHORITY_URL = f"https://login.microsoftonline.com/{POWERBI_TENANT_ID}"
+TOKEN_ENDPOINT = f"{AUTHORITY_URL}/oauth2/v2.0/token"
 POWERBI_API_URL = "https://api.powerbi.com/v1.0/myorg"
+
+print(f"[POWERBI] Configuração carregada:")
+print(f"  CLIENT_ID: {POWERBI_CLIENT_ID[:20]}...")
+print(f"  CLIENT_SECRET: {'✅ Configurado' if POWERBI_CLIENT_SECRET else '❌ Não configurado'}")
+print(f"  TENANT_ID: {POWERBI_TENANT_ID}")
 
 
 async def get_service_principal_token() -> str:
     """Get access token using service principal credentials (Client Credentials Flow)"""
-    config = get_powerbi_config()
-
-    if not config["client_secret"]:
+    if not POWERBI_CLIENT_SECRET:
         raise HTTPException(
             status_code=400,
-            detail="Power BI client secret not configured. Please add POWERBI_CLIENT_SECRET to environment variables. Failed to get Power BI token"
+            detail="Power BI client secret not configured. Please add POWERBI_CLIENT_SECRET to environment variables."
         )
 
     try:
         async with httpx.AsyncClient() as client:
             response = await client.post(
-                get_token_endpoint(),
+                TOKEN_ENDPOINT,
                 data={
                     "grant_type": "client_credentials",
-                    "client_id": config["client_id"],
-                    "client_secret": config["client_secret"],
+                    "client_id": POWERBI_CLIENT_ID,
+                    "client_secret": POWERBI_CLIENT_SECRET,
                     "scope": "https://analysis.windows.net/powerbi/api/.default",
                 },
             )
 
             if response.status_code != 200:
-                print(f"Token error: {response.text}")
+                print(f"[POWERBI] Token error: {response.text}")
                 raise HTTPException(status_code=400, detail="Failed to get Power BI token")
 
             token_data = response.json()
             access_token = token_data.get("access_token")
             if not access_token:
-                raise HTTPException(status_code=400, detail="No access token in response. Failed to get Power BI token")
+                raise HTTPException(status_code=400, detail="No access token in response")
             return access_token
     except httpx.RequestError as e:
-        print(f"Request error: {e}")
-        raise HTTPException(status_code=400, detail="Failed to connect to token service. Failed to get Power BI token")
+        print(f"[POWERBI] Request error: {e}")
+        raise HTTPException(status_code=400, detail="Failed to connect to token service")
     except HTTPException:
         raise
     except Exception as e:
-        print(f"Unexpected error: {e}")
+        print(f"[POWERBI] Unexpected error: {e}")
         raise HTTPException(status_code=400, detail="Failed to authenticate with Power BI")
 
 
@@ -82,28 +70,26 @@ async def get_service_principal_token() -> str:
 async def get_powerbi_token(db: Session = Depends(get_db)):
     """Get Power BI access token for embedded authentication"""
     try:
-        config = get_powerbi_config()
         token = await get_service_principal_token()
         return {
             "access_token": token,
             "token_type": "Bearer",
-            "display_name": config["display_name"],
+            "display_name": POWERBI_DISPLAY_NAME,
         }
     except HTTPException:
         raise
     except Exception as e:
-        print(f"Error in get_powerbi_token: {e}")
+        print(f"[POWERBI] Error in get_powerbi_token: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/embed-token/{report_id}")
 async def get_embed_token(report_id: str, db: Session = Depends(get_db)):
     """Generate an embed token for a specific Power BI report"""
-    print(f"[EMBED-TOKEN] Requisição recebida para report_id: {report_id}")
+    print(f"[POWERBI] [EMBED-TOKEN] Requisição para report_id: {report_id}")
     try:
-        print(f"[EMBED-TOKEN] Obtendo token de serviço...")
         service_token = await get_service_principal_token()
-        print(f"[EMBED-TOKEN] Token de serviço obtido com sucesso")
+        print(f"[POWERBI] [EMBED-TOKEN] Token de serviço obtido")
         headers = {"Authorization": f"Bearer {service_token}"}
 
         payload = {
@@ -117,7 +103,6 @@ async def get_embed_token(report_id: str, db: Session = Depends(get_db)):
             ]
         }
 
-        print(f"[EMBED-TOKEN] Chamando Power BI API: {POWERBI_API_URL}/reports/{report_id}/GenerateToken")
         async with httpx.AsyncClient() as client:
             response = await client.post(
                 f"{POWERBI_API_URL}/reports/{report_id}/GenerateToken",
@@ -125,34 +110,33 @@ async def get_embed_token(report_id: str, db: Session = Depends(get_db)):
                 headers=headers,
             )
 
-            print(f"[EMBED-TOKEN] Resposta: {response.status_code}")
+            print(f"[POWERBI] [EMBED-TOKEN] Status da resposta: {response.status_code}")
             if response.status_code != 200:
                 error_detail = response.text
-                print(f"[EMBED-TOKEN] Erro: {error_detail}")
+                print(f"[POWERBI] [EMBED-TOKEN] Erro da API: {error_detail}")
                 raise HTTPException(
                     status_code=400,
-                    detail=f"Failed to generate embed token. Report ID may be invalid or not accessible: {report_id}"
+                    detail=f"Failed to generate embed token"
                 )
 
             token_data = response.json()
             token = token_data.get("token")
             if not token:
-                print(f"[EMBED-TOKEN] Nenhum token recebido da API do Power BI")
+                print(f"[POWERBI] [EMBED-TOKEN] Nenhum token na resposta")
                 raise HTTPException(
                     status_code=400,
                     detail="No embed token received from Power BI service"
                 )
-            print(f"[EMBED-TOKEN] Sucesso! Token gerado para report_id: {report_id}")
+            print(f"[POWERBI] [EMBED-TOKEN] ✅ Sucesso!")
             return {
                 "token": token,
                 "expiration": token_data.get("expiration"),
                 "report_id": report_id,
             }
-    except HTTPException as http_exc:
-        print(f"[EMBED-TOKEN] HTTPException: {http_exc.detail}")
+    except HTTPException:
         raise
     except Exception as e:
-        print(f"[EMBED-TOKEN] Erro inesperado: {str(e)}")
+        print(f"[POWERBI] [EMBED-TOKEN] Erro inesperado: {str(e)}")
         import traceback
         traceback.print_exc()
         raise HTTPException(
@@ -175,12 +159,12 @@ async def get_powerbi_dashboards(db: Session = Depends(get_db)):
             )
             
             if response.status_code != 200:
-                print(f"Dashboards error: {response.text}")
+                print(f"[POWERBI] Dashboards error: {response.text}")
                 return {"value": []}
             
             return response.json()
     except Exception as e:
-        print(f"Error fetching dashboards: {e}")
+        print(f"[POWERBI] Error fetching dashboards: {e}")
         return {"value": []}
 
 
@@ -198,12 +182,12 @@ async def get_powerbi_reports(db: Session = Depends(get_db)):
             )
             
             if response.status_code != 200:
-                print(f"Reports error: {response.text}")
+                print(f"[POWERBI] Reports error: {response.text}")
                 return {"value": []}
             
             return response.json()
     except Exception as e:
-        print(f"Error fetching reports: {e}")
+        print(f"[POWERBI] Error fetching reports: {e}")
         return {"value": []}
 
 
@@ -211,15 +195,14 @@ async def get_powerbi_reports(db: Session = Depends(get_db)):
 async def check_powerbi_status(db: Session = Depends(get_db)):
     """Check Power BI connection status"""
     try:
-        config = get_powerbi_config()
         token = await get_service_principal_token()
         return {
             "status": "connected",
-            "display_name": config["display_name"],
-            "tenant_id": config["tenant_id"],
+            "display_name": POWERBI_DISPLAY_NAME,
+            "tenant_id": POWERBI_TENANT_ID,
         }
     except Exception as e:
-        print(f"Error checking status: {e}")
+        print(f"[POWERBI] Error checking status: {e}")
         return {
             "status": "disconnected",
             "error": str(e),
@@ -227,15 +210,15 @@ async def check_powerbi_status(db: Session = Depends(get_db)):
 
 
 @router.get("/debug/config")
-async def debug_powerbi_config():
+def debug_powerbi_config():
     """Debug endpoint to check current Power BI configuration"""
-    config = get_powerbi_config()
     return {
-        "client_id": config["client_id"],
-        "client_secret": "***" if config["client_secret"] else "(not configured)",
-        "client_secret_length": len(config["client_secret"]) if config["client_secret"] else 0,
-        "object_id": config["object_id"],
-        "tenant_id": config["tenant_id"],
-        "display_name": config["display_name"],
-        "authority_url": get_authority_url(),
+        "client_id": POWERBI_CLIENT_ID[:20] + "..." if POWERBI_CLIENT_ID else "(not configured)",
+        "client_secret": "✅ Configurado" if POWERBI_CLIENT_SECRET else "❌ Não configurado",
+        "client_secret_length": len(POWERBI_CLIENT_SECRET) if POWERBI_CLIENT_SECRET else 0,
+        "object_id": POWERBI_OBJECT_ID[:20] + "..." if POWERBI_OBJECT_ID else "(not configured)",
+        "tenant_id": POWERBI_TENANT_ID,
+        "display_name": POWERBI_DISPLAY_NAME,
+        "authority_url": AUTHORITY_URL,
+        "token_endpoint": TOKEN_ENDPOINT,
     }
