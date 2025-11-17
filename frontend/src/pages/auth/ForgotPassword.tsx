@@ -1,4 +1,3 @@
-// ForgotPassword.tsx
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -40,9 +39,9 @@ export default function ForgotPassword() {
 
       {/* Conteúdo principal */}
       <div className="relative z-10 w-full min-h-[100svh] flex items-center justify-center p-6 md:p-10">
-        <div
+        <div 
           className={`w-full max-w-[480px] transition-all duration-1000 ${
-            mounted ? "opacity-100 scale-100" : "opacity-0 scale-95"
+            mounted ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
           }`}
         >
           {/* Card de Recuperação */}
@@ -76,12 +75,9 @@ export default function ForgotPassword() {
                 <ArrowLeft className="h-4 w-4 group-hover:-translate-x-1 transition-transform" />
                 Voltar ao login
               </Link>
-              <h2 className="text-xl font-semibold mb-2">
-                Esqueci minha senha
-              </h2>
+              <h2 className="text-xl font-semibold mb-2">Esqueci minha senha</h2>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                Digite seu e-mail para receber instruções de recuperação de
-                senha.
+                Digite seu e-mail para receber instruções de recuperação de senha.
               </p>
             </div>
 
@@ -124,10 +120,7 @@ export default function ForgotPassword() {
             <div className="mt-6 pt-6 border-t text-center">
               <p className="text-sm text-muted-foreground">
                 Lembrou da senha?{" "}
-                <Link
-                  to="/login"
-                  className="text-primary hover:underline font-medium"
-                >
+                <Link to="/login" className="text-primary hover:underline font-medium">
                   Fazer login
                 </Link>
               </p>
@@ -136,8 +129,7 @@ export default function ForgotPassword() {
             {/* Footer */}
             <div className="mt-6 pt-6 border-t">
               <p className="text-xs text-muted-foreground text-center">
-                © {new Date().getFullYear()} Central de Suporte TI — Sistema
-                interno
+                © {new Date().getFullYear()} Central de Suporte TI — Sistema interno
               </p>
             </div>
           </div>
