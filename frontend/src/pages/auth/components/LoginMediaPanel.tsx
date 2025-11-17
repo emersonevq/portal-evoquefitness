@@ -170,27 +170,6 @@ function Slide({ item }: { item: MediaItem }) {
           </div>
         </div>
       )}
-      {(item.title || item.description) &&
-      (item.type === "image" || item.type === "video") ? (
-        <div className="absolute inset-x-0 bottom-0 p-6">
-          <div className="max-w-xl bg-black/35 backdrop-blur rounded-lg p-4 text-white">
-            {item.title ? (
-              <h3 className="text-lg font-semibold">{item.title}</h3>
-            ) : null}
-            {item.description ? (
-              <p className="mt-1 text-sm/6 text-white/90">{item.description}</p>
-            ) : null}
-            {item.ctaHref && item.ctaText ? (
-              <a
-                href={item.ctaHref}
-                className="inline-flex items-center justify-center mt-3 h-9 px-4 rounded-md bg-primary text-primary-foreground hover:bg-primary/90"
-              >
-                {item.ctaText}
-              </a>
-            ) : null}
-          </div>
-        </div>
-      ) : null}
     </div>
   );
 }
