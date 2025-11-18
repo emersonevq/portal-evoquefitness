@@ -96,7 +96,7 @@ export default function AuthenticationHandler({
           <div className="flex flex-col items-center gap-4">
             <div className="w-12 h-12 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
             <p className="text-base text-muted-foreground animate-pulse">
-              Carregando credenciais...
+              Logando...
             </p>
           </div>
         )}
