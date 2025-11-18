@@ -105,19 +105,15 @@ async def get_powerbi_token(db: Session = Depends(get_db)):
 @router.get("/embed-token/{report_id}")
 async def get_embed_token(
     report_id: str,
-    datasetId: str = Query(None, alias="datasetId"),
     db: Session = Depends(get_db)
 ):
     """
-    Generate an embed token for a specific Power BI report
-    
-    ⚠️ IMPORTANTE: Para Service Principal, o payload NÃO deve incluir 'identities'!
+    Generate an embed token for a specific Power BI report with Service Principal
     """
     print(f"\n[POWERBI] [EMBED-TOKEN] ========================================")
     print(f"[POWERBI] [EMBED-TOKEN] Report ID: {report_id}")
-    print(f"[POWERBI] [EMBED-TOKEN] Dataset ID: {datasetId}")
     print(f"[POWERBI] [EMBED-TOKEN] Workspace ID: {POWERBI_WORKSPACE_ID}")
-    
+
     try:
         # 1. Obter token de autenticação
         service_token = await get_service_principal_token()
@@ -126,16 +122,11 @@ async def get_embed_token(
             "Content-Type": "application/json"
         }
 
-        # 2. Construir payload CORRETO para Service Principal
-        # ✅ SEM 'identities' (isso é só para user authentication)
+        # 2. Payload simples para embed com Service Principal
         payload = {
             "accessLevel": "View"
         }
-        
-        # Adiciona datasets se fornecido
-        if datasetId:
-            payload["datasets"] = [{"id": datasetId}]
-        
+
         print(f"[POWERBI] [EMBED-TOKEN] Payload: {payload}")
 
         # 3. Fazer request para a API CORRETA (com workspace_id)
