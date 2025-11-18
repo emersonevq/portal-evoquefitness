@@ -349,8 +349,50 @@ export default function DashboardViewer({ dashboard }: DashboardViewerProps) {
             width: "100%",
             height: "100%",
             display: embedError ? "none" : "block",
+            position: "relative",
+            overflow: "hidden",
           }}
-        />
+        >
+          <canvas
+            ref={canvasRef}
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              pointerEvents: "none",
+              zIndex: 999,
+            }}
+          />
+          <div
+            ref={successOverlayRef}
+            style={{
+              position: "absolute",
+              top: "50%",
+              left: "50%",
+              transform: "translate(-50%, -50%)",
+              display: "none",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              zIndex: 1000,
+              pointerEvents: "none",
+              transition: "opacity 0.3s ease-out",
+              opacity: 0,
+            }}
+          >
+            <div
+              style={{
+                fontSize: "48px",
+                fontWeight: "bold",
+                color: "rgba(0, 0, 0, 0.7)",
+                textShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
+                letterSpacing: "0.5px",
+              }}
+            >
+              Sucesso!
+            </div>
+          </div>
+        </div>
 
         {isFullscreen && (
           <button
