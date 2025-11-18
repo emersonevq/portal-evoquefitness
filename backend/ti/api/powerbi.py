@@ -145,7 +145,6 @@ async def get_embed_token(
             except httpx.ReadTimeout:
                 print(f"[POWERBI] [EMBED-TOKEN] ⚠️ Timeout na primeira tentativa, aguardando...")
                 # Retry uma vez após esperar um pouco
-                import asyncio
                 await asyncio.sleep(2)
                 response = await client.post(
                     embed_url,
@@ -160,7 +159,7 @@ async def get_embed_token(
                 error_detail = response.text
 
                 if response.status_code == 403:
-                    print(f"\n[POWERBI] [EMBED-TOKEN] ❌ ERRO 403 - DIAGNÓSTICO:")
+                    print(f"\n[POWERBI] [EMBED-TOKEN] ��� ERRO 403 - DIAGNÓSTICO:")
                     print(f"  1. Service Principal está no workspace como Membro/Admin?")
                     print(f"     → Workspace ID: {POWERBI_WORKSPACE_ID}")
                     print(f"  2. Report ID está correto?")
