@@ -4,6 +4,8 @@ from sqlalchemy.orm import Session
 from core.db import get_db
 import httpx
 import os
+import asyncio
+import html
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -109,15 +111,14 @@ async def get_embed_token(
     db: Session = Depends(get_db)
 ):
     """
-    Generate an embed token for a specific Power BI report
-    
-    ⚠️ IMPORTANTE: Para Service Principal, o payload NÃO deve incluir 'identities'!
+    Generate an embed token for a specific Power BI report with Service Principal
     """
     print(f"\n[POWERBI] [EMBED-TOKEN] ========================================")
     print(f"[POWERBI] [EMBED-TOKEN] Report ID: {report_id}")
-    print(f"[POWERBI] [EMBED-TOKEN] Dataset ID: {datasetId}")
+    if datasetId:
+        print(f"[POWERBI] [EMBED-TOKEN] Dataset ID: {datasetId}")
     print(f"[POWERBI] [EMBED-TOKEN] Workspace ID: {POWERBI_WORKSPACE_ID}")
-    
+
     try:
         # 1. Obter token de autenticação
         service_token = await get_service_principal_token()
@@ -126,78 +127,97 @@ async def get_embed_token(
             "Content-Type": "application/json"
         }
 
-        # 2. Construir payload CORRETO para Service Principal
-        # ✅ SEM 'identities' (isso é só para user authentication)
+        # 2. Payload para embed com Service Principal
         payload = {
             "accessLevel": "View"
         }
-        
-        # Adiciona datasets se fornecido
+
+        # Adicionar dataset se fornecido
         if datasetId:
             payload["datasets"] = [{"id": datasetId}]
-        
+
         print(f"[POWERBI] [EMBED-TOKEN] Payload: {payload}")
 
         # 3. Fazer request para a API CORRETA (com workspace_id)
         embed_url = f"{POWERBI_API_URL}/groups/{POWERBI_WORKSPACE_ID}/reports/{report_id}/GenerateToken"
         print(f"[POWERBI] [EMBED-TOKEN] URL: {embed_url}")
 
-        async with httpx.AsyncClient(timeout=15.0) as client:
-            response = await client.post(
-                embed_url,
-                json=payload,
-                headers=headers,
-            )
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            # Gerar o token (aumentado timeout para 60s porque api.powerbi.com pode ser lenta)
+            try:
+                response = await client.post(
+                    embed_url,
+                    json=payload,
+                    headers=headers,
+                )
+            except httpx.ReadTimeout:
+                print(f"[POWERBI] [EMBED-TOKEN] ⚠️ Timeout na primeira tentativa, aguardando...")
+                # Retry uma vez após esperar um pouco
+                await asyncio.sleep(2)
+                response = await client.post(
+                    embed_url,
+                    json=payload,
+                    headers=headers,
+                )
 
             print(f"[POWERBI] [EMBED-TOKEN] Status: {response.status_code}")
             print(f"[POWERBI] [EMBED-TOKEN] Response: {response.text[:500]}")
 
-            # 4. Tratar erros
             if response.status_code != 200:
                 error_detail = response.text
-                
+
                 if response.status_code == 403:
                     print(f"\n[POWERBI] [EMBED-TOKEN] ❌ ERRO 403 - DIAGNÓSTICO:")
                     print(f"  1. Service Principal está no workspace como Membro/Admin?")
                     print(f"     → Workspace ID: {POWERBI_WORKSPACE_ID}")
-                    print(f"     → Acesse: https://app.powerbi.com/groups/{POWERBI_WORKSPACE_ID}/settings/access")
                     print(f"  2. Report ID está correto?")
                     print(f"     → Report ID: {report_id}")
-                    print(f"  3. Service Principal tem permissões de API no Azure?")
-                    print(f"     → Acesse: https://portal.azure.com → App Registrations → Permissões de API")
-                    print(f"  4. Power BI Admin habilitou Service Principals?")
-                    print(f"     → Acesse: https://app.powerbi.com → Admin Portal → Tenant Settings")
-                    print(f"\n  Execute: curl http://localhost:8000/api/powerbi/debug/workspace-access")
-                    
                 elif response.status_code == 404:
                     print(f"\n[POWERBI] [EMBED-TOKEN] ❌ ERRO 404:")
                     print(f"  - Report {report_id} não encontrado no workspace {POWERBI_WORKSPACE_ID}")
-                    print(f"  - Verifique: curl http://localhost:8000/api/powerbi/debug/workspace/{POWERBI_WORKSPACE_ID}")
 
                 raise HTTPException(
                     status_code=response.status_code,
                     detail=f"Power BI API error: {error_detail}"
                 )
 
-            # 5. Retornar token
+            # Construir embedUrl manualmente (não usar a URL da API que vem encoded com &amp;)
+            # A URL da API é para HTML, não para Power BI Client SDK
+            embed_url_value = f"https://app.powerbi.com/reportEmbed?reportId={report_id}&ctid={POWERBI_TENANT_ID}"
+            print(f"[POWERBI] [EMBED-TOKEN] Embed URL construída: {embed_url_value}")
+
+            # Extrair o token da resposta
             token_data = response.json()
             embed_token = token_data.get("token")
-            
+
             if not embed_token:
                 raise HTTPException(status_code=400, detail="No embed token received")
 
             print(f"[POWERBI] [EMBED-TOKEN] ✅ Token gerado com sucesso!")
             print(f"[POWERBI] [EMBED-TOKEN] ========================================\n")
-            
+
             return {
                 "token": embed_token,
                 "tokenId": token_data.get("tokenId"),
                 "expiration": token_data.get("expiration"),
                 "report_id": report_id,
+                "embedUrl": embed_url_value,
             }
 
     except HTTPException:
         raise
+    except (httpx.ReadTimeout, httpx.TimeoutException):
+        print(f"[POWERBI] [EMBED-TOKEN] ❌ Timeout ao conectar com Power BI API")
+        raise HTTPException(
+            status_code=504,
+            detail="Timeout ao conectar com Power BI. A API pode estar lenta. Tente novamente."
+        )
+    except httpx.RequestError as e:
+        print(f"[POWERBI] [EMBED-TOKEN] ❌ Erro de rede: {str(e)}")
+        raise HTTPException(
+            status_code=502,
+            detail=f"Erro de conexão com Power BI: {str(e)}"
+        )
     except Exception as e:
         print(f"[POWERBI] [EMBED-TOKEN] ❌ Erro inesperado: {str(e)}")
         import traceback
