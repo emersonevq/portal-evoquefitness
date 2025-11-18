@@ -193,8 +193,9 @@ async def get_embed_token(
                     report_info = reports_response.json()
                     embed_url_value = report_info.get("embedUrl")
                     if embed_url_value:
-                        embed_url_value = embed_url_value.replace("&amp;", "&")
-                    print(f"[POWERBI] [EMBED-TOKEN] Embed URL obtida: {embed_url_value}")
+                        # Decodificar todas as HTML entities
+                        embed_url_value = html.unescape(embed_url_value)
+                        print(f"[POWERBI] [EMBED-TOKEN] Embed URL decodificada: {embed_url_value}")
             except Exception as e:
                 print(f"[POWERBI] [EMBED-TOKEN] ⚠️  Aviso ao obter embed URL: {e}")
 
