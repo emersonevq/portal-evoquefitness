@@ -86,27 +86,7 @@ async def get_powerbi_token(db: Session = Depends(get_db)):
 @router.get("/embed-token/{report_id}")
 async def get_embed_token(report_id: str, db: Session = Depends(get_db)):
     """Generate an embed token for a specific Power BI report"""
-    import time
-    import json
-    import base64
-
     print(f"[POWERBI] [EMBED-TOKEN] Requisição para report_id: {report_id}")
-
-    def generate_dev_token(report_id: str):
-        """Gera um token fake para desenvolvimento"""
-        print(f"[POWERBI] [EMBED-TOKEN] 🔧 Modo desenvolvimento - gerando token fake")
-        payload = {
-            "exp": int(time.time()) + 3600,
-            "iat": int(time.time()),
-            "report_id": report_id,
-            "typ": "Bearer",
-        }
-        # Criar um token JWT fake (não precisa ser válido, é só para o frontend)
-        header = base64.b64encode(json.dumps({"alg": "none", "typ": "JWT"}).encode()).decode().replace("=", "")
-        payload_str = base64.b64encode(json.dumps(payload).encode()).decode().replace("=", "")
-        token = f"eyJhbGciOiAibm9uZSIsICJ0eXAiOiAiSldUIn0.{payload_str}."
-        return token
-
     try:
         service_token = await get_service_principal_token()
         print(f"[POWERBI] [EMBED-TOKEN] Token de serviço obtido ✅")
@@ -132,47 +112,40 @@ async def get_embed_token(report_id: str, db: Session = Depends(get_db)):
 
             print(f"[POWERBI] [EMBED-TOKEN] Status da resposta: {response.status_code}")
 
-            # Se não conseguir, retorna token de desenvolvimento
             if response.status_code != 200:
-                print(f"[POWERBI] [EMBED-TOKEN] ⚠️ Erro {response.status_code} - usando token de desenvolvimento")
-                dev_token = generate_dev_token(report_id)
-                return {
-                    "token": dev_token,
-                    "expiration": int(time.time()) + 3600,
-                    "report_id": report_id,
-                    "mode": "development",
-                }
+                error_detail = response.text
+                print(f"[POWERBI] [EMBED-TOKEN] ❌ Erro: {error_detail}")
+                raise HTTPException(
+                    status_code=response.status_code,
+                    detail=f"Power BI API error: {error_detail}"
+                )
 
             token_data = response.json()
             token = token_data.get("token")
             if not token:
-                print(f"[POWERBI] [EMBED-TOKEN] ⚠️ Nenhum token na resposta - usando fallback")
-                dev_token = generate_dev_token(report_id)
-                return {
-                    "token": dev_token,
-                    "expiration": int(time.time()) + 3600,
-                    "report_id": report_id,
-                    "mode": "development",
-                }
+                print(f"[POWERBI] [EMBED-TOKEN] ❌ Nenhum token na resposta")
+                raise HTTPException(
+                    status_code=400,
+                    detail="No embed token received from Power BI"
+                )
 
-            print(f"[POWERBI] [EMBED-TOKEN] ✅ Token real obtido!")
+            print(f"[POWERBI] [EMBED-TOKEN] ✅ Token obtido com sucesso!")
             return {
                 "token": token,
                 "expiration": token_data.get("expiration"),
                 "report_id": report_id,
-                "mode": "production",
             }
 
+    except HTTPException:
+        raise
     except Exception as e:
-        print(f"[POWERBI] [EMBED-TOKEN] ⚠️ Erro na autenticação: {str(e)}")
-        # Em caso de erro qualquer, retorna token fake
-        dev_token = generate_dev_token(report_id)
-        return {
-            "token": dev_token,
-            "expiration": int(time.time()) + 3600,
-            "report_id": report_id,
-            "mode": "development",
-        }
+        print(f"[POWERBI] [EMBED-TOKEN] ❌ Erro: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to generate embed token: {str(e)}"
+        )
 
 
 @router.get("/dashboards")
