@@ -25,6 +25,7 @@ export default function DashboardViewer({ dashboard }: DashboardViewerProps) {
 
     const canvas = canvasRef.current;
     const containerRect = embedContainerRef.current?.getBoundingClientRect();
+
     if (!containerRect) return;
 
     canvas.width = containerRect.width;
@@ -34,13 +35,11 @@ export default function DashboardViewer({ dashboard }: DashboardViewerProps) {
     const animationEnd = Date.now() + duration;
 
     const colors = ["#FF6B6B", "#4ECDC4", "#45B7D1", "#FFA502", "#FF1744"];
-
     const randomInRange = (min: number, max: number) =>
       Math.random() * (max - min) + min;
 
     const animate = () => {
       const timeLeft = animationEnd - Date.now();
-
       if (timeLeft <= 0) {
         if (successOverlayRef.current) {
           successOverlayRef.current.style.opacity = "0";
@@ -82,10 +81,9 @@ export default function DashboardViewer({ dashboard }: DashboardViewerProps) {
     animate();
   };
 
-  // Load and embed Power BI report with token
+  // Power BI load and embed
   useEffect(() => {
     let isMounted = true;
-    let report: pbi.Report | null = null;
 
     const embedReport = async () => {
       try {
@@ -93,92 +91,83 @@ export default function DashboardViewer({ dashboard }: DashboardViewerProps) {
         setIsAuthenticating(true);
         setEmbedError(null);
 
-        // Get embed token
-        const tokenResponse = await apiFetch(
-          `/powerbi/embed-token/${dashboard.reportId}?datasetId=${dashboard.datasetId}`,
+        const response = await apiFetch(
+          `/powerbi/embed-token/${dashboard.reportId}?datasetId=${dashboard.datasetId}`
         );
 
-        if (!tokenResponse.ok) {
-          throw new Error(
-            `Falha ao obter token de embed: ${tokenResponse.status}`,
-          );
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: falha ao obter token`);
         }
 
-        const tokenData = await tokenResponse.json();
-        const embedToken = tokenData.token;
-        const embedUrl = tokenData.embedUrl;
+        const data = await response.json();
+        const { token, embedUrl } = data;
 
-        if (!embedToken) {
-          throw new Error("Nenhum token de embed recebido");
+        if (!token || !embedUrl) {
+          throw new Error("Token ou embedUrl ausente");
         }
 
-        if (!embedUrl) {
-          throw new Error("Nenhuma URL de embed recebida da API");
-        }
-
-        console.log("[DashboardViewer] Embed URL recebida:", embedUrl);
-
-        if (!isMounted) return;
-        setIsAuthenticating(false);
-
-        // Create Power BI client
         const powerBiClient = new pbi.service.Service(
           pbi.factories.hpmFactory,
           pbi.factories.wpmpFactory,
-          pbi.factories.routerFactory,
+          pbi.factories.routerFactory
         );
 
-        // Configure embed config
         const embedConfig: pbi.IReportEmbedConfiguration = {
           type: "report",
           id: dashboard.reportId,
           embedUrl: embedUrl,
-          accessToken: embedToken,
-          tokenExpiration: new Date(Date.now() + 60 * 60 * 1000), // 1 hour
+          accessToken: token,
+          tokenType: pbi.models.TokenType.Embed,
           permissions: pbi.models.Permissions.All,
           settings: {
             filterPaneEnabled: true,
             navContentPaneEnabled: true,
             bars: {
-              statusBar: {
-                visible: true,
-              },
+              statusBar: { visible: true },
             },
           },
         };
 
-        // Embed the report
+        console.log("[PowerBI] Embed config:", embedConfig);
+
         if (embedContainerRef.current && isMounted) {
-          report = powerBiClient.embed(
+          // 🔥 ESSENCIAL: resetar antes de embutir
+          powerBiClient.reset(embedContainerRef.current);
+
+          const report = powerBiClient.embed(
             embedContainerRef.current,
-            embedConfig as any,
+            embedConfig
           ) as pbi.Report;
+
           reportRef.current = report;
 
-          // Handle events
           report.on("loaded", () => {
+            console.log("[PowerBI] Loaded ✅");
             if (isMounted) {
               setIsLoading(false);
               triggerConfetti();
             }
           });
 
+          report.on("rendered", () => {
+            console.log("[PowerBI] Rendered 🎉");
+          });
+
           report.on("error", (event: any) => {
-            console.error("Report error:", event.detail);
+            console.error("[PowerBI] Error:", event);
             if (isMounted) {
-              setEmbedError("Erro ao carregar relatório");
+              setEmbedError(
+                event?.detail?.message ||
+                  "❌ Erro desconhecido ao carregar relatório"
+              );
               setIsLoading(false);
             }
           });
         }
-      } catch (error) {
-        console.error("Error embedding report:", error);
+      } catch (err: any) {
+        console.error("[PowerBI] Embed failed:", err);
         if (isMounted) {
-          setEmbedError(
-            error instanceof Error
-              ? error.message
-              : "Erro ao carregar dashboard",
-          );
+          setEmbedError(err?.message || "Erro inesperado");
           setIsLoading(false);
           setIsAuthenticating(false);
         }
@@ -189,25 +178,24 @@ export default function DashboardViewer({ dashboard }: DashboardViewerProps) {
 
     return () => {
       isMounted = false;
-      if (report) {
-        report = null;
-      }
     };
   }, [dashboard.reportId]);
 
-  // Sync fullscreen state with browser events
+  // Fullscreen sync
   useEffect(() => {
     const handler = () =>
       setIsFullscreen(
         Boolean(
-          (document as any).fullscreenElement ||
+          document.fullscreenElement ||
             (document as any).webkitFullscreenElement ||
-            (document as any).mozFullScreenElement,
-        ),
+            (document as any).mozFullScreenElement
+        )
       );
+
     document.addEventListener("fullscreenchange", handler);
     document.addEventListener("webkitfullscreenchange", handler);
     document.addEventListener("mozfullscreenchange", handler);
+
     return () => {
       document.removeEventListener("fullscreenchange", handler);
       document.removeEventListener("webkitfullscreenchange", handler);
@@ -216,32 +204,28 @@ export default function DashboardViewer({ dashboard }: DashboardViewerProps) {
   }, []);
 
   const toggleFullscreen = async () => {
-    try {
-      const docAny = document as any;
-      const isInFs = !!(
-        docAny.fullscreenElement ||
-        docAny.webkitFullscreenElement ||
-        docAny.mozFullScreenElement
-      );
+    const doc: any = document;
 
-      if (!isInFs) {
-        if (containerRef.current) {
-          const el: any = containerRef.current;
-          if (el.requestFullscreen) await el.requestFullscreen();
-          else if (el.webkitRequestFullscreen)
-            await el.webkitRequestFullscreen();
-          else if (el.mozRequestFullScreen) await el.mozRequestFullScreen();
-          setIsFullscreen(true);
-        }
+    const isFull =
+      doc.fullscreenElement ||
+      doc.webkitFullscreenElement ||
+      doc.mozFullScreenElement;
+
+    try {
+      if (!isFull && containerRef.current) {
+        const el: any = containerRef.current;
+        if (el.requestFullscreen) await el.requestFullscreen();
+        else if (el.webkitRequestFullscreen) await el.webkitRequestFullscreen();
+        else if (el.mozRequestFullScreen) await el.mozRequestFullScreen();
+        setIsFullscreen(true);
       } else {
-        if (document.exitFullscreen) await document.exitFullscreen();
-        else if (docAny.webkitExitFullscreen)
-          await docAny.webkitExitFullscreen();
-        else if (docAny.mozCancelFullScreen) await docAny.mozCancelFullScreen();
+        if (doc.exitFullscreen) await doc.exitFullscreen();
+        else if (doc.webkitExitFullscreen) await doc.webkitExitFullscreen();
+        else if (doc.mozCancelFullScreen) await doc.mozCancelFullScreen();
         setIsFullscreen(false);
       }
-    } catch (e) {
-      // ignore
+    } catch (error) {
+      console.warn("Erro ao alternar fullscreen:", error);
     }
   };
 
@@ -254,7 +238,6 @@ export default function DashboardViewer({ dashboard }: DashboardViewerProps) {
           </h1>
           <p className="text-xs text-gray-600">{dashboard.description}</p>
         </div>
-
         <div className="flex items-center gap-2">
           <button
             aria-label={
@@ -263,65 +246,7 @@ export default function DashboardViewer({ dashboard }: DashboardViewerProps) {
             onClick={toggleFullscreen}
             className="bi-control-button"
           >
-            {isFullscreen ? (
-              <svg
-                className="w-4 h-4"
-                viewBox="0 0 24 24"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  d="M9 9L5 5"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-                <path
-                  d="M15 15L19 19"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            ) : (
-              <svg
-                className="w-4 h-4"
-                viewBox="0 0 24 24"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  d="M9 3H5a2 2 0 0 0-2 2v4"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-                <path
-                  d="M15 21h4a2 2 0 0 0 2-2v-4"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-                <path
-                  d="M21 9V5a2 2 0 0 0-2-2h-4"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-                <path
-                  d="M3 15v4a2 2 0 0 0 2 2h4"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            )}
+            {isFullscreen ? "🡻" : "🡹"}
           </button>
         </div>
       </div>
@@ -391,7 +316,6 @@ export default function DashboardViewer({ dashboard }: DashboardViewerProps) {
                 fontWeight: "bold",
                 color: "rgba(0, 0, 0, 0.7)",
                 textShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
-                letterSpacing: "0.5px",
               }}
             >
               Sucesso!
