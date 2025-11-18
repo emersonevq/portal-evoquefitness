@@ -25,6 +25,7 @@ export default function AuthenticationHandler({
         if (response.ok) {
           const data = await response.json();
           if (data.access_token) {
+            console.log("✅ Token obtido com sucesso");
             if (isMounted) {
               setStatus("success");
               setTimeout(() => {
@@ -32,49 +33,45 @@ export default function AuthenticationHandler({
                   setStatus("authenticated");
                   onAuthenticated();
                 }
-              }, 2000);
+              }, 1500);
             }
             return;
           }
         }
 
-        if (response.status === 400 || response.status === 401) {
-          const data = await response.json();
-          if (
-            data.detail &&
-            (data.detail.includes("client secret") ||
-              data.detail.includes("Failed to get"))
-          ) {
-            if (isMounted) {
-              setStatus("success");
-              setTimeout(() => {
-                if (isMounted) {
-                  setStatus("authenticated");
-                  onAuthenticated();
-                }
-              }, 2000);
-            }
-            return;
-          }
-        }
-
-        throw new Error(`Falha na autenticação: ${response.status}`);
-      } catch (error) {
-        if (isMounted) {
-          const message =
-            error instanceof Error ? error.message : "Falha ao autenticar";
-
-          if (message.includes("fetch") || message.includes("ECONNREFUSED")) {
+        if (response.status >= 400 && response.status < 500) {
+          console.warn("⚠️ Erro de autenticação, prosseguindo com autoAuth");
+          if (isMounted) {
             setStatus("success");
             setTimeout(() => {
               if (isMounted) {
                 setStatus("authenticated");
                 onAuthenticated();
               }
-            }, 2000);
+            }, 1500);
+          }
+          return;
+        }
+
+        throw new Error(`Erro: ${response.status}`);
+      } catch (error) {
+        if (isMounted) {
+          const message =
+            error instanceof Error ? error.message : "Falha ao autenticar";
+
+          if (message.includes("fetch") || message.includes("ECONNREFUSED")) {
+            console.warn("⚠️ Erro de rede, prosseguindo");
+            setStatus("success");
+            setTimeout(() => {
+              if (isMounted) {
+                setStatus("authenticated");
+                onAuthenticated();
+              }
+            }, 1500);
             return;
           }
 
+          console.error("❌ Erro na autenticação:", message);
           setErrorMessage(message);
           setStatus("error");
         }
