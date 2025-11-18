@@ -181,23 +181,10 @@ async def get_embed_token(
                     detail=f"Power BI API error: {error_detail}"
                 )
 
-            # Obter informações do report para pegar a embedUrl
-            embed_url_value = None
-            try:
-                reports_response = await client.get(
-                    f"{POWERBI_API_URL}/groups/{POWERBI_WORKSPACE_ID}/reports/{report_id}",
-                    headers=headers,
-                )
-
-                if reports_response.status_code == 200:
-                    report_info = reports_response.json()
-                    embed_url_value = report_info.get("embedUrl")
-                    if embed_url_value:
-                        # Decodificar todas as HTML entities
-                        embed_url_value = html.unescape(embed_url_value)
-                        print(f"[POWERBI] [EMBED-TOKEN] Embed URL decodificada: {embed_url_value}")
-            except Exception as e:
-                print(f"[POWERBI] [EMBED-TOKEN] ⚠️  Aviso ao obter embed URL: {e}")
+            # Construir embedUrl manualmente (não usar a URL da API que vem encoded com &amp;)
+            # A URL da API é para HTML, não para Power BI Client SDK
+            embed_url_value = f"https://app.powerbi.com/reportEmbed?reportId={report_id}&ctid={POWERBI_TENANT_ID}"
+            print(f"[POWERBI] [EMBED-TOKEN] Embed URL construída: {embed_url_value}")
 
             # Extrair o token da resposta
             token_data = response.json()
