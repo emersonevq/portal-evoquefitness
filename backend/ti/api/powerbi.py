@@ -5,6 +5,7 @@ from core.db import get_db
 import httpx
 import os
 from dotenv import load_dotenv
+import html
 
 load_dotenv()
 
