@@ -134,6 +134,7 @@ async def get_embed_token(
         print(f"[POWERBI] [EMBED-TOKEN] URL: {embed_url}")
 
         async with httpx.AsyncClient(timeout=15.0) as client:
+            # Gerar o token
             response = await client.post(
                 embed_url,
                 json=payload,
@@ -143,36 +144,26 @@ async def get_embed_token(
             print(f"[POWERBI] [EMBED-TOKEN] Status: {response.status_code}")
             print(f"[POWERBI] [EMBED-TOKEN] Response: {response.text[:500]}")
 
-            # 4. Tratar erros
             if response.status_code != 200:
                 error_detail = response.text
-                
+
                 if response.status_code == 403:
                     print(f"\n[POWERBI] [EMBED-TOKEN] ❌ ERRO 403 - DIAGNÓSTICO:")
                     print(f"  1. Service Principal está no workspace como Membro/Admin?")
                     print(f"     → Workspace ID: {POWERBI_WORKSPACE_ID}")
-                    print(f"     → Acesse: https://app.powerbi.com/groups/{POWERBI_WORKSPACE_ID}/settings/access")
                     print(f"  2. Report ID está correto?")
                     print(f"     → Report ID: {report_id}")
-                    print(f"  3. Service Principal tem permissões de API no Azure?")
-                    print(f"     → Acesse: https://portal.azure.com → App Registrations → Permissões de API")
-                    print(f"  4. Power BI Admin habilitou Service Principals?")
-                    print(f"     → Acesse: https://app.powerbi.com → Admin Portal → Tenant Settings")
-                    print(f"\n  Execute: curl http://localhost:8000/api/powerbi/debug/workspace-access")
-                    
                 elif response.status_code == 404:
                     print(f"\n[POWERBI] [EMBED-TOKEN] ❌ ERRO 404:")
                     print(f"  - Report {report_id} não encontrado no workspace {POWERBI_WORKSPACE_ID}")
-                    print(f"  - Verifique: curl http://localhost:8000/api/powerbi/debug/workspace/{POWERBI_WORKSPACE_ID}")
 
                 raise HTTPException(
                     status_code=response.status_code,
                     detail=f"Power BI API error: {error_detail}"
                 )
 
-            # 5. Obter embed URL do report
-            # Necessário para o Power BI Client validar a URL
-            embed_url = None
+            # Obter informações do report para pegar a embedUrl
+            embed_url_value = None
             try:
                 reports_response = await client.get(
                     f"{POWERBI_API_URL}/groups/{POWERBI_WORKSPACE_ID}/reports/{report_id}",
@@ -181,15 +172,14 @@ async def get_embed_token(
 
                 if reports_response.status_code == 200:
                     report_info = reports_response.json()
-                    embed_url = report_info.get("embedUrl")
-                    # Decodificar HTML entities (&amp; → &)
-                    if embed_url:
-                        embed_url = embed_url.replace("&amp;", "&")
-                    print(f"[POWERBI] [EMBED-TOKEN] Embed URL obtida: {embed_url}")
+                    embed_url_value = report_info.get("embedUrl")
+                    if embed_url_value:
+                        embed_url_value = embed_url_value.replace("&amp;", "&")
+                    print(f"[POWERBI] [EMBED-TOKEN] Embed URL obtida: {embed_url_value}")
             except Exception as e:
                 print(f"[POWERBI] [EMBED-TOKEN] ⚠️  Aviso ao obter embed URL: {e}")
 
-            # 6. Retornar token
+            # Extrair o token da resposta
             token_data = response.json()
             embed_token = token_data.get("token")
 
@@ -204,7 +194,7 @@ async def get_embed_token(
                 "tokenId": token_data.get("tokenId"),
                 "expiration": token_data.get("expiration"),
                 "report_id": report_id,
-                "embedUrl": embed_url,
+                "embedUrl": embed_url_value,
             }
 
     except HTTPException:
