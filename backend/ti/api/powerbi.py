@@ -6,11 +6,52 @@ import httpx
 import os
 import asyncio
 import html
+import time
 from dotenv import load_dotenv
 
 load_dotenv()
 
 router = APIRouter(prefix="/powerbi", tags=["Power BI"])
+
+# ============================================
+# TOKEN CACHE (para evitar rate limiting)
+# ============================================
+class TokenCache:
+    def __init__(self):
+        self.token = None
+        self.expires_at = 0
+        self.lock = asyncio.Lock()
+
+    async def get_token(self, get_token_func):
+        """Get cached token or fetch new one"""
+        current_time = time.time()
+
+        # Se token ainda é válido (com 30s de margem), retorna o cached
+        if self.token and current_time < (self.expires_at - 30):
+            print(f"[POWERBI] ✅ Usando token em cache (expira em {int(self.expires_at - current_time)}s)")
+            return self.token
+
+        async with self.lock:
+            # Double-check dentro do lock
+            if self.token and current_time < (self.expires_at - 30):
+                return self.token
+
+            print(f"[POWERBI] 🔄 Obtendo novo token...")
+            token_data = await get_token_func()
+
+            self.token = token_data.get("access_token")
+            expires_in = token_data.get("expires_in", 3600)
+            self.expires_at = current_time + expires_in
+
+            print(f"[POWERBI] ✅ Novo token obtido (válido por {expires_in}s)")
+            return self.token
+
+    def clear(self):
+        """Clear cached token"""
+        self.token = None
+        self.expires_at = 0
+
+token_cache = TokenCache()
 
 # ============================================
 # POWER BI CONFIGURATION
