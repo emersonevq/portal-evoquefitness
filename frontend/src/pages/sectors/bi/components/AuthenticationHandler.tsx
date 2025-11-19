@@ -10,9 +10,9 @@ export default function AuthenticationHandler({
   onAuthenticated,
   children,
 }: AuthenticationHandlerProps) {
-  const [status, setStatus] = useState<
-    "loading" | "error" | "authenticated"
-  >("loading");
+  const [status, setStatus] = useState<"loading" | "error" | "authenticated">(
+    "loading",
+  );
   const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
