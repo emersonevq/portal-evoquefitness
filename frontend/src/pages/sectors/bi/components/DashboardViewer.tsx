@@ -91,6 +91,7 @@ export default function DashboardViewer({ dashboard }: DashboardViewerProps) {
     let isMounted = true;
     const abortController = new AbortController();
     let powerBiClient: pbi.service.Service | null = null;
+    let tokenRequestStarted = false;
 
     const cleanupPreviousEmbed = () => {
       console.log("[PowerBI] 🧹 Limpando embed anterior...");
