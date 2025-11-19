@@ -737,38 +737,9 @@
     background: transparent !important;
   }
 
-  .bi-content * {
+  .bi-content {
     visibility: visible !important;
     opacity: 1 !important;
-  }
-
-  .bi-content button,
-  .bi-content [role="button"],
-  .bi-content [onclick] {
-    visibility: visible !important;
-    opacity: 1 !important;
-    display: flex !important;
-    background: #f97316 !important;
-    color: white !important;
-    border: 2px solid #f97316 !important;
-    padding: 10px 20px !important;
-    border-radius: 8px !important;
-    font-weight: bold !important;
-    font-size: 14px !important;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
-    cursor: pointer !important;
-    z-index: 99999 !important;
-    position: relative !important;
-  }
-
-  :fullscreen .bi-content button,
-  :-webkit-full-screen .bi-content button {
-    visibility: visible !important;
-    opacity: 1 !important;
-    display: flex !important;
-    background: #f97316 !important;
-    color: white !important;
-    z-index: 100000 !important;
   }
 
   /* Estados de fullscreen - REMOVE TUDO QUE ATRAPALHA */
