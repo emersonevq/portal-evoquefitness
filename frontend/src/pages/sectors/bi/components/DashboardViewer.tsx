@@ -142,9 +142,23 @@ export default function DashboardViewer({ dashboard }: DashboardViewerProps) {
       try {
         if (!isMounted) return;
 
+        // Validar dados do dashboard
+        const validationErrors = validateDashboardData(dashboard);
+        if (validationErrors.length > 0) {
+          console.error("[PowerBI] ❌ Validação falhou:", validationErrors);
+          throw new Error(validationErrors.join("; "));
+        }
+
         console.log(`[PowerBI] 📊 Carregando dashboard: ${dashboard.title}`);
         console.log(
           `[PowerBI] Report ID: ${dashboard.report_id}, Dataset ID: ${dashboard.dataset_id}`,
+        );
+
+        logDashboardTransition(
+          "previous",
+          dashboard.title,
+          dashboard.report_id,
+          dashboard.dataset_id,
         );
 
         setIsLoading(true);
