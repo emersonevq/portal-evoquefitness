@@ -523,6 +523,7 @@ export default function DashboardViewer({ dashboard }: DashboardViewerProps) {
         <div
           className="bi-embed-card"
           ref={embedContainerRef}
+          key={`embed-container-${dashboard.report_id}`}
           style={{
             width: "100%",
             height: "100%",
