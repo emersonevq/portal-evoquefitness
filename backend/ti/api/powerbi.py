@@ -139,14 +139,36 @@ async def get_embed_token(
         print(f"[POWERBI] [EMBED-TOKEN] Payload: {payload}")
 
         # 3. Fazer request para a API CORRETA (com workspace_id)
-        embed_url = f"{POWERBI_API_URL}/groups/{POWERBI_WORKSPACE_ID}/reports/{report_id}/GenerateToken"
-        print(f"[POWERBI] [EMBED-TOKEN] URL: {embed_url}")
+        token_url = f"{POWERBI_API_URL}/groups/{POWERBI_WORKSPACE_ID}/reports/{report_id}/GenerateToken"
+        print(f"[POWERBI] [EMBED-TOKEN] Token URL: {token_url}")
 
         async with httpx.AsyncClient(timeout=60.0) as client:
-            # Gerar o token (aumentado timeout para 60s porque api.powerbi.com pode ser lenta)
+            # 3a. Primeiro, obter o embedUrl correto do relatório
+            try:
+                report_response = await client.get(
+                    f"{POWERBI_API_URL}/groups/{POWERBI_WORKSPACE_ID}/reports/{report_id}",
+                    headers=headers,
+                )
+
+                if report_response.status_code == 200:
+                    report_data = report_response.json()
+                    embed_url_value = report_data.get("embedUrl")
+                    print(f"[POWERBI] [EMBED-TOKEN] Embed URL obtida da API: {embed_url_value}")
+                else:
+                    print(f"[POWERBI] [EMBED-TOKEN] ⚠️ Falha ao obter report details: {report_response.status_code}")
+                    # Fallback para construir manualmente
+                    embed_url_value = f"https://app.powerbi.com/reportEmbed?reportId={report_id}&ctid={POWERBI_TENANT_ID}"
+                    print(f"[POWERBI] [EMBED-TOKEN] Usando embed URL fallback: {embed_url_value}")
+            except Exception as e:
+                print(f"[POWERBI] [EMBED-TOKEN] ⚠️ Erro ao obter embedUrl: {e}")
+                # Fallback
+                embed_url_value = f"https://app.powerbi.com/reportEmbed?reportId={report_id}&ctid={POWERBI_TENANT_ID}"
+                print(f"[POWERBI] [EMBED-TOKEN] Usando embed URL fallback: {embed_url_value}")
+
+            # 3b. Gerar o token (aumentado timeout para 60s porque api.powerbi.com pode ser lenta)
             try:
                 response = await client.post(
-                    embed_url,
+                    token_url,
                     json=payload,
                     headers=headers,
                 )
@@ -155,7 +177,7 @@ async def get_embed_token(
                 # Retry uma vez após esperar um pouco
                 await asyncio.sleep(2)
                 response = await client.post(
-                    embed_url,
+                    token_url,
                     json=payload,
                     headers=headers,
                 )
@@ -180,11 +202,6 @@ async def get_embed_token(
                     status_code=response.status_code,
                     detail=f"Power BI API error: {error_detail}"
                 )
-
-            # Construir embedUrl manualmente (não usar a URL da API que vem encoded com &amp;)
-            # A URL da API é para HTML, não para Power BI Client SDK
-            embed_url_value = f"https://app.powerbi.com/reportEmbed?reportId={report_id}&ctid={POWERBI_TENANT_ID}"
-            print(f"[POWERBI] [EMBED-TOKEN] Embed URL construída: {embed_url_value}")
 
             # Extrair o token da resposta
             token_data = response.json()
