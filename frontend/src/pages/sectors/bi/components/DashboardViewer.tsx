@@ -417,13 +417,13 @@ export default function DashboardViewer({
         embedUrl: tokenData.embedUrl,
         accessToken: tokenData.token,
         tokenType: models.TokenType.Embed,
-        permissions: models.Permissions.All, // Mudando para All como no modelo antigo
+        permissions: models.Permissions.All,
         settings: {
           filterPaneEnabled: true,
           navContentPaneEnabled: true,
           bars: {
             statusBar: {
-              visible: true, // Habilitando status bar como no modelo antigo
+              visible: true,
             },
           },
           layoutType: models.LayoutType.Custom,
@@ -442,13 +442,12 @@ export default function DashboardViewer({
       setLoadingPhase("rendering");
       setLoadingProgress(70);
 
-      // IMPORTANTE: Não ocultar o container, apenas garantir que está visível
       embedContainer.style.display = "block";
       embedContainer.style.visibility = "visible";
       embedContainer.style.position = "relative";
       embedContainer.style.width = "100%";
       embedContainer.style.height = "100%";
-      embedContainer.style.overflow = "hidden";
+      embedContainer.style.overflow = "visible";
 
       if (cleanupTimeoutRef.current) {
         clearTimeout(cleanupTimeoutRef.current);
@@ -456,7 +455,6 @@ export default function DashboardViewer({
 
       const svc = ensureService();
 
-      // Reset antes de embedar (como no modelo antigo)
       svc.reset(embedContainer);
       await new Promise((resolve) => setTimeout(resolve, 100));
 
@@ -496,7 +494,7 @@ export default function DashboardViewer({
             setIsReady(true);
             setError(null);
             retryCount.current = 0;
-            triggerConfetti(); // Adiciona confetti como no modelo antigo
+            triggerConfetti();
             if (onSuccess) onSuccess();
           }
         }, 300);
@@ -689,7 +687,6 @@ export default function DashboardViewer({
 
   return (
     <div className="w-full h-full flex flex-col">
-      {/* Header como no modelo antigo */}
       <div className="bi-dashboard-header px-4 py-2 border-b bg-white flex items-center justify-between">
         <div>
           <h1 className="text-base font-semibold text-gray-900">
@@ -721,9 +718,7 @@ export default function DashboardViewer({
         </div>
       </div>
 
-      {/* Container principal */}
       <div className="flex-1 bi-viewer-outer" ref={containerRef}>
-        {/* Loading overlay */}
         {isLoading && (
           <div className="bi-loading-overlay">
             <div className="flex flex-col items-center gap-3">
@@ -743,7 +738,6 @@ export default function DashboardViewer({
           </div>
         )}
 
-        {/* Error overlay */}
         {error && !isLoading && (
           <div className="bi-loading-overlay">
             <div className="flex flex-col items-center gap-3">
@@ -762,20 +756,17 @@ export default function DashboardViewer({
           </div>
         )}
 
-        {/* Embed container - SEMPRE VISÍVEL como no modelo antigo */}
         <div
           className="bi-embed-card"
           ref={embedContainerRef}
           style={{
             width: "100%",
             height: "100%",
-            display: error ? "none" : "block", // Só oculta em caso de erro
+            display: error ? "none" : "block",
             position: "relative",
-            overflow: "hidden",
-            backgroundColor: "#ffffff", // Fundo branco para garantir visibilidade
+            overflow: "visible",
           }}
         >
-          {/* Canvas para confetti */}
           <canvas
             ref={canvasRef}
             style={{
@@ -787,7 +778,6 @@ export default function DashboardViewer({
             }}
           />
 
-          {/* Overlay de sucesso */}
           <div
             ref={successOverlayRef}
             style={{
@@ -818,7 +808,6 @@ export default function DashboardViewer({
           </div>
         </div>
 
-        {/* Botão de fullscreen flutuante */}
         {isFullscreen && (
           <button
             onClick={toggleFullscreen}
@@ -829,7 +818,6 @@ export default function DashboardViewer({
           </button>
         )}
 
-        {/* Painel de debug */}
         {showDebug && (
           <div className="absolute right-0 top-0 bottom-0 w-96 bg-slate-900 text-white shadow-xl z-20 flex flex-col overflow-hidden border-l border-slate-700">
             <div className="p-3 border-b border-slate-700 flex items-center justify-between bg-slate-800">
