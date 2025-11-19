@@ -90,10 +90,8 @@ print(f"[POWERBI] =====================================")
 # AUTHENTICATION
 # ============================================
 
-async def get_service_principal_token() -> str:
-    """Get access token using service principal credentials"""
-    print(f"[POWERBI] 🔄 Obtendo token de autenticação...")
-    
+async def _fetch_service_principal_token_from_azure() -> dict:
+    """Fetch fresh token from Azure (internal use only)"""
     try:
         async with httpx.AsyncClient(timeout=15.0) as client:
             response = await client.post(
@@ -108,21 +106,32 @@ async def get_service_principal_token() -> str:
 
             if response.status_code != 200:
                 error_text = response.text
-                print(f"[POWERBI] ❌ Erro de autenticação: {error_text}")
+                print(f"[POWERBI] ❌ Erro de autenticação Azure: {error_text}")
                 raise HTTPException(status_code=400, detail=f"Azure auth error: {error_text}")
 
             token_data = response.json()
             access_token = token_data.get("access_token")
-            
-            if not access_token:
-                raise HTTPException(status_code=400, detail="No access token received")
 
-            print(f"[POWERBI] ✅ Token obtido com sucesso!")
-            return access_token
+            if not access_token:
+                raise HTTPException(status_code=400, detail="No access token received from Azure")
+
+            return token_data
 
     except httpx.RequestError as e:
-        print(f"[POWERBI] ❌ Erro de rede: {e}")
+        print(f"[POWERBI] ❌ Erro de rede ao obter token: {e}")
         raise HTTPException(status_code=400, detail=f"Network error: {str(e)}")
+
+
+async def get_service_principal_token() -> str:
+    """Get cached access token using service principal credentials"""
+    try:
+        token = await token_cache.get_token(_fetch_service_principal_token_from_azure)
+        return token
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[POWERBI] ❌ Erro ao obter token: {e}")
+        raise HTTPException(status_code=500, detail=f"Token retrieval error: {str(e)}")
 
 
 # ============================================
