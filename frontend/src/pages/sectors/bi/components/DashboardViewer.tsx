@@ -91,6 +91,23 @@ export default function DashboardViewer({ dashboard }: DashboardViewerProps) {
         setIsAuthenticating(true);
         setEmbedError(null);
 
+        // Cleanup previous report instance completely
+        if (reportRef.current) {
+          try {
+            reportRef.current.off("loaded");
+            reportRef.current.off("rendered");
+            reportRef.current.off("error");
+          } catch (e) {
+            console.warn("[PowerBI] Erro ao remover listeners:", e);
+          }
+          reportRef.current = null;
+        }
+
+        // Reset container to clear previous embed
+        if (embedContainerRef.current) {
+          embedContainerRef.current.innerHTML = "";
+        }
+
         const response = await apiFetch(
           `/powerbi/embed-token/${dashboard.reportId}?datasetId=${dashboard.datasetId}`
         );
