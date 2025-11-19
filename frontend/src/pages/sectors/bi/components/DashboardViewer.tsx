@@ -305,8 +305,18 @@ export default function DashboardViewer({ dashboard }: DashboardViewerProps) {
         }
 
         console.error("[PowerBI] ❌ Erro ao carregar:", err);
+        const errorMsg = err?.message || "Erro inesperado ao carregar dashboard";
+
         if (isMounted) {
-          setEmbedError(err?.message || "Erro inesperado ao carregar dashboard");
+          diagnostics.recordAttempt(
+            dashboard.title,
+            dashboard.report_id,
+            dashboard.dataset_id,
+            "❌ Erro ao obter token",
+            "❌ Não carregado",
+            [errorMsg],
+          );
+          setEmbedError(errorMsg);
           setIsLoading(false);
           setIsAuthenticating(false);
         }
