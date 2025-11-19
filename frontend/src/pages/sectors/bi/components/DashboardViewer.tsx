@@ -4,7 +4,6 @@ import { Loader } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import * as pbi from "powerbi-client";
 import confetti from "canvas-confetti";
-import { validateEmbedUrl, logEmbedUrlDiagnostics } from "../utils/powerbi-debug";
 
 interface DashboardViewerProps {
   dashboard: Dashboard;
