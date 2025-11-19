@@ -336,6 +336,13 @@ export default function DashboardViewer({ dashboard }: DashboardViewerProps) {
         }
 
         console.log("[PowerBI] 🚀 Chamando powerBiClient.embed()...");
+        console.log("[PowerBI] embedContainerRef.current status:", {
+          exists: !!embedContainerRef.current,
+          inDOM: embedContainerRef.current ? document.body.contains(embedContainerRef.current) : false,
+          children: embedContainerRef.current?.children.length || 0,
+          clientRect: embedContainerRef.current?.getBoundingClientRect(),
+        });
+
         let report: pbi.Report;
         try {
           report = powerBiClient.embed(
@@ -344,6 +351,10 @@ export default function DashboardViewer({ dashboard }: DashboardViewerProps) {
           ) as pbi.Report;
         } catch (embedError) {
           console.error("[PowerBI] ❌ Erro durante embed:", embedError);
+          console.error("[PowerBI] embedContainerRef no momento do erro:", {
+            exists: !!embedContainerRef.current,
+            inDOM: embedContainerRef.current ? document.body.contains(embedContainerRef.current) : false,
+          });
           throw new Error(
             `Erro ao chamar embed: ${embedError instanceof Error ? embedError.message : String(embedError)}`,
           );
