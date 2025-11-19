@@ -280,10 +280,18 @@ export default function DashboardViewer({ dashboard }: DashboardViewerProps) {
         report.on("error", (event: any) => {
           console.error("[PowerBI] ❌ Erro no relatório:", event);
           if (isMounted) {
-            setEmbedError(
+            const errorMsg =
               event?.detail?.message ||
-                "❌ Erro desconhecido ao carregar relatório",
+              "❌ Erro desconhecido ao carregar relatório";
+            diagnostics.recordAttempt(
+              dashboard.title,
+              dashboard.report_id,
+              dashboard.dataset_id,
+              "⚠️ Token obtido",
+              "❌ Erro ao renderizar",
+              [errorMsg],
             );
+            setEmbedError(errorMsg);
             setIsLoading(false);
             setIsAuthenticating(false);
           }
