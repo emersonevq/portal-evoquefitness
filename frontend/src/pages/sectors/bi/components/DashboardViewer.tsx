@@ -37,14 +37,14 @@ export default function DashboardViewer({
   const successOverlayRef = useRef<HTMLDivElement | null>(null);
   const powerBiReport = useRef<Report | null>(null);
   const powerBiService = useRef<service.Service | null>(null);
-
+  
   // Controle de ciclo de vida
   const embedCycleToken = useRef<string>("");
   const lastEmbedReportId = useRef<string>("");
   const isEmbedding = useRef<boolean>(false);
   const embedQueue = useRef<(() => Promise<void>)[]>([]);
   const cleanupTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
+  
   // Cache e contadores
   const tokenCache = useRef<{ [key: string]: { token: string; embedUrl: string; expires: number } }>({});
   const retryCount = useRef<number>(0);
@@ -58,7 +58,7 @@ export default function DashboardViewer({
       const arr = [...prev, { message, type, timestamp: ts }];
       return arr.length > 150 ? arr.slice(-150) : arr;
     });
-
+    
     const prefix = `[PowerBI ${new Date().toLocaleTimeString()}]`;
     if (type === 'error') console.error(prefix, message);
     else if (type === 'warn') console.warn(prefix, message);
@@ -156,7 +156,7 @@ export default function DashboardViewer({
 
     try {
       const svc = ensureService();
-
+      
       if (powerBiReport.current) {
         try {
           powerBiReport.current.off('loaded');
@@ -178,7 +178,7 @@ export default function DashboardViewer({
 
       powerBiReport.current = null;
       logger('Container limpo com sucesso', 'debug');
-
+      
     } catch (e) {
       logger(`Erro durante cleanup: ${e instanceof Error ? e.message : String(e)}`, 'warn');
     }
@@ -195,16 +195,16 @@ export default function DashboardViewer({
       }
 
       const trimmed = url.trim();
-
+      
       if (!trimmed.startsWith('https://')) {
         logger('URL sem HTTPS', 'error');
         return false;
       }
 
       const urlObj = new URL(trimmed);
-
+      
       const validHosts = ['app.powerbi.com', 'powerbi.com'];
-      const isValidHost = validHosts.some(host =>
+      const isValidHost = validHosts.some(host => 
         urlObj.hostname === host || urlObj.hostname.endsWith(`.${host}`)
       );
 
@@ -214,7 +214,7 @@ export default function DashboardViewer({
 
       logger('URL validada com sucesso', 'debug');
       return true;
-
+      
     } catch (e) {
       logger(`Erro ao validar URL: ${e instanceof Error ? e.message : String(e)}`, 'error');
       return false;
@@ -227,7 +227,7 @@ export default function DashboardViewer({
   const fetchEmbedToken = useCallback(async (cycleToken: string): Promise<{ token: string; embedUrl: string } | null> => {
     const cacheKey = `${dashboard.report_id}:${dashboard.dataset_id}`;
     const cached = tokenCache.current[cacheKey];
-
+    
     if (cached && cached.expires > Date.now()) {
       logger('Usando token do cache', 'debug');
       return { token: cached.token, embedUrl: cached.embedUrl };
@@ -235,15 +235,15 @@ export default function DashboardViewer({
 
     try {
       logger('Buscando novo token de embed...', 'info');
-
+      
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 15000);
-
+      
       const response = await apiFetch(
         `/powerbi/embed-token/${dashboard.report_id}?datasetId=${dashboard.dataset_id}`,
         { signal: controller.signal }
       );
-
+      
       clearTimeout(timeout);
 
       if (embedCycleToken.current !== cycleToken) {
@@ -257,22 +257,22 @@ export default function DashboardViewer({
       }
 
       const data = await response.json();
-
+      
       if (!data || !data.token || !data.embedUrl) {
         throw new Error('Resposta incompleta do servidor');
       }
 
       const expiresIn = data.expiresInMs || 3600000;
       const expires = Date.now() + expiresIn - 300000;
-      tokenCache.current[cacheKey] = {
-        token: data.token,
-        embedUrl: data.embedUrl,
-        expires
+      tokenCache.current[cacheKey] = { 
+        token: data.token, 
+        embedUrl: data.embedUrl, 
+        expires 
       };
-
+      
       logger('Token obtido com sucesso', 'success');
       return { token: data.token, embedUrl: data.embedUrl };
-
+      
     } catch (e) {
       if (e instanceof Error && e.name === 'AbortError') {
         logger('Request de token cancelada (timeout)', 'error');
@@ -289,7 +289,7 @@ export default function DashboardViewer({
   const embedReport = useCallback(async (): Promise<void> => {
     const cycleToken = `${Date.now()}-${Math.random()}`;
     embedCycleToken.current = cycleToken;
-
+    
     if (isEmbedding.current) {
       logger('Embed já em andamento, adicionando à fila', 'debug');
       embedQueue.current.push(async () => {
@@ -307,16 +307,16 @@ export default function DashboardViewer({
 
     try {
       logger(`Iniciando embed: ${dashboard.title} (ciclo: ${cycleToken.slice(0, 8)})`, 'info');
-
+      
       // Fase 1: Preparação
       setLoadingPhase('preparing');
       setLoadingProgress(10);
-
+      
       if (lastEmbedReportId.current && lastEmbedReportId.current !== dashboard.report_id) {
         await cleanupContainer(cycleToken);
         await new Promise(resolve => setTimeout(resolve, 200));
       }
-
+      
       if (embedCycleToken.current !== cycleToken) {
         logger('Embed cancelado - novo ciclo iniciado', 'debug');
         return;
@@ -325,7 +325,7 @@ export default function DashboardViewer({
       // Fase 2: Autenticação
       setLoadingPhase('authenticating');
       setLoadingProgress(25);
-
+      
       const tokenData = await fetchEmbedToken(cycleToken);
       if (!tokenData) {
         throw new Error('Falha ao obter token de embed');
@@ -339,7 +339,7 @@ export default function DashboardViewer({
       // Fase 3: Validação
       setLoadingPhase('validating');
       setLoadingProgress(40);
-
+      
       if (!validateEmbedUrl(tokenData.embedUrl)) {
         throw new Error('URL de embed inválida');
       }
@@ -359,13 +359,13 @@ export default function DashboardViewer({
         embedUrl: tokenData.embedUrl,
         accessToken: tokenData.token,
         tokenType: models.TokenType.Embed,
-        permissions: models.Permissions.All, // Mudando para All como no modelo antigo
+        permissions: models.Permissions.All,
         settings: {
           filterPaneEnabled: true,
           navContentPaneEnabled: true,
           bars: {
-            statusBar: {
-              visible: true // Habilitando status bar como no modelo antigo
+            statusBar: { 
+              visible: true
             }
           },
           layoutType: models.LayoutType.Custom,
@@ -384,27 +384,25 @@ export default function DashboardViewer({
       setLoadingPhase('rendering');
       setLoadingProgress(70);
 
-      // IMPORTANTE: Não ocultar o container, apenas garantir que está visível
       embedContainer.style.display = 'block';
       embedContainer.style.visibility = 'visible';
       embedContainer.style.position = 'relative';
       embedContainer.style.width = '100%';
       embedContainer.style.height = '100%';
       embedContainer.style.overflow = 'hidden';
-
+      
       if (cleanupTimeoutRef.current) {
         clearTimeout(cleanupTimeoutRef.current);
       }
 
       const svc = ensureService();
-
-      // Reset antes de embedar (como no modelo antigo)
+      
       svc.reset(embedContainer);
       await new Promise(resolve => setTimeout(resolve, 100));
-
+      
       logger('[PowerBI] Embed config:', 'debug');
       const report = svc.embed(embedContainer, embedConfig) as Report;
-
+      
       powerBiReport.current = report;
       lastEmbedReportId.current = dashboard.report_id;
 
@@ -425,20 +423,20 @@ export default function DashboardViewer({
 
       report.on('rendered', () => {
         if (embedCycleToken.current !== cycleToken) return;
-
+        
         isRendered = true;
         clearTimeout(renderTimeout);
-
+        
         logger('[PowerBI] Rendered 🎉', 'success');
         setLoadingProgress(100);
-
+        
         setTimeout(() => {
           if (embedCycleToken.current === cycleToken) {
             setIsLoading(false);
             setIsReady(true);
             setError(null);
             retryCount.current = 0;
-            triggerConfetti(); // Adiciona confetti como no modelo antigo
+            triggerConfetti();
             if (onSuccess) onSuccess();
           }
         }, 300);
@@ -446,12 +444,12 @@ export default function DashboardViewer({
 
       report.on('error', (event: any) => {
         if (embedCycleToken.current !== cycleToken) return;
-
+        
         clearTimeout(renderTimeout);
         const errorMessage = event?.detail?.message || event?.message || 'Erro desconhecido';
-
+        
         logger(`[PowerBI] Error: ${errorMessage}`, 'error');
-
+        
         if (retryCount.current < MAX_RETRIES) {
           logger(`Tentativa ${retryCount.current + 1}/${MAX_RETRIES}`, 'warn');
           handleRetry();
@@ -465,7 +463,7 @@ export default function DashboardViewer({
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       logger(`[PowerBI] Embed failed: ${errorMessage}`, 'error');
-
+      
       if (embedCycleToken.current === cycleToken) {
         if (retryCount.current < MAX_RETRIES) {
           handleRetry();
@@ -478,7 +476,7 @@ export default function DashboardViewer({
       }
     } finally {
       isEmbedding.current = false;
-
+      
       if (embedQueue.current.length > 0) {
         const nextEmbed = embedQueue.current.shift();
         if (nextEmbed) {
@@ -494,9 +492,9 @@ export default function DashboardViewer({
   const handleRetry = useCallback(() => {
     retryCount.current++;
     const delay = RETRY_DELAY * retryCount.current;
-
+    
     logger(`Aguardando ${delay}ms antes do retry...`, 'info');
-
+    
     setTimeout(() => {
       embedReport();
     }, delay);
@@ -509,11 +507,11 @@ export default function DashboardViewer({
     if (dashboard.report_id !== lastEmbedReportId.current) {
       logger(`Dashboard alterado: ${dashboard.title}`, 'info');
       retryCount.current = 0;
-
+      
       const timeoutId = setTimeout(() => {
         embedReport();
       }, 100);
-
+      
       return () => clearTimeout(timeoutId);
     }
   }, [dashboard.report_id, dashboard.title, embedReport, logger]);
@@ -525,11 +523,11 @@ export default function DashboardViewer({
     return () => {
       const cycleToken = embedCycleToken.current;
       embedCycleToken.current = "";
-
+      
       (async () => {
         await cleanupContainer(cycleToken);
       })();
-
+      
       if (cleanupTimeoutRef.current) {
         clearTimeout(cleanupTimeoutRef.current);
       }
@@ -549,11 +547,11 @@ export default function DashboardViewer({
         )
       );
     };
-
+    
     document.addEventListener('fullscreenchange', handleFullscreenChange);
     document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
     document.addEventListener('mozfullscreenchange', handleFullscreenChange);
-
+    
     return () => {
       document.removeEventListener('fullscreenchange', handleFullscreenChange);
       document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
@@ -611,7 +609,6 @@ export default function DashboardViewer({
 
   return (
     <div className="w-full h-full flex flex-col">
-      {/* Header como no modelo antigo */}
       <div className="bi-dashboard-header px-4 py-2 border-b bg-white flex items-center justify-between">
         <div>
           <h1 className="text-base font-semibold text-gray-900">
@@ -637,9 +634,7 @@ export default function DashboardViewer({
         </div>
       </div>
 
-      {/* Container principal */}
       <div className="flex-1 bi-viewer-outer" ref={containerRef}>
-        {/* Loading overlay */}
         {isLoading && (
           <div className="bi-loading-overlay">
             <div className="flex flex-col items-center gap-3">
@@ -657,7 +652,6 @@ export default function DashboardViewer({
           </div>
         )}
 
-        {/* Error overlay */}
         {error && !isLoading && (
           <div className="bi-loading-overlay">
             <div className="flex flex-col items-center gap-3">
@@ -676,20 +670,18 @@ export default function DashboardViewer({
           </div>
         )}
 
-        {/* Embed container - SEMPRE VISÍVEL como no modelo antigo */}
         <div
           className="bi-embed-card"
           ref={embedContainerRef}
           style={{
             width: "100%",
             height: "100%",
-            display: error ? "none" : "block", // Só oculta em caso de erro
+            display: error ? "none" : "block",
             position: "relative",
             overflow: "hidden",
-            backgroundColor: "#ffffff" // Fundo branco para garantir visibilidade
+            backgroundColor: "#ffffff"
           }}
         >
-          {/* Canvas para confetti */}
           <canvas
             ref={canvasRef}
             style={{
@@ -700,8 +692,7 @@ export default function DashboardViewer({
               zIndex: 999,
             }}
           />
-
-          {/* Overlay de sucesso */}
+          
           <div
             ref={successOverlayRef}
             style={{
@@ -732,7 +723,6 @@ export default function DashboardViewer({
           </div>
         </div>
 
-        {/* Botão de fullscreen flutuante */}
         {isFullscreen && (
           <button
             onClick={toggleFullscreen}
@@ -743,7 +733,6 @@ export default function DashboardViewer({
           </button>
         )}
 
-        {/* Painel de debug */}
         {showDebug && (
           <div className="absolute right-0 top-0 bottom-0 w-96 bg-slate-900 text-white shadow-xl z-20 flex flex-col overflow-hidden border-l border-slate-700">
             <div className="p-3 border-b border-slate-700 flex items-center justify-between bg-slate-800">
@@ -764,11 +753,12 @@ export default function DashboardViewer({
                 {logs.map((log, idx) => (
                   <div
                     key={`${log.timestamp}-${idx}`}
-                    className={`py-1 px-2 rounded ${log.type === 'error' ? 'bg-red-950 text-red-300' :
-                        log.type === 'success' ? 'bg-green-950 text-green-300' :
-                          log.type === 'warn' ? 'bg-yellow-950 text-yellow-300' :
-                            'text-slate-300'
-                      }`}
+                    className={`py-1 px-2 rounded ${
+                      log.type === 'error' ? 'bg-red-950 text-red-300' :
+                      log.type === 'success' ? 'bg-green-950 text-green-300' :
+                      log.type === 'warn' ? 'bg-yellow-950 text-yellow-300' :
+                      'text-slate-300'
+                    }`}
                   >
                     <span className="text-slate-500 mr-1">{formatTimestamp(log.timestamp)}</span>
                     <span>{log.message}</span>
@@ -803,9 +793,9 @@ export default function DashboardViewer({
                   Recarregar
                 </button>
               </div>
-
+              
               <div className="text-xs text-slate-400">
-                Ciclo: {embedCycleToken.current.slice(0, 8)} |
+                Ciclo: {embedCycleToken.current.slice(0, 8)} | 
                 Retry: {retryCount.current}/{MAX_RETRIES}
               </div>
             </div>
