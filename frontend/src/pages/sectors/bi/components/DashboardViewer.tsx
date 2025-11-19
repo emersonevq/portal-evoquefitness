@@ -170,7 +170,7 @@ export default function DashboardViewer({ dashboard }: DashboardViewerProps) {
           });
 
           report.on("rendered", () => {
-            console.log("[PowerBI] Rendered 🎉");
+            console.log("[PowerBI] Rendered ��");
           });
 
           report.on("error", (event: any) => {
@@ -199,7 +199,7 @@ export default function DashboardViewer({ dashboard }: DashboardViewerProps) {
     return () => {
       isMounted = false;
     };
-  }, [dashboard.reportId]);
+  }, [dashboard.reportId, dashboard.datasetId]);
 
   // Fullscreen sync
   useEffect(() => {
