@@ -109,7 +109,7 @@ export default function DashboardViewer({ dashboard }: DashboardViewerProps) {
         }
 
         const response = await apiFetch(
-          `/powerbi/embed-token/${dashboard.reportId}?datasetId=${dashboard.datasetId}`
+          `/powerbi/embed-token/${dashboard.report_id}?datasetId=${dashboard.dataset_id}`
         );
 
         if (!response.ok) {
@@ -286,7 +286,7 @@ export default function DashboardViewer({ dashboard }: DashboardViewerProps) {
         {embedError && (
           <div className="bi-loading-overlay">
             <div className="flex flex-col items-center gap-3">
-              <div className="text-4xl">��️</div>
+              <div className="text-4xl">⚠️</div>
               <p className="text-sm text-red-600">{embedError}</p>
             </div>
           </div>
