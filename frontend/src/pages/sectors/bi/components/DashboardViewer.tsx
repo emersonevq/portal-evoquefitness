@@ -226,7 +226,17 @@ export default function DashboardViewer({ dashboard }: DashboardViewerProps) {
         }
 
         const data = await response.json();
-        const { token, embedUrl } = data;
+        const { token, embedUrl, report_id: responseReportId } = data;
+
+        // Validar que a resposta é para o dashboard correto
+        if (responseReportId && responseReportId !== dashboard.report_id) {
+          console.warn(
+            `[PowerBI] ⚠️ Resposta é para um dashboard diferente (esperado: ${dashboard.report_id}, recebido: ${responseReportId})`,
+          );
+          throw new Error(
+            `Resposta do servidor é para um dashboard diferente (${responseReportId} vs ${dashboard.report_id})`,
+          );
+        }
 
         console.group("[PowerBI] 📊 Resposta do servidor recebida");
         console.log("Token:", token ? "✅ Presente" : "❌ Ausente");
