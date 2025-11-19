@@ -27,13 +27,8 @@ export default function AuthenticationHandler({
           if (data.access_token) {
             console.log("✅ Token obtido com sucesso");
             if (isMounted) {
-              setStatus("success");
-              setTimeout(() => {
-                if (isMounted) {
-                  setStatus("authenticated");
-                  onAuthenticated();
-                }
-              }, 1500);
+              setStatus("authenticated");
+              onAuthenticated();
             }
             return;
           }
@@ -42,13 +37,8 @@ export default function AuthenticationHandler({
         if (response.status >= 400 && response.status < 500) {
           console.warn("⚠️ Erro de autenticação, prosseguindo com autoAuth");
           if (isMounted) {
-            setStatus("success");
-            setTimeout(() => {
-              if (isMounted) {
-                setStatus("authenticated");
-                onAuthenticated();
-              }
-            }, 1500);
+            setStatus("authenticated");
+            onAuthenticated();
           }
           return;
         }
