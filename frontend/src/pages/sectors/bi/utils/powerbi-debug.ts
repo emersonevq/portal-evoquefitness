@@ -42,7 +42,9 @@ export function validateEmbedUrl(url: string): EmbedUrlValidation {
 
   // Check protocol
   if (!url.startsWith("https://") && !url.startsWith("http://")) {
-    errors.push(`Invalid protocol. URL must start with https:// (got: ${url.substring(0, 20)})`);
+    errors.push(
+      `Invalid protocol. URL must start with https:// (got: ${url.substring(0, 20)})`,
+    );
   } else {
     const match = url.match(/^(https?):\/\/([^/]+)/);
     if (match) {
@@ -91,7 +93,10 @@ export function validateEmbedUrl(url: string): EmbedUrlValidation {
   };
 }
 
-export function logEmbedUrlDiagnostics(url: string, prefix: string = "[PowerBI Debug]"): void {
+export function logEmbedUrlDiagnostics(
+  url: string,
+  prefix: string = "[PowerBI Debug]",
+): void {
   const validation = validateEmbedUrl(url);
 
   console.group(`${prefix} Embed URL Validation`);

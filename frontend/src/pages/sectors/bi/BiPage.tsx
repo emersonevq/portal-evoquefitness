@@ -36,7 +36,9 @@ export default function BiPage() {
               <div className="w-full h-full flex items-center justify-center">
                 <div className="flex flex-col items-center gap-3">
                   <Loader className="w-8 h-8 animate-spin text-primary" />
-                  <p className="text-muted-foreground">Carregando dashboards do banco...</p>
+                  <p className="text-muted-foreground">
+                    Carregando dashboards do banco...
+                  </p>
                 </div>
               </div>
             )}
@@ -75,7 +77,9 @@ export default function BiPage() {
               <div className="w-full h-full flex items-center justify-center">
                 <div className="flex flex-col items-center gap-3">
                   <div className="text-4xl">📊</div>
-                  <p className="text-muted-foreground">Nenhum dashboard disponível</p>
+                  <p className="text-muted-foreground">
+                    Nenhum dashboard disponível
+                  </p>
                 </div>
               </div>
             )}

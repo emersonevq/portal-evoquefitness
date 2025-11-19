@@ -109,7 +109,7 @@ export default function DashboardViewer({ dashboard }: DashboardViewerProps) {
         }
 
         const response = await apiFetch(
-          `/powerbi/embed-token/${dashboard.report_id}?datasetId=${dashboard.dataset_id}`
+          `/powerbi/embed-token/${dashboard.report_id}?datasetId=${dashboard.dataset_id}`,
         );
 
         if (!response.ok) {
@@ -124,12 +124,15 @@ export default function DashboardViewer({ dashboard }: DashboardViewerProps) {
         }
 
         console.log("[PowerBI] ✅ Token e embedUrl recebidos");
-        console.log("[PowerBI] URL preview:", embedUrl.substring(0, 150) + "...");
+        console.log(
+          "[PowerBI] URL preview:",
+          embedUrl.substring(0, 150) + "...",
+        );
 
         const powerBiClient = new pbi.service.Service(
           pbi.factories.hpmFactory,
           pbi.factories.wpmpFactory,
-          pbi.factories.routerFactory
+          pbi.factories.routerFactory,
         );
 
         const embedConfig: pbi.IReportEmbedConfiguration = {
@@ -156,7 +159,7 @@ export default function DashboardViewer({ dashboard }: DashboardViewerProps) {
 
           const report = powerBiClient.embed(
             embedContainerRef.current,
-            embedConfig
+            embedConfig,
           ) as pbi.Report;
 
           reportRef.current = report;
@@ -178,7 +181,7 @@ export default function DashboardViewer({ dashboard }: DashboardViewerProps) {
             if (isMounted) {
               setEmbedError(
                 event?.detail?.message ||
-                  "❌ Erro desconhecido ao carregar relatório"
+                  "❌ Erro desconhecido ao carregar relatório",
               );
               setIsLoading(false);
             }
@@ -208,8 +211,8 @@ export default function DashboardViewer({ dashboard }: DashboardViewerProps) {
         Boolean(
           document.fullscreenElement ||
             (document as any).webkitFullscreenElement ||
-            (document as any).mozFullScreenElement
-        )
+            (document as any).mozFullScreenElement,
+        ),
       );
 
     document.addEventListener("fullscreenchange", handler);

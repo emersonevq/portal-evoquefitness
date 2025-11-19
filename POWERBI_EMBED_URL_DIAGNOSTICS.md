@@ -1,10 +1,13 @@
 # Power BI embedUrl Invalid Error - Diagnostic Guide
 
 ## Problem
+
 Getting error: **"Invalid embed URL detected. Either URL hostname or protocol are invalid. Please use Power BI REST APIs to get the valid URL"**
 
 ## Root Cause
+
 The Power BI JavaScript client library (`powerbi-client`) validates embedUrls and requires:
+
 1. **HTTPS protocol** (https://app.powerbi.com/...)
 2. **Valid Power BI hostname** (app.powerbi.com)
 3. **Essential parameters**:
@@ -15,7 +18,9 @@ The Power BI JavaScript client library (`powerbi-client`) validates embedUrls an
 ## Solution Applied
 
 ### Backend Changes (backend/ti/api/powerbi.py)
+
 ✅ **Fixed embedUrl fallback** to include `groupId`:
+
 ```python
 # OLD (INCORRECT):
 embed_url_value = f"https://app.powerbi.com/reportEmbed?reportId={report_id}&ctid={POWERBI_TENANT_ID}"
@@ -28,6 +33,7 @@ embed_url_value = f"https://app.powerbi.com/reportEmbed?reportId={report_id}&gro
 ✅ **Improved error logging** for diagnostics
 
 ### Frontend Changes (frontend/src/pages/sectors/bi/)
+
 ✅ **Added embedUrl validation utilities** in `utils/powerbi-debug.ts`
 ✅ **Enhanced error messages** with detailed diagnostics
 ✅ **Added debugging information** to browser console
@@ -35,6 +41,7 @@ embed_url_value = f"https://app.powerbi.com/reportEmbed?reportId={report_id}&gro
 ## How to Verify the Fix
 
 ### Step 1: Check Backend Debug Endpoint
+
 Visit one of these URLs in your browser to check the exact embedUrl format:
 
 ```
@@ -42,11 +49,13 @@ http://localhost:8000/api/powerbi/debug/embed-url/{reportId}
 ```
 
 Example with a real report ID:
+
 ```
 http://localhost:8000/api/powerbi/debug/embed-url/8799e0cf-fe55-4670-8a67-ceeee9744bc4
 ```
 
 **Expected Response:**
+
 ```json
 {
   "status": "✅ Found",
@@ -61,6 +70,7 @@ http://localhost:8000/api/powerbi/debug/embed-url/8799e0cf-fe55-4670-8a67-ceeee9
 ```
 
 ### Step 2: Check Frontend Console
+
 When loading a BI dashboard, check your browser's **Developer Console** (F12) for diagnostic logs:
 
 ```
@@ -78,7 +88,9 @@ Metadata: {
 ```
 
 ### Step 3: Test Dashboard Loading
+
 Try loading a BI dashboard in the app. You should see:
+
 1. "Logando..." loading state
 2. "Carregando dashboard..." loading state
 3. Dashboard renders successfully
@@ -87,19 +99,24 @@ Try loading a BI dashboard in the app. You should see:
 ## Common Issues & Solutions
 
 ### Issue 1: "embedUrl not found in Power BI API response"
+
 **Cause:** Service Principal doesn't have read access to report details
-**Solution:** 
+**Solution:**
+
 1. Ensure Service Principal is added to the workspace with at least Viewer role
 2. Check Power BI Admin settings allow Service Principal access
 3. Run `/api/powerbi/debug/workspace-access` to verify permissions
 
 ### Issue 2: "embedUrl missing groupId"
+
 **Cause:** API returned old format embedUrl without groupId
 **Solution:** Already fixed! The fallback now includes groupId automatically.
 
 ### Issue 3: "embedUrl still shows protocol/hostname errors"
+
 **Cause:** Network proxy or CORS issue might be corrupting the URL
 **Solution:**
+
 1. Check browser Network tab (F12) to see full `/powerbi/embed-token/{reportId}` response
 2. Verify the full URL is being transmitted correctly
 3. Check for any proxy rewriting URL parameters

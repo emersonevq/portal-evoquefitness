@@ -3,16 +3,19 @@
 ## Problems Identified & Fixed
 
 ### 1. ❌ Frontend: Incomplete useEffect Dependencies
+
 **Problem**: `useEffect` only watched `reportId` but ignored `datasetId`, causing failures when switching dashboards
 
 **Location**: `frontend/src/pages/sectors/bi/components/DashboardViewer.tsx:202`
 
 **Before**:
+
 ```typescript
 }, [dashboard.reportId]);  // ❌ Missing datasetId
 ```
 
 **After**:
+
 ```typescript
 }, [dashboard.reportId, dashboard.datasetId]);  // ✅ Now reacts to both changes
 ```
@@ -22,11 +25,13 @@
 ---
 
 ### 2. ❌ Frontend: Inadequate Embed Cleanup
+
 **Problem**: Power BI client wasn't properly cleaning up previous embed before creating new one, causing conflicts
 
 **Location**: `frontend/src/pages/sectors/bi/components/DashboardViewer.tsx:84-110`
 
 **Added Cleanup Logic**:
+
 ```typescript
 // Cleanup previous report instance completely
 if (reportRef.current) {
@@ -51,17 +56,20 @@ if (embedContainerRef.current) {
 ---
 
 ### 3. ❌ Backend: Missing Token Cache
+
 **Problem**: Every `/powerbi/embed-token` request triggered a new authentication, causing rate limiting and performance issues
 
 **Location**: `backend/ti/api/powerbi.py:13-56` (new TokenCache class) and refactored token functions
 
 **Added**:
+
 - `TokenCache` class with automatic expiration handling
 - Token reuse within 30s margin of expiration
 - Thread-safe cache with asyncio.Lock
 - Reduced Azure authentication calls by ~95%
 
 **Before**:
+
 ```python
 async def get_service_principal_token() -> str:
     # Every call = new Azure auth request ❌
@@ -71,6 +79,7 @@ async def get_service_principal_token() -> str:
 ```
 
 **After**:
+
 ```python
 async def get_service_principal_token() -> str:
     # Uses cached token if valid ✅
@@ -79,12 +88,14 @@ async def get_service_principal_token() -> str:
 ```
 
 **Cache Behavior**:
+
 - Tokens are cached for their full validity period (typically 3600s)
 - Cache automatically refreshes 30 seconds before expiration
 - Only 1 authentication request per token lifetime (per deployment)
 - No race conditions - uses asyncio.Lock
 
-**Impact**: 
+**Impact**:
+
 - Dramatically reduced API calls to Azure
 - Better performance (0 network latency for cached tokens)
 - Avoids rate limiting issues
@@ -109,6 +120,7 @@ async def get_service_principal_token() -> str:
 ## How It Works Now
 
 ### Dashboard Switching Flow
+
 1. User clicks on different dashboard
 2. Component receives new `reportId` and `datasetId`
 3. useEffect detects change (both in dependencies)
@@ -120,6 +132,7 @@ async def get_service_principal_token() -> str:
 6. New dashboard embeds cleanly without conflicts
 
 ### Token Caching Flow
+
 ```
 Request 1: /powerbi/embed-token/reportA
   → Cache miss, fetch from Azure
@@ -142,12 +155,14 @@ Request 3 (3550s later): /powerbi/embed-token/reportC
 ## Performance Improvements
 
 ### Before Fixes
+
 - Dashboard switching: Sometimes failed with "Invalid embed URL" error
 - Intermittent failures when switching between dashboards
 - Every request = new Azure auth (15-20 requests/minute = 240-300 Azure calls/minute in heavy usage)
 - Potential rate limiting after sustained usage
 
 ### After Fixes
+
 - Dashboard switching: Always works, smooth transitions
 - Proper cleanup prevents conflicts
 - ~95% reduction in Azure auth calls
@@ -174,4 +189,3 @@ Request 3 (3550s later): /powerbi/embed-token/reportC
 - Cache automatically handles expiration - no manual refresh needed
 - Safe for concurrent requests (uses asyncio.Lock)
 - If needed, can be manually cleared by calling `token_cache.clear()`
-

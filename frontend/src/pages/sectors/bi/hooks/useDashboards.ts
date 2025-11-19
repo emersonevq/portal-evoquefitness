@@ -38,7 +38,9 @@ export function useDashboards() {
         const response = await apiFetch("/powerbi/db/dashboards");
 
         if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: Falha ao buscar dashboards`);
+          throw new Error(
+            `HTTP ${response.status}: Falha ao buscar dashboards`,
+          );
         }
 
         const dashboards: Dashboard[] = await response.json();
@@ -47,7 +49,9 @@ export function useDashboards() {
 
         // Group dashboards by category
         const grouped = dashboards.reduce((acc, dashboard) => {
-          const existingCategory = acc.find((cat) => cat.id === dashboard.category);
+          const existingCategory = acc.find(
+            (cat) => cat.id === dashboard.category,
+          );
 
           if (existingCategory) {
             existingCategory.dashboards.push(dashboard);
@@ -69,7 +73,8 @@ export function useDashboards() {
 
         setCategories(grouped);
       } catch (err) {
-        const message = err instanceof Error ? err.message : "Erro desconhecido";
+        const message =
+          err instanceof Error ? err.message : "Erro desconhecido";
         console.error("[BI] Erro ao buscar dashboards:", message);
         setError(message);
       } finally {
@@ -82,7 +87,9 @@ export function useDashboards() {
 
   const getDashboardById = (dashboardId: string): Dashboard | undefined => {
     for (const category of categories) {
-      const dashboard = category.dashboards.find((d) => d.dashboard_id === dashboardId);
+      const dashboard = category.dashboards.find(
+        (d) => d.dashboard_id === dashboardId,
+      );
       if (dashboard) return dashboard;
     }
     return undefined;
