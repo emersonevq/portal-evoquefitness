@@ -1,4 +1,4 @@
-import { Dashboard } from "../data/dashboards";
+import { Dashboard } from "../hooks/useDashboards";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Eye } from "lucide-react";

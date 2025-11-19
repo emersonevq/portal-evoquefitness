@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Dashboard } from "../data/dashboards";
+import { Dashboard } from "../hooks/useDashboards";
 import { Loader } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import * as pbi from "powerbi-client";
@@ -91,8 +91,25 @@ export default function DashboardViewer({ dashboard }: DashboardViewerProps) {
         setIsAuthenticating(true);
         setEmbedError(null);
 
+        // Cleanup previous report instance completely
+        if (reportRef.current) {
+          try {
+            reportRef.current.off("loaded");
+            reportRef.current.off("rendered");
+            reportRef.current.off("error");
+          } catch (e) {
+            console.warn("[PowerBI] Erro ao remover listeners:", e);
+          }
+          reportRef.current = null;
+        }
+
+        // Reset container to clear previous embed
+        if (embedContainerRef.current) {
+          embedContainerRef.current.innerHTML = "";
+        }
+
         const response = await apiFetch(
-          `/powerbi/embed-token/${dashboard.reportId}?datasetId=${dashboard.datasetId}`
+          `/powerbi/embed-token/${dashboard.report_id}?datasetId=${dashboard.dataset_id}`,
         );
 
         if (!response.ok) {
@@ -103,18 +120,24 @@ export default function DashboardViewer({ dashboard }: DashboardViewerProps) {
         const { token, embedUrl } = data;
 
         if (!token || !embedUrl) {
-          throw new Error("Token ou embedUrl ausente");
+          throw new Error("Token ou embedUrl ausente na resposta do servidor");
         }
+
+        console.log("[PowerBI] ✅ Token e embedUrl recebidos");
+        console.log(
+          "[PowerBI] URL preview:",
+          embedUrl.substring(0, 150) + "...",
+        );
 
         const powerBiClient = new pbi.service.Service(
           pbi.factories.hpmFactory,
           pbi.factories.wpmpFactory,
-          pbi.factories.routerFactory
+          pbi.factories.routerFactory,
         );
 
         const embedConfig: pbi.IReportEmbedConfiguration = {
           type: "report",
-          id: dashboard.reportId,
+          id: dashboard.report_id,
           embedUrl: embedUrl,
           accessToken: token,
           tokenType: pbi.models.TokenType.Embed,
@@ -136,7 +159,7 @@ export default function DashboardViewer({ dashboard }: DashboardViewerProps) {
 
           const report = powerBiClient.embed(
             embedContainerRef.current,
-            embedConfig
+            embedConfig,
           ) as pbi.Report;
 
           reportRef.current = report;
@@ -158,7 +181,7 @@ export default function DashboardViewer({ dashboard }: DashboardViewerProps) {
             if (isMounted) {
               setEmbedError(
                 event?.detail?.message ||
-                  "❌ Erro desconhecido ao carregar relatório"
+                  "❌ Erro desconhecido ao carregar relatório",
               );
               setIsLoading(false);
             }
@@ -179,7 +202,7 @@ export default function DashboardViewer({ dashboard }: DashboardViewerProps) {
     return () => {
       isMounted = false;
     };
-  }, [dashboard.reportId]);
+  }, [dashboard.report_id, dashboard.dataset_id]);
 
   // Fullscreen sync
   useEffect(() => {
@@ -188,8 +211,8 @@ export default function DashboardViewer({ dashboard }: DashboardViewerProps) {
         Boolean(
           document.fullscreenElement ||
             (document as any).webkitFullscreenElement ||
-            (document as any).mozFullScreenElement
-        )
+            (document as any).mozFullScreenElement,
+        ),
       );
 
     document.addEventListener("fullscreenchange", handler);

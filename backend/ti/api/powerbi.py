@@ -1,16 +1,60 @@
 from __future__ import annotations
 from fastapi import APIRouter, HTTPException, Depends, Query
 from sqlalchemy.orm import Session
+from sqlalchemy import desc
 from core.db import get_db
+from ti.models.powerbi_dashboard import PowerBIDashboard
+from ti.schemas.powerbi_dashboard import PowerBIDashboardOut, PowerBIDashboardCreate, PowerBIDashboardUpdate
 import httpx
 import os
 import asyncio
 import html
+import time
 from dotenv import load_dotenv
 
 load_dotenv()
 
 router = APIRouter(prefix="/powerbi", tags=["Power BI"])
+
+# ============================================
+# TOKEN CACHE (para evitar rate limiting)
+# ============================================
+class TokenCache:
+    def __init__(self):
+        self.token = None
+        self.expires_at = 0
+        self.lock = asyncio.Lock()
+
+    async def get_token(self, get_token_func):
+        """Get cached token or fetch new one"""
+        current_time = time.time()
+
+        # Se token ainda é válido (com 30s de margem), retorna o cached
+        if self.token and current_time < (self.expires_at - 30):
+            print(f"[POWERBI] ✅ Usando token em cache (expira em {int(self.expires_at - current_time)}s)")
+            return self.token
+
+        async with self.lock:
+            # Double-check dentro do lock
+            if self.token and current_time < (self.expires_at - 30):
+                return self.token
+
+            print(f"[POWERBI] 🔄 Obtendo novo token...")
+            token_data = await get_token_func()
+
+            self.token = token_data.get("access_token")
+            expires_in = token_data.get("expires_in", 3600)
+            self.expires_at = current_time + expires_in
+
+            print(f"[POWERBI] ✅ Novo token obtido (válido por {expires_in}s)")
+            return self.token
+
+    def clear(self):
+        """Clear cached token"""
+        self.token = None
+        self.expires_at = 0
+
+token_cache = TokenCache()
 
 # ============================================
 # POWER BI CONFIGURATION
@@ -49,10 +93,8 @@ print(f"[POWERBI] =====================================")
 # AUTHENTICATION
 # ============================================
 
-async def get_service_principal_token() -> str:
-    """Get access token using service principal credentials"""
-    print(f"[POWERBI] 🔄 Obtendo token de autenticação...")
-    
+async def _fetch_service_principal_token_from_azure() -> dict:
+    """Fetch fresh token from Azure (internal use only)"""
     try:
         async with httpx.AsyncClient(timeout=15.0) as client:
             response = await client.post(
@@ -67,21 +109,32 @@ async def get_service_principal_token() -> str:
 
             if response.status_code != 200:
                 error_text = response.text
-                print(f"[POWERBI] ❌ Erro de autenticação: {error_text}")
+                print(f"[POWERBI] ❌ Erro de autenticação Azure: {error_text}")
                 raise HTTPException(status_code=400, detail=f"Azure auth error: {error_text}")
 
             token_data = response.json()
             access_token = token_data.get("access_token")
-            
-            if not access_token:
-                raise HTTPException(status_code=400, detail="No access token received")
 
-            print(f"[POWERBI] ✅ Token obtido com sucesso!")
-            return access_token
+            if not access_token:
+                raise HTTPException(status_code=400, detail="No access token received from Azure")
+
+            return token_data
 
     except httpx.RequestError as e:
-        print(f"[POWERBI] ❌ Erro de rede: {e}")
+        print(f"[POWERBI] ❌ Erro de rede ao obter token: {e}")
         raise HTTPException(status_code=400, detail=f"Network error: {str(e)}")
+
+
+async def get_service_principal_token() -> str:
+    """Get cached access token using service principal credentials"""
+    try:
+        token = await token_cache.get_token(_fetch_service_principal_token_from_azure)
+        return token
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[POWERBI] ❌ Erro ao obter token: {e}")
+        raise HTTPException(status_code=500, detail=f"Token retrieval error: {str(e)}")
 
 
 # ============================================
@@ -143,27 +196,67 @@ async def get_embed_token(
         print(f"[POWERBI] [EMBED-TOKEN] Token URL: {token_url}")
 
         async with httpx.AsyncClient(timeout=60.0) as client:
-            # 3a. Primeiro, obter o embedUrl correto do relatório
+            # 3a. Obter o embedUrl correto do relatório (CRÍTICO - é obrigatório)
+            embed_url_value = None
             try:
                 report_response = await client.get(
                     f"{POWERBI_API_URL}/groups/{POWERBI_WORKSPACE_ID}/reports/{report_id}",
                     headers=headers,
+                    timeout=20.0,
                 )
 
                 if report_response.status_code == 200:
                     report_data = report_response.json()
                     embed_url_value = report_data.get("embedUrl")
-                    print(f"[POWERBI] [EMBED-TOKEN] Embed URL obtida da API: {embed_url_value}")
+
+                    if embed_url_value and isinstance(embed_url_value, str):
+                        if embed_url_value.startswith("https://app.powerbi.com"):
+                            print(f"[POWERBI] [EMBED-TOKEN] ✅ Embed URL válida obtida da API")
+                        else:
+                            print(f"[POWERBI] [EMBED-TOKEN] ⚠️ embedUrl com hostname inesperado: {embed_url_value[:80]}")
+                            embed_url_value = None
+                    else:
+                        print(f"[POWERBI] [EMBED-TOKEN] ⚠️ embedUrl ausente ou inválida na resposta: {embed_url_value}")
+                        embed_url_value = None
+                elif report_response.status_code == 401:
+                    print(f"[POWERBI] [EMBED-TOKEN] ❌ 401 Unauthorized - Service Principal sem acesso")
+                    raise HTTPException(
+                        status_code=401,
+                        detail="Service Principal não tem permissão para ler relatório"
+                    )
+                elif report_response.status_code == 403:
+                    print(f"[POWERBI] [EMBED-TOKEN] ❌ 403 Forbidden - Sem permissão")
+                    raise HTTPException(
+                        status_code=403,
+                        detail="Service Principal não tem permissão para acessar este relatório"
+                    )
+                elif report_response.status_code == 404:
+                    print(f"[POWERBI] [EMBED-TOKEN] ❌ 404 Not Found - Relatório {report_id} não encontrado")
+                    raise HTTPException(
+                        status_code=404,
+                        detail=f"Relatório {report_id} não encontrado no workspace"
+                    )
                 else:
-                    print(f"[POWERBI] [EMBED-TOKEN] ⚠️ Falha ao obter report details: {report_response.status_code}")
-                    # Fallback para construir manualmente
-                    embed_url_value = f"https://app.powerbi.com/reportEmbed?reportId={report_id}&ctid={POWERBI_TENANT_ID}"
-                    print(f"[POWERBI] [EMBED-TOKEN] Usando embed URL fallback: {embed_url_value}")
+                    print(f"[POWERBI] [EMBED-TOKEN] ⚠️ Erro ao obter report: {report_response.status_code}")
+                    print(f"[POWERBI] [EMBED-TOKEN] Response: {report_response.text[:200]}")
+
+            except httpx.TimeoutException as e:
+                print(f"[POWERBI] [EMBED-TOKEN] ⚠️ Timeout ao obter report details: {e}")
+                embed_url_value = None
+            except HTTPException:
+                raise
             except Exception as e:
                 print(f"[POWERBI] [EMBED-TOKEN] ⚠️ Erro ao obter embedUrl: {e}")
-                # Fallback
-                embed_url_value = f"https://app.powerbi.com/reportEmbed?reportId={report_id}&ctid={POWERBI_TENANT_ID}"
-                print(f"[POWERBI] [EMBED-TOKEN] Usando embed URL fallback: {embed_url_value}")
+                embed_url_value = None
+
+            # Se não conseguiu obter embedUrl, retornar erro
+            if not embed_url_value:
+                error_msg = f"Não conseguiu obter embedUrl para relatório {report_id}. Verifique se o Service Principal tem permissão de leitura no workspace."
+                print(f"[POWERBI] [EMBED-TOKEN] ❌ ERRO CRÍTICO: {error_msg}")
+                raise HTTPException(
+                    status_code=500,
+                    detail=error_msg
+                )
 
             # 3b. Gerar o token (aumentado timeout para 60s porque api.powerbi.com pode ser lenta)
             try:
@@ -190,7 +283,7 @@ async def get_embed_token(
 
                 if response.status_code == 403:
                     print(f"\n[POWERBI] [EMBED-TOKEN] ❌ ERRO 403 - DIAGNÓSTICO:")
-                    print(f"  1. Service Principal está no workspace como Membro/Admin?")
+                    print(f"  1. Service Principal est�� no workspace como Membro/Admin?")
                     print(f"     → Workspace ID: {POWERBI_WORKSPACE_ID}")
                     print(f"  2. Report ID está correto?")
                     print(f"     → Report ID: {report_id}")
@@ -236,7 +329,7 @@ async def get_embed_token(
             detail=f"Erro de conexão com Power BI: {str(e)}"
         )
     except Exception as e:
-        print(f"[POWERBI] [EMBED-TOKEN] ❌ Erro inesperado: {str(e)}")
+        print(f"[POWERBI] [EMBED-TOKEN] ��� Erro inesperado: {str(e)}")
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
@@ -271,21 +364,174 @@ async def get_powerbi_reports(db: Session = Depends(get_db)):
     try:
         token = await get_service_principal_token()
         headers = {"Authorization": f"Bearer {token}"}
-        
+
         async with httpx.AsyncClient() as client:
             response = await client.get(
                 f"{POWERBI_API_URL}/reports",
                 headers=headers,
             )
-            
+
             if response.status_code != 200:
                 print(f"[POWERBI] Reports error: {response.text}")
                 return {"value": []}
-            
+
             return response.json()
     except Exception as e:
         print(f"[POWERBI] Error fetching reports: {e}")
         return {"value": []}
+
+
+# ============================================
+# DATABASE DASHBOARDS ENDPOINTS
+# ============================================
+
+@router.get("/db/dashboards", response_model=list[PowerBIDashboardOut])
+async def get_db_dashboards(db: Session = Depends(get_db)):
+    """Get all dashboards from database (active only)"""
+    try:
+        dashboards = db.query(PowerBIDashboard)\
+            .filter(PowerBIDashboard.ativo == True)\
+            .order_by(PowerBIDashboard.category, PowerBIDashboard.order)\
+            .all()
+
+        print(f"[POWERBI] [DB] Encontrados {len(dashboards)} dashboards ativos")
+        return dashboards
+    except Exception as e:
+        print(f"[POWERBI] [DB] Erro ao buscar dashboards: {e}")
+        raise HTTPException(status_code=500, detail=f"Erro ao buscar dashboards: {str(e)}")
+
+
+@router.get("/db/dashboards/by-id/{dashboard_id}", response_model=PowerBIDashboardOut)
+async def get_db_dashboard_by_id(dashboard_id: str, db: Session = Depends(get_db)):
+    """Get specific dashboard from database by dashboard_id"""
+    try:
+        dashboard = db.query(PowerBIDashboard)\
+            .filter(PowerBIDashboard.dashboard_id == dashboard_id)\
+            .filter(PowerBIDashboard.ativo == True)\
+            .first()
+
+        if not dashboard:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Dashboard '{dashboard_id}' not found"
+            )
+
+        print(f"[POWERBI] [DB] Dashboard encontrado: {dashboard.title}")
+        return dashboard
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[POWERBI] [DB] Erro ao buscar dashboard: {e}")
+        raise HTTPException(status_code=500, detail=f"Erro ao buscar dashboard: {str(e)}")
+
+
+@router.get("/db/dashboards/category/{category}", response_model=list[PowerBIDashboardOut])
+async def get_db_dashboards_by_category(category: str, db: Session = Depends(get_db)):
+    """Get dashboards by category from database"""
+    try:
+        dashboards = db.query(PowerBIDashboard)\
+            .filter(PowerBIDashboard.category == category)\
+            .filter(PowerBIDashboard.ativo == True)\
+            .order_by(PowerBIDashboard.order)\
+            .all()
+
+        print(f"[POWERBI] [DB] Encontrados {len(dashboards)} dashboards da categoria '{category}'")
+        return dashboards
+    except Exception as e:
+        print(f"[POWERBI] [DB] Erro ao buscar dashboards por categoria: {e}")
+        raise HTTPException(status_code=500, detail=f"Erro ao buscar dashboards: {str(e)}")
+
+
+@router.post("/db/dashboards", response_model=PowerBIDashboardOut)
+async def create_db_dashboard(dashboard: PowerBIDashboardCreate, db: Session = Depends(get_db)):
+    """Create new dashboard in database"""
+    try:
+        # Check if dashboard_id already exists
+        existing = db.query(PowerBIDashboard)\
+            .filter(PowerBIDashboard.dashboard_id == dashboard.dashboard_id)\
+            .first()
+
+        if existing:
+            raise HTTPException(
+                status_code=409,
+                detail=f"Dashboard com ID '{dashboard.dashboard_id}' já existe"
+            )
+
+        new_dashboard = PowerBIDashboard(**dashboard.model_dump())
+        db.add(new_dashboard)
+        db.commit()
+        db.refresh(new_dashboard)
+
+        print(f"[POWERBI] [DB] Dashboard criado: {new_dashboard.title}")
+        return new_dashboard
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        print(f"[POWERBI] [DB] Erro ao criar dashboard: {e}")
+        raise HTTPException(status_code=500, detail=f"Erro ao criar dashboard: {str(e)}")
+
+
+@router.put("/db/dashboards/{dashboard_id}", response_model=PowerBIDashboardOut)
+async def update_db_dashboard(
+    dashboard_id: str,
+    dashboard_update: PowerBIDashboardUpdate,
+    db: Session = Depends(get_db)
+):
+    """Update dashboard in database"""
+    try:
+        dashboard = db.query(PowerBIDashboard)\
+            .filter(PowerBIDashboard.dashboard_id == dashboard_id)\
+            .first()
+
+        if not dashboard:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Dashboard '{dashboard_id}' not found"
+            )
+
+        update_data = dashboard_update.model_dump(exclude_unset=True)
+        for field, value in update_data.items():
+            setattr(dashboard, field, value)
+
+        db.commit()
+        db.refresh(dashboard)
+
+        print(f"[POWERBI] [DB] Dashboard atualizado: {dashboard.title}")
+        return dashboard
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        print(f"[POWERBI] [DB] Erro ao atualizar dashboard: {e}")
+        raise HTTPException(status_code=500, detail=f"Erro ao atualizar dashboard: {str(e)}")
+
+
+@router.delete("/db/dashboards/{dashboard_id}")
+async def delete_db_dashboard(dashboard_id: str, db: Session = Depends(get_db)):
+    """Delete dashboard from database (soft delete - marks as inactive)"""
+    try:
+        dashboard = db.query(PowerBIDashboard)\
+            .filter(PowerBIDashboard.dashboard_id == dashboard_id)\
+            .first()
+
+        if not dashboard:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Dashboard '{dashboard_id}' not found"
+            )
+
+        dashboard.ativo = False
+        db.commit()
+
+        print(f"[POWERBI] [DB] Dashboard desativado: {dashboard.title}")
+        return {"message": f"Dashboard '{dashboard_id}' desativado com sucesso"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        print(f"[POWERBI] [DB] Erro ao deletar dashboard: {e}")
+        raise HTTPException(status_code=500, detail=f"Erro ao deletar dashboard: {str(e)}")
 
 
 # ============================================
@@ -550,6 +796,48 @@ async def debug_reports_access():
                 }
     except Exception as e:
         return {"status": "❌ Erro", "error": str(e)}
+
+
+@router.get("/debug/embed-url/{report_id}")
+async def debug_embed_url(report_id: str):
+    """Debug endpoint: Check embedUrl format for a specific report"""
+    try:
+        token = await get_service_principal_token()
+        headers = {"Authorization": f"Bearer {token}"}
+
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.get(
+                f"{POWERBI_API_URL}/groups/{POWERBI_WORKSPACE_ID}/reports/{report_id}",
+                headers=headers,
+            )
+
+            if response.status_code == 200:
+                report_data = response.json()
+                embed_url = report_data.get("embedUrl", "NOT PROVIDED")
+
+                return {
+                    "status": "✅ Found",
+                    "report_id": report_id,
+                    "embed_url": embed_url,
+                    "embed_url_valid": isinstance(embed_url, str) and embed_url.startswith("https://"),
+                    "has_groupId": "groupId=" in str(embed_url),
+                    "has_reportId": f"reportId={report_id}" in str(embed_url),
+                    "url_length": len(str(embed_url)),
+                    "fallback_url": f"https://app.powerbi.com/reportEmbed?reportId={report_id}&groupId={POWERBI_WORKSPACE_ID}&w=2"
+                }
+            else:
+                return {
+                    "status": f"❌ Error {response.status_code}",
+                    "error": response.text[:500],
+                    "fallback_url": f"https://app.powerbi.com/reportEmbed?reportId={report_id}&groupId={POWERBI_WORKSPACE_ID}&w=2"
+                }
+    except Exception as e:
+        import traceback
+        return {
+            "status": "❌ Error",
+            "error": str(e),
+            "traceback": traceback.format_exc()
+        }
 
 
 @router.get("/status")
