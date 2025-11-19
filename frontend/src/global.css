@@ -646,12 +646,10 @@
 
   /* Loading overlay visível */
   .bi-loading-overlay {
-    visibility: visible !important;
-    opacity: 1 !important;
     display: flex !important;
     position: absolute !important;
     inset: 0 !important;
-    background: rgba(255, 255, 255, 0.95) !important;
+    background: rgba(255, 255, 255, 0.9) !important;
     z-index: 100 !important;
     align-items: center !important;
     justify-content: center !important;
