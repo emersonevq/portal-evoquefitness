@@ -480,7 +480,7 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    background: #ffffff;
+    background: transparent;
     border-left: 1px solid #e2e8f0;
   }
 
@@ -493,7 +493,7 @@
     overflow: hidden;
     min-height: 0;
     position: relative;
-    background: #ffffff;
+    background: transparent;
   }
 
   /* Card que envolve o iframe - TOTALMENTE OTIMIZADO */
@@ -504,13 +504,14 @@
     padding: 0;
     box-shadow: none;
     border: none;
-    overflow: hidden;
+    overflow: visible;
     display: flex;
     flex-direction: column;
     min-height: 0;
     position: relative;
     width: 100%;
     height: 100%;
+    z-index: auto;
   }
 
   .bi-embed-viewport {
