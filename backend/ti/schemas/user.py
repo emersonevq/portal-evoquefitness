@@ -10,7 +10,6 @@ class UserCreate(BaseModel):
     senha: Optional[str] = Field(default=None, min_length=6)
     nivel_acesso: str
     setores: Optional[List[str]] = None
-    bi_subcategories: Optional[List[str]] = None
     alterar_senha_primeiro_acesso: bool = True
     bloqueado: bool = False
 
