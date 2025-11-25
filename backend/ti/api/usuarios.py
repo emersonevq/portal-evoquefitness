@@ -264,6 +264,37 @@ def atualizar_usuario(user_id: int, payload: dict, db: Session = Depends(get_db)
         raise HTTPException(status_code=500, detail=f"Erro ao atualizar: {e}")
 
 
+@router.get("/{user_id}/debug-bi")
+def debug_user_bi(user_id: int, db: Session = Depends(get_db)):
+    """Debug endpoint to check what's actually in the database for a user's BI permissions"""
+    try:
+        from ..models import User
+        User.__table__.create(bind=engine, checkfirst=True)
+
+        user = db.query(User).filter(User.id == user_id).first()
+        if not user:
+            return {"error": f"User {user_id} not found"}
+
+        import json
+        bi_raw = getattr(user, "_bi_subcategories", None)
+        bi_parsed = None
+        try:
+            if bi_raw:
+                bi_parsed = json.loads(bi_raw)
+        except Exception as e:
+            pass
+
+        return {
+            "user_id": user.id,
+            "user_name": f"{user.nome} {user.sobrenome}",
+            "_bi_subcategories_raw": bi_raw,
+            "_bi_subcategories_parsed": bi_parsed,
+            "note": "Check the _bi_subcategories_raw field in database"
+        }
+    except Exception as e:
+        return {"error": str(e)}
+
+
 @router.get("/{user_id}", response_model=UserOut)
 def get_usuario(user_id: int, db: Session = Depends(get_db)):
     try:
