@@ -156,6 +156,13 @@ def listar_bloqueados(db: Session = Depends(get_db)):
                     setores_list = []
             except Exception:
                 setores_list = [str(getattr(u, "setor"))] if getattr(u, "setor", None) else []
+            try:
+                bi_subcategories_list = None
+                if getattr(u, "_bi_subcategories", None):
+                    raw = json.loads(getattr(u, "_bi_subcategories"))
+                    bi_subcategories_list = [str(x) if x is not None else "" for x in raw]
+            except Exception:
+                bi_subcategories_list = None
             rows.append({
                 "id": u.id,
                 "nome": u.nome,
@@ -165,6 +172,7 @@ def listar_bloqueados(db: Session = Depends(get_db)):
                 "nivel_acesso": u.nivel_acesso,
                 "setor": setores_list[0] if setores_list else None,
                 "setores": setores_list,
+                "bi_subcategories": bi_subcategories_list,
                 "bloqueado": bool(u.bloqueado),
                 "session_revoked_at": u.session_revoked_at.isoformat() if getattr(u, 'session_revoked_at', None) else None,
             })
