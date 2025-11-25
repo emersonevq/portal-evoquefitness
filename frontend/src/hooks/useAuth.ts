@@ -449,7 +449,9 @@ export function useAuth() {
     let pollInterval: ReturnType<typeof setInterval> | null = null;
     const setupPolling = () => {
       if (pollInterval) clearInterval(pollInterval);
-      console.debug("[AUTH] Setting up polling fallback (30s interval, event-driven preferred)");
+      console.debug(
+        "[AUTH] Setting up polling fallback (30s interval, event-driven preferred)",
+      );
       pollInterval = setInterval(() => {
         if (mounted) {
           // Silent poll - don't spam console

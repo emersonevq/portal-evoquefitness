@@ -326,7 +326,10 @@ export function CriarUsuario() {
                 </div>
                 <div className="rounded-md border border-border/40 p-3 space-y-2 text-sm bg-muted/30">
                   {biSubcategories.map((sub: any) => (
-                    <label key={sub.dashboard_id} className="inline-flex items-center gap-2 cursor-pointer">
+                    <label
+                      key={sub.dashboard_id}
+                      className="inline-flex items-center gap-2 cursor-pointer"
+                    >
                       <input
                         type="radio"
                         name="bi-dashboard-create"
