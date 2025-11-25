@@ -11,7 +11,7 @@ export interface Sector {
   subcategories?: string[];
 }
 
-export const sectors: Sector[] = [
+const baseSectors: Sector[] = [
   {
     slug: "ti",
     title: "Setor de TI",
@@ -35,12 +35,41 @@ export const sectors: Sector[] = [
     title: "Portal de BI",
     description: "Analise dados e visualize insights em dashboards.",
     icon: BarChart3,
-    subcategories: [
-      "Dashboard Financeiro",
-      "Dashboard Operacional",
-      "Dashboard de Vendas",
-      "Dashboard de RH",
-      "Dashboard de Inventário",
-    ],
   },
 ];
+
+let cachedSubcategories: string[] | null = null;
+
+export async function loadBISubcategories(): Promise<string[]> {
+  if (cachedSubcategories) {
+    return cachedSubcategories;
+  }
+
+  try {
+    const response = await fetch("/api/powerbi/db/subcategories");
+    if (!response.ok) {
+      console.warn("Failed to load BI subcategories from API");
+      return [];
+    }
+    const data = await response.json();
+    cachedSubcategories = data.subcategories || [];
+    return cachedSubcategories;
+  } catch (error) {
+    console.error("Error loading BI subcategories:", error);
+    return [];
+  }
+}
+
+export async function getSectorsWithSubcategories(): Promise<Sector[]> {
+  const sectorsWithSub = [...baseSectors];
+  const biIndex = sectorsWithSub.findIndex((s) => s.slug === "bi");
+  if (biIndex !== -1) {
+    const subcategories = await loadBISubcategories();
+    if (subcategories.length > 0) {
+      sectorsWithSub[biIndex].subcategories = subcategories;
+    }
+  }
+  return sectorsWithSub;
+}
+
+export const sectors: Sector[] = baseSectors;
