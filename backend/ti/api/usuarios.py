@@ -33,15 +33,6 @@ def listar_usuarios(db: Session = Depends(get_db)):
                 pass
             return []
 
-        def compute_bi_subcategories(u) -> list[str] | None:
-            try:
-                if getattr(u, "_bi_subcategories", None):
-                    raw = json.loads(getattr(u, "_bi_subcategories"))
-                    return [str(x).encode('utf-8', 'ignore').decode('utf-8') if x is not None else "" for x in raw]
-            except Exception:
-                pass
-            return None
-
         # cria tabela se não existir
         try:
             User.__table__.create(bind=engine, checkfirst=True)
@@ -56,7 +47,6 @@ def listar_usuarios(db: Session = Depends(get_db)):
                 if u.bloqueado is None:
                     u.bloqueado = False
                 setores_list = compute_setores(u)
-                bi_subcategories = compute_bi_subcategories(u)
                 rows.append({
                     "id": u.id,
                     "nome": u.nome,
@@ -66,7 +56,6 @@ def listar_usuarios(db: Session = Depends(get_db)):
                     "nivel_acesso": u.nivel_acesso,
                     "setor": setores_list[0] if setores_list else None,
                     "setores": setores_list,
-                    "bi_subcategories": bi_subcategories,
                     "bloqueado": bool(u.bloqueado),
                     "session_revoked_at": u.session_revoked_at.isoformat() if getattr(u, 'session_revoked_at', None) else None,
                 })
@@ -93,7 +82,6 @@ def listar_usuarios(db: Session = Depends(get_db)):
                     "nivel_acesso": r[5],
                     "setor": s,
                     "setores": setores_list,
-                    "bi_subcategories": None,
                     "bloqueado": False,
                 })
             return rows
@@ -223,59 +211,12 @@ def get_usuario(user_id: int, db: Session = Depends(get_db)):
         from ..models import User
         import json
         User.__table__.create(bind=engine, checkfirst=True)
-        # Try ORM query; if DB schema doesn't include newer columns this may fail -> fallback
-        try:
-            user = db.query(User).filter(User.id == user_id).first()
-        except Exception:
-            # fallback to raw SQL selecting known columns (compatible with older schema)
-            from sqlalchemy import text
-            try:
-                row = db.execute(text("SELECT id, nome, sobrenome, usuario, email, nivel_acesso, setor, bloqueado FROM \"user\" WHERE id = :id"), {"id": user_id}).fetchone()
-                if not row:
-                    raise HTTPException(status_code=404, detail="Usuário não encontrado")
-                s = row[6]
-                setores_list = [str(s)] if s else []
-                return {
-                    "id": row[0],
-                    "nome": row[1],
-                    "sobrenome": row[2],
-                    "usuario": row[3],
-                    "email": row[4],
-                    "nivel_acesso": row[5],
-                    "setor": setores_list[0] if setores_list else None,
-                    "setores": setores_list,
-                    "bi_subcategories": None,
-                    "bloqueado": bool(row[7]) if len(row) > 7 else False,
-                    "session_revoked_at": None,
-                }
-            except HTTPException:
-                raise
-            except Exception as ex:
-                # try legacy table name 'usuarios'
-                try:
-                    row = db.execute(text("SELECT id, nome, sobrenome, usuario, email, nivel_acesso, setor FROM usuarios WHERE id = :id"), {"id": user_id}).fetchone()
-                    if not row:
-                        raise HTTPException(status_code=404, detail="Usuário não encontrado")
-                    s = row[6]
-                    setores_list = [str(s)] if s else []
-                    return {
-                        "id": row[0],
-                        "nome": row[1],
-                        "sobrenome": row[2],
-                        "usuario": row[3],
-                        "email": row[4],
-                        "nivel_acesso": row[5],
-                        "setor": setores_list[0] if setores_list else None,
-                        "setores": setores_list,
-                        "bi_subcategories": None,
-                        "bloqueado": False,
-                        "session_revoked_at": None,
-                    }
-                except Exception:
-                    raise ex
+
+        user = db.query(User).filter(User.id == user_id).first()
 
         if not user:
             raise HTTPException(status_code=404, detail="Usuário não encontrado")
+
         try:
             if user._setores:
                 raw = json.loads(user._setores)
@@ -287,14 +228,6 @@ def get_usuario(user_id: int, db: Session = Depends(get_db)):
         except Exception:
             setores_list = [str(user.setor)] if user.setor else []
 
-        bi_subcategories = None
-        try:
-            if getattr(user, "_bi_subcategories", None):
-                raw = json.loads(user._bi_subcategories)
-                bi_subcategories = [str(x) for x in raw if x is not None]
-        except Exception:
-            pass
-
         return {
             "id": user.id,
             "nome": user.nome,
@@ -304,13 +237,15 @@ def get_usuario(user_id: int, db: Session = Depends(get_db)):
             "nivel_acesso": user.nivel_acesso,
             "setor": setores_list[0] if setores_list else None,
             "setores": setores_list,
-            "bi_subcategories": bi_subcategories,
             "bloqueado": bool(user.bloqueado),
             "session_revoked_at": user.session_revoked_at.isoformat() if getattr(user, 'session_revoked_at', None) else None,
         }
     except HTTPException:
         raise
     except Exception as e:
+        print(f"[API] get_usuario error for user_id={user_id}: {e}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Erro ao obter usuário: {e}")
 
 
