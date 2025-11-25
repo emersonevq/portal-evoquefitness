@@ -19,13 +19,13 @@ export const sectors: Sector[] = [
   },
   {
     slug: "compras",
-    title: "Setor de Compras",
+    title: "Setor de compras",
     description: "Registre e acompanhe solicitações de compras.",
     icon: ShoppingCart,
   },
   {
     slug: "manutencao",
-    title: "Setor de Manutenção",
+    title: "Setor de manutenção",
     description: "Gerencie solicitações e acompanhe reparos.",
     icon: Wrench,
   },
