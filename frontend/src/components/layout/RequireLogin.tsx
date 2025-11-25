@@ -81,23 +81,9 @@ export default function RequireLogin({
     window.addEventListener("users:changed", onUsersChanged as EventListener);
     window.addEventListener("auth:refresh", onAuthRefresh as EventListener);
 
-    // Aggressive polling on sector pages to ensure permissions are up-to-date
-    let sectorPollInterval: ReturnType<typeof setInterval> | null = null;
-    if (shouldCheckNow() && !user?.nivel_acesso?.includes("Administrador")) {
-      console.debug(
-        "[REQUIRE_LOGIN] Setting up aggressive polling on sector page (5s)",
-      );
-      sectorPollInterval = setInterval(() => {
-        if (mounted && !abort) {
-          fetchRemote().catch(() => {});
-        }
-      }, 5000);
-    }
-
     return () => {
       mounted = false;
       abort = true;
-      if (sectorPollInterval) clearInterval(sectorPollInterval);
       window.removeEventListener(
         "users:changed",
         onUsersChanged as EventListener,
