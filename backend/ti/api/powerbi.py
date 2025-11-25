@@ -444,7 +444,7 @@ async def get_db_dashboards_by_category(category: str, db: Session = Depends(get
 
 @router.get("/db/subcategories")
 async def get_bi_subcategories(db: Session = Depends(get_db)):
-    """Get BI dashboard subcategories for user permissions (dashboard_id and title pairs)"""
+    """Get BI dashboard subcategories for user permissions (dashboard_id values)"""
     try:
         dashboards = db.query(PowerBIDashboard)\
             .filter(PowerBIDashboard.ativo == True)\
@@ -454,7 +454,7 @@ async def get_bi_subcategories(db: Session = Depends(get_db)):
         subcategories = [d.dashboard_id for d in dashboards]
 
         print(f"[POWERBI] [DB] Retornando {len(subcategories)} subcategorias de BI")
-        return subcategories
+        return {"subcategories": subcategories}
     except Exception as e:
         print(f"[POWERBI] [DB] Erro ao buscar subcategorias: {e}")
         raise HTTPException(status_code=500, detail=f"Erro ao buscar subcategorias: {str(e)}")
