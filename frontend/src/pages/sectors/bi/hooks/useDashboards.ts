@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { apiFetch } from "@/lib/api";
+import { useAuth } from "@/hooks/useAuth";
 
 export interface Dashboard {
   id: number;
@@ -26,6 +27,7 @@ export function useDashboards() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [categories, setCategories] = useState<DashboardCategory[]>([]);
+  const { user } = useAuth();
 
   useEffect(() => {
     const fetchDashboards = async () => {
@@ -58,8 +60,30 @@ export function useDashboards() {
           console.log(`[BI]     Dataset: ${dash.dataset_id}`);
         });
 
+        // Filter dashboards based on user permissions
+        let filteredDashboards = dashboards;
+        if (
+          user &&
+          user.bi_subcategories &&
+          Array.isArray(user.bi_subcategories) &&
+          user.bi_subcategories.length > 0
+        ) {
+          console.log(
+            `[BI] 🔐 Filtrando dashboards por permissão do usuário:`,
+            user.bi_subcategories,
+          );
+          filteredDashboards = dashboards.filter((dash) =>
+            user.bi_subcategories.includes(dash.dashboard_id),
+          );
+          console.log(
+            `[BI] ✅ ${filteredDashboards.length} dashboards após filtragem`,
+          );
+        } else {
+          console.log("[BI] ⚠️ Usuário sem permissões de BI definidas");
+        }
+
         // Group dashboards by category
-        const grouped = dashboards.reduce((acc, dashboard) => {
+        const grouped = filteredDashboards.reduce((acc, dashboard) => {
           const existingCategory = acc.find(
             (cat) => cat.id === dashboard.category,
           );
@@ -97,7 +121,7 @@ export function useDashboards() {
     };
 
     fetchDashboards();
-  }, []);
+  }, [user, user?.bi_subcategories]);
 
   const getDashboardById = (dashboardId: string): Dashboard | undefined => {
     for (const category of categories) {
