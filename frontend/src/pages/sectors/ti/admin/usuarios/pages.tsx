@@ -62,10 +62,15 @@ export function CriarUsuario() {
     senha: string;
     nome: string;
   } | null>(null);
+  const [biSubcategories, setBiSubcategories] = useState<string[]>([]);
 
   const allSectors = useMemo(() => sectors.map((s) => s.title), []);
   const biSector = useMemo(() => sectors.find((s) => s.slug === "bi"), []);
   const isBiSelected = selSectors.includes(normalize("Portal de BI"));
+
+  useEffect(() => {
+    loadBISubcategories().then(setBiSubcategories);
+  }, []);
 
   const generateUsername = () => {
     const base = (first + "." + last).trim().toLowerCase().replace(/\s+/g, ".");
