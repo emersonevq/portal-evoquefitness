@@ -28,6 +28,7 @@ export function useDashboards() {
   const [error, setError] = useState<string | null>(null);
   const [categories, setCategories] = useState<DashboardCategory[]>([]);
   const { user } = useAuth();
+  const [lastPermissions, setLastPermissions] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchDashboards = async () => {
@@ -120,8 +121,14 @@ export function useDashboards() {
       }
     };
 
-    fetchDashboards();
-  }, [user, user?.bi_subcategories]);
+    // Only refetch if user permissions actually changed
+    const currentPermissions = JSON.stringify(user?.bi_subcategories || []);
+    if (currentPermissions !== lastPermissions) {
+      console.log("[BI] 🔄 Permissões alteradas, recarregando dashboards");
+      setLastPermissions(currentPermissions);
+      fetchDashboards();
+    }
+  }, [user?.bi_subcategories, lastPermissions]);
 
   const getDashboardById = (dashboardId: string): Dashboard | undefined => {
     for (const category of categories) {
