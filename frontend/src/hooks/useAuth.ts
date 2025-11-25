@@ -444,18 +444,18 @@ export function useAuth() {
     );
     window.addEventListener("user:updated", handleUserUpdated as EventListener);
 
-    // Polling fallback: periodically check for permission updates (every 10 seconds)
-    // This ensures even if Socket.IO fails, users still get updates quickly
+    // Polling fallback: periodically check for permission updates (every 30 seconds)
+    // This is a safety net only - real updates come from Socket.IO events
     let pollInterval: ReturnType<typeof setInterval> | null = null;
     const setupPolling = () => {
       if (pollInterval) clearInterval(pollInterval);
-      console.debug("[AUTH] Setting up polling fallback (10s interval)");
+      console.debug("[AUTH] Setting up polling fallback (30s interval, event-driven preferred)");
       pollInterval = setInterval(() => {
         if (mounted) {
           // Silent poll - don't spam console
           refresh().catch(() => {});
         }
-      }, 10000);
+      }, 30000);
     };
 
     setupPolling();
