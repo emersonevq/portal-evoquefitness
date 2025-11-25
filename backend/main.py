@@ -327,6 +327,7 @@ _http.include_router(alerts_router)
 _http.include_router(email_debug_router)
 _http.include_router(sla_router)
 _http.include_router(powerbi_router)
+_http.include_router(dashboard_permissions_router)
 
 # Wrap with Socket.IO ASGI app (exports as 'app')
 app = mount_socketio(_http)
