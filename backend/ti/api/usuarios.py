@@ -56,6 +56,7 @@ def listar_usuarios(db: Session = Depends(get_db)):
                 if u.bloqueado is None:
                     u.bloqueado = False
                 setores_list = compute_setores(u)
+                bi_subcategories = compute_bi_subcategories(u)
                 rows.append({
                     "id": u.id,
                     "nome": u.nome,
@@ -65,6 +66,7 @@ def listar_usuarios(db: Session = Depends(get_db)):
                     "nivel_acesso": u.nivel_acesso,
                     "setor": setores_list[0] if setores_list else None,
                     "setores": setores_list,
+                    "bi_subcategories": bi_subcategories,
                     "bloqueado": bool(u.bloqueado),
                     "session_revoked_at": u.session_revoked_at.isoformat() if getattr(u, 'session_revoked_at', None) else None,
                 })
