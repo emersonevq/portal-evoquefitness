@@ -4,7 +4,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from core.db import Base
 
 class PowerBIDashboard(Base):
-    __tablename__ = "powerbi_dashboard"
+    __tablename__ = "powerbi1_dashboard"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     dashboard_id: Mapped[str] = mapped_column(String(100), nullable=False, unique=True, index=True)
