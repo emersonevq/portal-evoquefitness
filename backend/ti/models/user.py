@@ -13,7 +13,7 @@ class User(Base):
     sobrenome: Mapped[str] = mapped_column(String(150), nullable=False)
     usuario: Mapped[str] = mapped_column(String(80), unique=True, nullable=False)
     email: Mapped[str] = mapped_column(String(120), unique=True, nullable=False)
-    senha_hash: Mapped[str] = mapped_column(String(128), nullable=False)
+    senha_hash: Mapped[str] = mapped_column(String(255), nullable=True)
     alterar_senha_primeiro_acesso: Mapped[bool] = mapped_column(Boolean, default=False)
     nivel_acesso: Mapped[str] = mapped_column(String(50), nullable=False)
     setor: Mapped[str | None] = mapped_column(String(255), nullable=True)
