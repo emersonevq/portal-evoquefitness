@@ -58,10 +58,33 @@ class SLAConfigurationOut(BaseModel):
 
 
 class SLABusinessHoursCreate(BaseModel):
-    dia_semana: int = Field(..., description="Dia da semana (0=segunda, 6=domingo)")
+    dia_semana: int = Field(..., ge=0, le=6, description="Dia da semana (0=segunda, 6=domingo)")
     hora_inicio: str = Field(..., description="Hora de início (HH:MM)")
     hora_fim: str = Field(..., description="Hora de término (HH:MM)")
     ativo: bool = Field(True, description="Se o horário está ativo")
+
+    @validator("hora_inicio", "hora_fim")
+    def validate_time_format(cls, v):
+        """Valida formato HH:MM"""
+        try:
+            parts = v.split(":")
+            if len(parts) != 2:
+                raise ValueError()
+            h, m = int(parts[0]), int(parts[1])
+            if not (0 <= h <= 23 and 0 <= m <= 59):
+                raise ValueError()
+        except (ValueError, AttributeError, IndexError):
+            raise ValueError(f"Formato inválido '{v}'. Use HH:MM (00:00 a 23:59)")
+        return v
+
+    @validator("hora_fim")
+    def validate_hora_fim_after_inicio(cls, v, values):
+        """Valida que hora_fim é maior que hora_inicio"""
+        if "hora_inicio" in values:
+            hora_inicio = values["hora_inicio"]
+            if v <= hora_inicio:
+                raise ValueError("Hora fim deve ser maior que hora início")
+        return v
 
 
 class SLABusinessHoursOut(BaseModel):
