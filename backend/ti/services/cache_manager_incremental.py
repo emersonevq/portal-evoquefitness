@@ -425,6 +425,10 @@ class IncrementalMetricsCache:
         
         except Exception as e:
             print(f"[CACHE] Erro ao salvar métricas: {e}")
+            try:
+                db.rollback()
+            except:
+                pass
     
     @staticmethod
     def _save_chamado_status(
