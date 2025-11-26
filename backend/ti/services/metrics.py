@@ -399,7 +399,7 @@ class MetricsCalculator:
         # Tempo médio de PRIMEIRA resposta usando historico_status
         tempos_primeira_resposta = []
 
-        # Pega apenas a PRIMEIRA mudança de status por chamado nos últimos 30 dias
+        # Subquery: pega apenas a PRIMEIRA mudança de status por chamado nos últimos 30 dias
         subquery = db.query(
             HistoricoStatus.chamado_id,
             func.min(HistoricoStatus.created_at).label('primeira_resposta_at')
@@ -410,34 +410,28 @@ class MetricsCalculator:
             )
         ).group_by(HistoricoStatus.chamado_id).subquery()
 
-        # Busca os históricos correspondentes à primeira resposta
-        primeiras_respostas = db.query(
-            HistoricoStatus.chamado_id,
-            HistoricoStatus.data_inicio
+        # Busca os históricos da primeira resposta + dados do chamado (JOIN direto)
+        resultados = db.query(
+            HistoricoStatus.data_inicio,
+            Chamado.data_abertura
         ).join(
             subquery,
             and_(
                 HistoricoStatus.chamado_id == subquery.c.chamado_id,
                 HistoricoStatus.created_at == subquery.c.primeira_resposta_at
             )
+        ).join(
+            Chamado,
+            Chamado.id == HistoricoStatus.chamado_id
         ).all()
 
-        if primeiras_respostas:
-            # Busca todos os chamados de uma vez (evita N+1 queries)
-            chamado_ids = [pr.chamado_id for pr in primeiras_respostas]
-            chamados = db.query(Chamado).filter(
-                Chamado.id.in_(chamado_ids)
-            ).all()
-
-            chamados_dict = {c.id: c for c in chamados}
-
-            for pr in primeiras_respostas:
-                chamado = chamados_dict.get(pr.chamado_id)
-                if chamado and chamado.data_abertura and pr.data_inicio:
-                    delta = pr.data_inicio - chamado.data_abertura
-                    minutos_delta = delta.total_seconds() / 60
-                    if 0 <= minutos_delta <= 10080:  # Máximo 7 dias
-                        tempos_primeira_resposta.append(minutos_delta)
+        for data_inicio, data_abertura in resultados:
+            if data_inicio and data_abertura:
+                delta = data_inicio - data_abertura
+                minutos_delta = delta.total_seconds() / 60
+                # Filtro de sanidade: máximo 72h (4320 minutos)
+                if 0 <= minutos_delta <= 4320:
+                    tempos_primeira_resposta.append(minutos_delta)
 
         tempo_primeira_resposta_medio = sum(tempos_primeira_resposta) / len(tempos_primeira_resposta) if tempos_primeira_resposta else 0
         tempo_primeira_resposta_str = f"{int(tempo_primeira_resposta_medio)}m" if tempo_primeira_resposta_medio > 0 else "—"
