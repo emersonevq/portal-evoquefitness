@@ -301,41 +301,60 @@ export default function Overview() {
           <div className="relative card-surface rounded-2xl p-6 border border-border/60">
             <h3 className="font-semibold text-lg mb-4">Distribuição SLA</h3>
             <div className="flex items-center justify-center">
-              <ResponsiveContainer width="100%" height={220}>
-                <PieChart>
-                  <Pie
-                    data={pieData}
-                    innerRadius={60}
-                    outerRadius={90}
-                    paddingAngle={5}
-                    dataKey="value"
-                  >
-                    {pieData.map((entry, index) => (
-                      <Cell
-                        key={`cell-${index}`}
-                        fill={COLORS[index % COLORS.length]}
-                      />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
+              {slaData.dentro_sla === 0 && slaData.fora_sla === 0 ? (
+                <div className="h-[220px] flex items-center justify-center text-muted-foreground">
+                  Sem dados de SLA
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height={220}>
+                  <PieChart>
+                    <Pie
+                      data={[
+                        { name: "Dentro SLA", value: slaData.dentro_sla },
+                        { name: "Fora SLA", value: slaData.fora_sla },
+                      ]}
+                      innerRadius={60}
+                      outerRadius={90}
+                      paddingAngle={5}
+                      dataKey="value"
+                    >
+                      {[
+                        { name: "Dentro SLA", value: slaData.dentro_sla },
+                        { name: "Fora SLA", value: slaData.fora_sla },
+                      ].map((entry, index) => (
+                        <Cell
+                          key={`cell-${index}`}
+                          fill={COLORS[index % COLORS.length]}
+                        />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+              )}
             </div>
             <div className="flex items-center justify-center gap-6 mt-4">
-              {pieData.map((item, index) => (
-                <div key={index} className="flex items-center gap-2">
-                  <div
-                    className="w-3 h-3 rounded-full"
-                    style={{ backgroundColor: COLORS[index] }}
-                  />
-                  <span className="text-sm text-muted-foreground">
-                    {item.name}:{" "}
-                    <span className="font-semibold text-foreground">
-                      {item.value}%
+              {[
+                { name: "Dentro SLA", value: slaData.dentro_sla },
+                { name: "Fora SLA", value: slaData.fora_sla },
+              ].map((item, index) => {
+                const total = slaData.dentro_sla + slaData.fora_sla;
+                const percentage = total > 0 ? Math.round((item.value / total) * 100) : 0;
+                return (
+                  <div key={index} className="flex items-center gap-2">
+                    <div
+                      className="w-3 h-3 rounded-full"
+                      style={{ backgroundColor: COLORS[index] }}
+                    />
+                    <span className="text-sm text-muted-foreground">
+                      {item.name}:{" "}
+                      <span className="font-semibold text-foreground">
+                        {percentage}%
+                      </span>
                     </span>
-                  </span>
-                </div>
-              ))}
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>
