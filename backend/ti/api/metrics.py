@@ -228,3 +228,64 @@ def debug_tempo_resposta(periodo: str = "mes", db: Session = Depends(get_db)):
             "erro": str(e),
             "periodo": periodo
         }
+
+
+@router.post("/metrics/cache/clear")
+def clear_metrics_cache(db: Session = Depends(get_db)):
+    """
+    Limpa o cache de métricas (em memória e persistente).
+    Útil após sincronizações ou quando você precisa de cálculos atualizados imediatamente.
+    """
+    try:
+        from ti.services.metrics import MetricsCache, PersistentMetricsCache
+
+        MetricsCache.clear()
+        PersistentMetricsCache.clear(db)
+
+        return {
+            "status": "ok",
+            "message": "Cache de métricas limpo com sucesso"
+        }
+    except Exception as e:
+        print(f"Erro ao limpar cache: {e}")
+        return {
+            "status": "erro",
+            "erro": str(e)
+        }
+
+
+@router.get("/metrics/cache/status")
+def get_cache_status(db: Session = Depends(get_db)):
+    """
+    Retorna o status do cache de métricas e logs de performance de cálculos.
+    Mostra:
+    - Último tempo de cálculo de SLA
+    - Quantidade de chamados processados
+    - Tempo de execução em ms
+    """
+    try:
+        from ti.models.metrics_cache import SLACalculationLog
+
+        logs = db.query(SLACalculationLog).all()
+
+        cache_info = []
+        for log in logs:
+            cache_info.append({
+                "tipo_calculo": log.calculation_type,
+                "ultima_execucao": log.last_calculated_at.isoformat() if log.last_calculated_at else None,
+                "chamados_processados": log.chamados_count,
+                "tempo_execucao_ms": round(log.execution_time_ms, 2)
+            })
+
+        return {
+            "status": "ok",
+            "cache_info": cache_info,
+            "ttl_minutos": 10,
+            "observacao": "Cache é atualizado automaticamente a cada 10 minutos ou ao atingir TTL"
+        }
+    except Exception as e:
+        print(f"Erro ao obter status do cache: {e}")
+        return {
+            "status": "erro",
+            "erro": str(e)
+        }
