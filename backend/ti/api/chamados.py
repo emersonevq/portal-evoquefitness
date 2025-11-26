@@ -641,6 +641,14 @@ def atualizar_status(chamado_id: int, payload: ChamadoStatusUpdate, db: Session 
                 "lido": n.lido,
                 "criado_em": n.criado_em.isoformat() if n.criado_em else None,
             })
+
+            # EMITE ATUALIZAÇÃO DE MÉTRICAS EM TEMPO REAL (quando status muda)
+            from ti.services.cache_manager_incremental import IncrementalMetricsCache
+            metricas = IncrementalMetricsCache.get_metrics(db)
+            anyio.from_thread.run(sio.emit, "metrics:updated", {
+                "sla_metrics": metricas,
+                "timestamp": now_brazil_naive().isoformat(),
+            })
         except Exception:
             db.rollback()
             pass
