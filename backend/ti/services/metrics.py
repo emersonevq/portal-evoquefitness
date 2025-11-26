@@ -174,7 +174,9 @@ class MetricsCalculator:
 
     @staticmethod
     def get_sla_compliance_24h(db: Session) -> int:
-        """Calcula percentual de SLA cumprido (baseado em chamados ativos) - OTIMIZADO"""
+        """Calcula percentual de SLA cumprido (baseado em chamados ativos) - usa fonte unificada"""
+        from ti.services.sla_metrics_unified import UnifiedSLAMetricsCalculator
+
         # Tenta cache primeiro
         cached = SLACacheManager.get(db, "sla_compliance_24h")
         if cached is not None:
@@ -182,7 +184,8 @@ class MetricsCalculator:
             return cached
 
         print("[CACHE MISS] SLA Compliance 24h calculando...")
-        result = MetricsCalculator._calculate_sla_compliance_24h(db)
+        result_dict = UnifiedSLAMetricsCalculator.get_sla_compliance_24h(db)
+        result = result_dict["percentual"]
         print(f"[CACHE SET] SLA Compliance 24h: {result}%")
         SLACacheManager.set(db, "sla_compliance_24h", result)
         return result
@@ -272,7 +275,9 @@ class MetricsCalculator:
 
     @staticmethod
     def get_sla_compliance_mes(db: Session) -> int:
-        """Calcula percentual de SLA cumprido para todos os chamados do mês - OTIMIZADO"""
+        """Calcula percentual de SLA cumprido para todos os chamados do mês - usa fonte unificada"""
+        from ti.services.sla_metrics_unified import UnifiedSLAMetricsCalculator
+
         # Tenta cache primeiro
         cached = SLACacheManager.get(db, "sla_compliance_mes")
         if cached is not None:
@@ -280,7 +285,8 @@ class MetricsCalculator:
             return cached
 
         print("[CACHE MISS] SLA Compliance Mês calculando...")
-        result = MetricsCalculator._calculate_sla_compliance_mes(db)
+        result_dict = UnifiedSLAMetricsCalculator.get_sla_compliance_month(db)
+        result = result_dict["percentual"]
         print(f"[CACHE SET] SLA Compliance Mês: {result}%")
         SLACacheManager.set(db, "sla_compliance_mes", result)
         return result
@@ -516,7 +522,9 @@ class MetricsCalculator:
 
     @staticmethod
     def get_sla_distribution(db: Session) -> dict:
-        """Retorna distribuição de SLA (dentro/fora) - SINCRONIZADO COM CARD SLA"""
+        """Retorna distribuição de SLA (dentro/fora) - usa fonte unificada"""
+        from ti.services.sla_metrics_unified import UnifiedSLAMetricsCalculator
+
         # Tenta cache primeiro
         cached = SLACacheManager.get(db, "sla_distribution")
         if cached is not None:
@@ -524,10 +532,26 @@ class MetricsCalculator:
             return cached
 
         print("[CACHE MISS] SLA Distribution calculando...")
-        result = MetricsCalculator._calculate_sla_distribution(db)
-        print(f"[CACHE SET] SLA Distribution: {result}")
-        SLACacheManager.set(db, "sla_distribution", result)
-        return result
+
+        agora = now_brazil_naive()
+        mes_inicio = agora.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+
+        result = UnifiedSLAMetricsCalculator.calculate_sla_distribution_period(
+            db, mes_inicio, agora
+        )
+
+        # Formata resultado para compatibilidade
+        formatted_result = {
+            "dentro_sla": result["dentro_sla"],
+            "fora_sla": result["fora_sla"],
+            "percentual_dentro": result["percentual_dentro"],
+            "percentual_fora": result["percentual_fora"],
+            "total": result["total"]
+        }
+
+        print(f"[CACHE SET] SLA Distribution: {formatted_result}")
+        SLACacheManager.set(db, "sla_distribution", formatted_result)
+        return formatted_result
 
     @staticmethod
     def _calculate_sla_distribution(db: Session) -> dict:

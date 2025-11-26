@@ -33,7 +33,7 @@ def _sincronizar_sla(db: Session, chamado: Chamado, status_anterior: str | None 
     """
     Função auxiliar para sincronizar um chamado com a tabela de histórico de SLA.
     Deve ser chamada sempre que um chamado é criado ou atualizado.
-    TAMBÉM invalida o cache automaticamente.
+    TAMBÉM invalida o cache automaticamente e atualiza métricas incrementalmente.
     """
     try:
         try:
@@ -75,6 +75,10 @@ def _sincronizar_sla(db: Session, chamado: Chamado, status_anterior: str | None 
 
         # INVALIDAÇÃO DE CACHE: Quando um chamado é atualizado, invalida caches relacionados
         SLACacheManager.invalidate_by_chamado(db, chamado.id)
+
+        # ATUALIZAÇÃO INCREMENTAL DE MÉTRICAS: Recalcula apenas o chamado afetado
+        from ti.services.cache_manager_incremental import IncrementalMetricsCache
+        IncrementalMetricsCache.update_for_chamado(db, chamado.id)
 
     except Exception as e:
         db.rollback()
@@ -129,6 +133,10 @@ def criar_chamado(payload: ChamadoCreate, db: Session = Depends(get_db)):
         # Sincroniza o chamado com a tabela de SLA
         _sincronizar_sla(db, ch)
 
+        # ATUALIZAÇÃO REAL-TIME: Incrementa contador de "chamados hoje"
+        from ti.services.cache_manager_incremental import ChamadosTodayCounter
+        chamados_hoje = ChamadosTodayCounter.increment(db)
+
         try:
             Notification.__table__.create(bind=engine, checkfirst=True)
             dados = json.dumps({
@@ -163,7 +171,16 @@ def criar_chamado(payload: ChamadoCreate, db: Session = Depends(get_db)):
                 "lido": n.lido,
                 "criado_em": n.criado_em.isoformat() if n.criado_em else None,
             })
-        except Exception:
+            # EMITE ATUALIZAÇÃO DE MÉTRICAS EM TEMPO REAL
+            from ti.services.cache_manager_incremental import IncrementalMetricsCache
+            metricas = IncrementalMetricsCache.get_metrics(db)
+            anyio.from_thread.run(sio.emit, "metrics:updated", {
+                "chamados_hoje": chamados_hoje,
+                "sla_metrics": metricas,
+                "timestamp": now_brazil_naive().isoformat(),
+            })
+        except Exception as e:
+            print(f"[WebSocket] Erro ao emitir eventos: {e}")
             pass
         try:
             send_async(send_chamado_abertura, ch)

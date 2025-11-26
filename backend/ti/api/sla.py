@@ -36,6 +36,8 @@ def listar_sla_config(db: Session = Depends(get_db)):
 
 @router.post("/config", response_model=SLAConfigurationOut)
 def criar_sla_config(payload: SLAConfigurationCreate, db: Session = Depends(get_db)):
+    from ti.services.sla_transaction_manager import SLATransactionManager
+
     try:
         try:
             SLAConfiguration.__table__.create(bind=engine, checkfirst=True)
@@ -51,19 +53,35 @@ def criar_sla_config(payload: SLAConfigurationCreate, db: Session = Depends(get_
                 detail=f"Configuração de SLA para prioridade '{payload.prioridade}' já existe"
             )
 
-        config = SLAConfiguration(
-            prioridade=payload.prioridade,
-            tempo_resposta_horas=payload.tempo_resposta_horas,
-            tempo_resolucao_horas=payload.tempo_resolucao_horas,
-            descricao=payload.descricao,
-            ativo=payload.ativo,
-            criado_em=now_brazil_naive(),
-            atualizado_em=now_brazil_naive(),
-        )
-        db.add(config)
-        db.commit()
-        db.refresh(config)
-        return config
+        def _create_config(db_session: Session) -> dict:
+            config = SLAConfiguration(
+                prioridade=payload.prioridade,
+                tempo_resposta_horas=payload.tempo_resposta_horas,
+                tempo_resolucao_horas=payload.tempo_resolucao_horas,
+                descricao=payload.descricao,
+                ativo=payload.ativo,
+                criado_em=now_brazil_naive(),
+                atualizado_em=now_brazil_naive(),
+            )
+            db_session.add(config)
+            # Flush para gerar o ID, mas não commit ainda
+            db_session.flush()
+
+            # Invalida cache atomicamente
+            SLACacheManager.invalidate_all_sla(db_session)
+
+            return config
+
+        result = SLATransactionManager.execute_atomic(db, _create_config)
+
+        if result.success:
+            # Atualiza referência no banco para refresh
+            config = result.data
+            db.refresh(config)
+            return config
+        else:
+            raise HTTPException(status_code=500, detail=result.error)
+
     except HTTPException:
         raise
     except Exception as e:
@@ -76,30 +94,48 @@ def atualizar_sla_config(
     payload: SLAConfigurationUpdate,
     db: Session = Depends(get_db)
 ):
+    from ti.services.sla_transaction_manager import SLATransactionManager
+
     try:
         try:
             SLAConfiguration.__table__.create(bind=engine, checkfirst=True)
         except Exception:
             pass
 
-        config = db.query(SLAConfiguration).filter(SLAConfiguration.id == config_id).first()
-        if not config:
-            raise HTTPException(status_code=404, detail="Configuração de SLA não encontrada")
+        def _update_config(db_session: Session, config_id: int, payload: SLAConfigurationUpdate) -> SLAConfiguration:
+            config = db_session.query(SLAConfiguration).filter(SLAConfiguration.id == config_id).first()
+            if not config:
+                raise HTTPException(status_code=404, detail="Configuração de SLA não encontrada")
 
-        if payload.tempo_resposta_horas is not None:
-            config.tempo_resposta_horas = payload.tempo_resposta_horas
-        if payload.tempo_resolucao_horas is not None:
-            config.tempo_resolucao_horas = payload.tempo_resolucao_horas
-        if payload.descricao is not None:
-            config.descricao = payload.descricao
-        if payload.ativo is not None:
-            config.ativo = payload.ativo
+            if payload.tempo_resposta_horas is not None:
+                config.tempo_resposta_horas = payload.tempo_resposta_horas
+            if payload.tempo_resolucao_horas is not None:
+                config.tempo_resolucao_horas = payload.tempo_resolucao_horas
+            if payload.descricao is not None:
+                config.descricao = payload.descricao
+            if payload.ativo is not None:
+                config.ativo = payload.ativo
 
-        config.atualizado_em = now_brazil_naive()
-        db.add(config)
-        db.commit()
-        db.refresh(config)
-        return config
+            config.atualizado_em = now_brazil_naive()
+            db_session.add(config)
+            db_session.flush()
+
+            # Invalida cache atomicamente
+            SLACacheManager.invalidate_all_sla(db_session)
+
+            return config
+
+        result = SLATransactionManager.execute_atomic(
+            db, _update_config, config_id, payload
+        )
+
+        if result.success:
+            config = result.data
+            db.refresh(config)
+            return config
+        else:
+            raise HTTPException(status_code=500, detail=result.error)
+
     except HTTPException:
         raise
     except Exception as e:
@@ -268,8 +304,10 @@ def obter_historico_sla(chamado_id: int, db: Session = Depends(get_db)):
 def sincronizar_todos_chamados(db: Session = Depends(get_db)):
     """
     Sincroniza todos os chamados existentes com a tabela de histórico de SLA.
-    Deve ser executado uma única vez ou para revalidação completa.
+    Operação atômica: ou sincroniza tudo ou não sincroniza nada.
     """
+    from ti.services.sla_transaction_manager import SLATransactionManager
+
     try:
         try:
             HistoricoSLA.__table__.create(bind=engine, checkfirst=True)
@@ -277,24 +315,25 @@ def sincronizar_todos_chamados(db: Session = Depends(get_db)):
         except Exception:
             pass
 
-        stats = {
-            "total_chamados": 0,
-            "sincronizados": 0,
-            "atualizados": 0,
-            "erros": 0,
-        }
+        def _sincronizar_impl(db_session: Session) -> dict:
+            """Implementação da sincronização"""
+            stats = {
+                "total_chamados": 0,
+                "sincronizados": 0,
+                "atualizados": 0,
+                "erros": 0,
+            }
 
-        chamados = db.query(Chamado).all()
-        stats["total_chamados"] = len(chamados)
+            chamados = db_session.query(Chamado).all()
+            stats["total_chamados"] = len(chamados)
 
-        for chamado in chamados:
-            try:
+            for chamado in chamados:
                 # Verifica se já existe histórico para este chamado
-                existing = db.query(HistoricoSLA).filter(
+                existing = db_session.query(HistoricoSLA).filter(
                     HistoricoSLA.chamado_id == chamado.id
                 ).first()
 
-                sla_status = SLACalculator.get_sla_status(db, chamado)
+                sla_status = SLACalculator.get_sla_status(db_session, chamado)
 
                 if existing:
                     # Atualiza registro existente
@@ -302,7 +341,7 @@ def sincronizar_todos_chamados(db: Session = Depends(get_db)):
                     existing.tempo_resolucao_horas = sla_status.get("tempo_resolucao_horas")
                     existing.limite_sla_horas = sla_status.get("tempo_resolucao_limite_horas")
                     existing.status_sla = sla_status.get("tempo_resolucao_status")
-                    db.add(existing)
+                    db_session.add(existing)
                     stats["atualizados"] += 1
                 else:
                     # Cria novo registro
@@ -317,16 +356,25 @@ def sincronizar_todos_chamados(db: Session = Depends(get_db)):
                         status_sla=sla_status.get("tempo_resolucao_status"),
                         criado_em=chamado.data_abertura or now_brazil_naive(),
                     )
-                    db.add(historico)
+                    db_session.add(historico)
                     stats["sincronizados"] += 1
 
-            except Exception:
-                stats["erros"] += 1
-                db.rollback()
+            return stats
 
-        db.commit()
-        return stats
+        # Executa com transação atômica
+        result = SLATransactionManager.execute_with_lock(
+            db,
+            "historico_sla",
+            _sincronizar_impl
+        )
 
+        if result.success:
+            return result.data
+        else:
+            raise HTTPException(status_code=500, detail=result.error)
+
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro ao sincronizar chamados: {e}")
 
@@ -335,8 +383,10 @@ def sincronizar_todos_chamados(db: Session = Depends(get_db)):
 def recalcular_sla_painel(db: Session = Depends(get_db)):
     """
     Recalcula todos os SLAs quando o painel administrativo é acessado.
-    Atualiza métricas para visualização correta.
+    Operação atômica: ou recalcula tudo ou não recalcula nada.
     """
+    from ti.services.sla_transaction_manager import SLATransactionManager
+
     try:
         try:
             HistoricoSLA.__table__.create(bind=engine, checkfirst=True)
@@ -344,35 +394,36 @@ def recalcular_sla_painel(db: Session = Depends(get_db)):
         except Exception:
             pass
 
-        stats = {
-            "total_recalculados": 0,
-            "em_dia": 0,
-            "vencidos": 0,
-            "em_andamento": 0,
-            "congelados": 0,
-            "erros": 0,
-        }
+        def _recalcular_impl(db_session: Session) -> dict:
+            """Implementação do recálculo"""
+            stats = {
+                "total_recalculados": 0,
+                "em_dia": 0,
+                "vencidos": 0,
+                "em_andamento": 0,
+                "congelados": 0,
+                "erros": 0,
+            }
 
-        chamados = db.query(Chamado).filter(
-            and_(
-                Chamado.status != "Cancelado",
-                Chamado.status != "Concluído"
-            )
-        ).all()
+            chamados = db_session.query(Chamado).filter(
+                and_(
+                    Chamado.status != "Cancelado",
+                    Chamado.status != "Concluído"
+                )
+            ).all()
 
-        for chamado in chamados:
-            try:
-                sla_status = SLACalculator.get_sla_status(db, chamado)
+            for chamado in chamados:
+                sla_status = SLACalculator.get_sla_status(db_session, chamado)
 
                 # Atualiza ou cria histórico com cálculo atual
-                existing = db.query(HistoricoSLA).filter(
+                existing = db_session.query(HistoricoSLA).filter(
                     HistoricoSLA.chamado_id == chamado.id
                 ).order_by(HistoricoSLA.criado_em.desc()).first()
 
                 if existing:
                     existing.tempo_resolucao_horas = sla_status.get("tempo_resolucao_horas")
                     existing.status_sla = sla_status.get("tempo_resolucao_status")
-                    db.add(existing)
+                    db_session.add(existing)
                 else:
                     historico = HistoricoSLA(
                         chamado_id=chamado.id,
@@ -384,7 +435,7 @@ def recalcular_sla_painel(db: Session = Depends(get_db)):
                         status_sla=sla_status.get("tempo_resolucao_status"),
                         criado_em=now_brazil_naive(),
                     )
-                    db.add(historico)
+                    db_session.add(historico)
 
                 stats["total_recalculados"] += 1
 
@@ -398,14 +449,22 @@ def recalcular_sla_painel(db: Session = Depends(get_db)):
                 elif status_sla == "congelado":
                     stats["congelados"] += 1
 
-            except Exception as e:
-                print(f"Erro ao recalcular SLA do chamado {chamado.id}: {e}")
-                stats["erros"] += 1
-                db.rollback()
+            return stats
 
-        db.commit()
-        return stats
+        # Executa com transação atômica
+        result = SLATransactionManager.execute_with_lock(
+            db,
+            "historico_sla",
+            _recalcular_impl
+        )
 
+        if result.success:
+            return result.data
+        else:
+            raise HTTPException(status_code=500, detail=result.error)
+
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro ao recalcular SLAs: {e}")
 
