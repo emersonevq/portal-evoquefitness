@@ -1,6 +1,7 @@
 # 📊 Documento Completo do Sistema de SLA (Service Level Agreement)
 
 ## 📋 Índice
+
 1. [O que é SLA?](#o-que-é-sla)
 2. [Como Funciona](#como-funciona)
 3. [Tabelas Utilizadas](#tabelas-utilizadas)
@@ -14,12 +15,14 @@
 ## O que é SLA?
 
 **SLA (Service Level Agreement)** é um acordo de nível de serviço que define quanto tempo máximo você tem para:
+
 1. **Responder ao cliente** (primeira resposta)
 2. **Resolver o problema** (resolução completa)
 
 Cada nível de prioridade tem limites diferentes.
 
 ### Exemplo do mundo real:
+
 ```
 Prioridade Crítica:
 - Servidor fora do ar → você tem 1 hora para responder
@@ -73,10 +76,10 @@ Prioridade Normal:
 
 ### 📊 Estados Possíveis
 
-| Estado | Cor | Significado | O que fazer |
-|--------|-----|-------------|------------|
-| **OK** | 🟢 Verde | Dentro do limite (0-80%) | Continuar normalmente |
-| **ATENÇÃO** | 🟡 Amarelo | Perto do limite (80-100%) | Preparar para responder |
+| Estado      | Cor         | Significado                | O que fazer             |
+| ----------- | ----------- | -------------------------- | ----------------------- |
+| **OK**      | 🟢 Verde    | Dentro do limite (0-80%)   | Continuar normalmente   |
+| **ATENÇÃO** | 🟡 Amarelo  | Perto do limite (80-100%)  | Preparar para responder |
 | **VENCIDO** | 🔴 Vermelho | Ultrapassou limite (>100%) | RESPONDER IMEDIATAMENTE |
 
 ---
@@ -122,11 +125,11 @@ sla_configuration
 **Dados padrão inseridos automaticamente:**
 
 | prioridade | tempo_resposta_horas | tempo_resolucao_horas |
-|-----------|----------------------|----------------------|
-| Crítica | 1 | 4 |
-| Urgente | 2 | 8 |
-| Alta | 4 | 24 |
-| Normal | 8 | 48 |
+| ---------- | -------------------- | --------------------- |
+| Crítica    | 1                    | 4                     |
+| Urgente    | 2                    | 8                     |
+| Alta       | 4                    | 24                    |
+| Normal     | 8                    | 48                    |
 
 ---
 
@@ -172,10 +175,12 @@ historico_sla
 ### ⏱️ Cálculo em Business Hours (Horário Comercial)
 
 O tempo SLA **NÃO conta durante**:
+
 - ❌ Fins de semana (Sábado e Domingo)
 - ❌ Fora do horário comercial (antes das 08:00 ou depois das 18:00)
 
 **Exemplo:**
+
 ```
 Chamado aberto: Sexta-feira 17:00 (quarta de trabalho)
 Resposta: Segunda-feira 09:00 (manhã)
@@ -202,10 +207,10 @@ STATUS_SLA = ?
 
     Se TEMPO_DECORRIDO ≤ LIMITE_SLA:
         STATUS = "ok" ✅
-    
+
     Se LIMITE_SLA * 0.8 < TEMPO_DECORRIDO < LIMITE_SLA:
         STATUS = "atencao" 🟡 (80%+)
-    
+
     Se TEMPO_DECORRIDO > LIMITE_SLA:
         STATUS = "vencido" ❌ (ultrapassou)
 ```
@@ -332,6 +337,7 @@ Se `data_primeira_resposta` nunca foi preenchida, o sistema não consegue calcul
 O trigger SQL que preenche `data_primeira_resposta` pode não ter sido criado ou ativado.
 
 **Solução:**
+
 1. Execute o script `create_sla_tables.sql` (já contém o trigger)
 2. O trigger preencherá automaticamente quando status mudar para "Em Atendimento"
 
@@ -341,7 +347,7 @@ CREATE TRIGGER tr_set_primeira_resposta
 BEFORE UPDATE ON chamado
 FOR EACH ROW
 BEGIN
-    IF NEW.data_primeira_resposta IS NULL 
+    IF NEW.data_primeira_resposta IS NULL
        AND OLD.status = 'Aberto'
        AND NEW.status IN ('Em Atendimento', 'Em análise')
     THEN
@@ -362,6 +368,7 @@ Chamado tem prioridade "Custom" que não existe na tabela.
 
 **Solução:**
 O código tem valores **DEFAULT**. Se não encontrar, usa:
+
 ```
 Crítica → 1h resposta, 4h resolução
 Urgente → 2h resposta, 8h resolução
@@ -378,12 +385,13 @@ Se o horário comercial não está configurado corretamente.
 
 **Solução:**
 Editar na tabela `sla_business_hours`:
+
 ```sql
 -- Ver horários atuais
 SELECT * FROM sla_business_hours;
 
 -- Mudar para 07:00-19:00
-UPDATE sla_business_hours 
+UPDATE sla_business_hours
 SET hora_inicio = '07:00', hora_fim = '19:00'
 WHERE dia_semana = 0; -- Segunda
 ```
@@ -399,6 +407,7 @@ Chamados antigos (antes do trigger) não têm `data_primeira_resposta`.
 O trigger só funciona para mudanças **futuras**, não preenche dados antigos.
 
 **Solução - Migração de Dados:**
+
 ```sql
 -- Preencher data_primeira_resposta baseado em historico_status
 UPDATE chamado c
@@ -412,7 +421,7 @@ WHERE c.data_primeira_resposta IS NULL
 AND c.status NOT IN ('Aberto', 'Cancelado');
 
 -- Verificar quantos foram atualizados
-SELECT COUNT(*) FROM chamado 
+SELECT COUNT(*) FROM chamado
 WHERE data_primeira_resposta IS NOT NULL;
 ```
 
@@ -425,6 +434,7 @@ Calcular SLA para 100 mil chamados é lento.
 
 **Solução:**
 Use as stored procedures do script:
+
 ```sql
 -- Recalcular todos os chamados (otimizado)
 CALL sp_recalcular_sla_todos_chamados();
@@ -489,16 +499,16 @@ CALL sp_atualizar_flags_sla(123); -- ID do chamado
 
 ## Resumo Executivo
 
-| Aspecto | Detalhe |
-|--------|---------|
-| **Tabelas usadas** | `chamado`, `sla_configuration`, `sla_business_hours`, `historico_sla` |
-| **Fonte de dados** | Já existem, nenhuma mudança estrutural necessária |
-| **Como calcula** | Compara tempo_decorrido (business hours) com tempo_limite |
-| **Atualização automática** | Via trigger SQL (date_primeira_resposta) + procedures |
-| **Estados possíveis** | 🟢 OK, 🟡 ATENÇÃO (80%+), 🔴 VENCIDO (>100%) |
-| **Horário comercial** | Seg-Sex 08:00-18:00 (configurável) |
-| **Problemas esperados** | Dados antigos sem data_primeira_resposta (solução: script SQL) |
-| **Performance** | Otimizado com índices e stored procedures |
+| Aspecto                    | Detalhe                                                               |
+| -------------------------- | --------------------------------------------------------------------- |
+| **Tabelas usadas**         | `chamado`, `sla_configuration`, `sla_business_hours`, `historico_sla` |
+| **Fonte de dados**         | Já existem, nenhuma mudança estrutural necessária                     |
+| **Como calcula**           | Compara tempo_decorrido (business hours) com tempo_limite             |
+| **Atualização automática** | Via trigger SQL (date_primeira_resposta) + procedures                 |
+| **Estados possíveis**      | 🟢 OK, 🟡 ATENÇÃO (80%+), 🔴 VENCIDO (>100%)                          |
+| **Horário comercial**      | Seg-Sex 08:00-18:00 (configurável)                                    |
+| **Problemas esperados**    | Dados antigos sem data_primeira_resposta (solução: script SQL)        |
+| **Performance**            | Otimizado com índices e stored procedures                             |
 
 ---
 
