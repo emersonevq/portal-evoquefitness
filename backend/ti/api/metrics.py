@@ -6,6 +6,65 @@ from ti.services.metrics import MetricsCalculator
 router = APIRouter(prefix="/api", tags=["metrics"])
 
 
+@router.get("/metrics/dashboard/basic")
+def get_basic_metrics(db: Session = Depends(get_db)):
+    """
+    Retorna métricas RÁPIDAS (carrega primeiro - quase instantâneo).
+
+    Retorna:
+    - chamados_hoje: Quantidade de chamados abertos hoje
+    - comparacao_ontem: Comparação com ontem
+    - abertos_agora: Quantidade de chamados ativos
+    """
+    try:
+        return {
+            "chamados_hoje": MetricsCalculator.get_chamados_abertos_hoje(db),
+            "comparacao_ontem": MetricsCalculator.get_comparacao_ontem(db),
+            "abertos_agora": MetricsCalculator.get_abertos_agora(db),
+        }
+    except Exception as e:
+        print(f"[ERROR] Erro ao calcular métricas básicas: {e}")
+        return {
+            "chamados_hoje": 0,
+            "comparacao_ontem": {"hoje": 0, "ontem": 0, "percentual": 0, "direcao": "up"},
+            "abertos_agora": 0,
+        }
+
+
+@router.get("/metrics/dashboard/sla")
+def get_sla_metrics(db: Session = Depends(get_db)):
+    """
+    Retorna métricas de SLA (carrega SEPARADO - mais lento, mas com cache).
+
+    Retorna:
+    - sla_compliance_24h: Percentual de SLA cumprido (ativos)
+    - sla_compliance_mes: Percentual de SLA cumprido (todo o mês)
+    - tempo_resposta_24h: Tempo médio de primeira resposta 24h
+    - tempo_resposta_mes: Tempo médio de primeira resposta mês
+    - total_chamados_mes: Total de chamados deste mês
+    """
+    try:
+        tempo_resposta_mes, total_chamados_mes = MetricsCalculator.get_tempo_medio_resposta_mes(db)
+        tempo_resposta_24h = MetricsCalculator.get_tempo_medio_resposta_24h(db)
+
+        return {
+            "sla_compliance_24h": MetricsCalculator.get_sla_compliance_24h(db),
+            "sla_compliance_mes": MetricsCalculator.get_sla_compliance_mes(db),
+            "tempo_resposta_24h": tempo_resposta_24h,
+            "tempo_resposta_mes": tempo_resposta_mes,
+            "total_chamados_mes": total_chamados_mes,
+        }
+    except Exception as e:
+        print(f"[ERROR] Erro ao calcular métricas SLA: {e}")
+        return {
+            "sla_compliance_24h": 0,
+            "sla_compliance_mes": 0,
+            "tempo_resposta_24h": "—",
+            "tempo_resposta_mes": "—",
+            "total_chamados_mes": 0,
+        }
+
+
 @router.get("/metrics/dashboard")
 def get_dashboard_metrics(db: Session = Depends(get_db)):
     """
