@@ -16,6 +16,8 @@ interface DashboardData {
     direcao: "up" | "down";
   };
   tempo_resposta_24h: string;
+  tempo_resposta_mes: string;
+  total_chamados_mes: number;
   sla_compliance_24h: number;
   abertos_agora: number;
   tempo_resolucao_30dias: string;
