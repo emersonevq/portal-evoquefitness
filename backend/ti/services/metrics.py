@@ -291,21 +291,43 @@ class MetricsCalculator:
 
     @staticmethod
     def get_sla_compliance_mes(db: Session) -> int:
-        """Calcula percentual de SLA cumprido para todos os chamados do mês (otimizado)"""
+        """Calcula percentual de SLA cumprido para todos os chamados do mês - OTIMIZADO"""
+        # Tenta cache primeiro
+        cached = MetricsCache.get("sla_compliance_mes")
+        if cached is not None:
+            return cached
+
+        result = MetricsCalculator._calculate_sla_compliance_mes(db)
+        MetricsCache.set("sla_compliance_mes", result)
+        return result
+
+    @staticmethod
+    def _calculate_sla_compliance_mes(db: Session) -> int:
+        """Cálculo real de SLA mensal - otimizado sem N+1"""
         try:
             from ti.services.sla import SLACalculator
 
             agora = now_brazil_naive()
             mes_inicio = agora.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 
-            # Busca TODOS os chamados abertos neste mês que saíram do status "Aberto"
-            # (ou seja, tiveram resposta/atendimento)
+            # 1. Carrega TODAS as configs de SLA de uma vez
+            sla_configs = {
+                config.prioridade: config
+                for config in db.query(SLAConfiguration).filter(
+                    SLAConfiguration.ativo == True
+                ).all()
+            }
+
+            if not sla_configs:
+                return 0
+
+            # 2. Busca chamados do mês que tiveram resposta
             chamados_mes = db.query(Chamado).filter(
                 and_(
                     Chamado.data_abertura >= mes_inicio,
                     Chamado.data_abertura <= agora,
                     Chamado.status != "Cancelado",
-                    Chamado.data_primeira_resposta.isnot(None)  # Filtro otimizado: apenas respondidos
+                    Chamado.data_primeira_resposta.isnot(None)
                 )
             ).all()
 
@@ -315,9 +337,10 @@ class MetricsCalculator:
             dentro_sla = 0
             fora_sla = 0
 
+            # 3. Itera sem fazer queries adicionais
             for chamado in chamados_mes:
                 try:
-                    sla_config = SLACalculator.get_sla_config_by_priority(db, chamado.prioridade)
+                    sla_config = sla_configs.get(chamado.prioridade)
                     if not sla_config:
                         continue
 
@@ -336,19 +359,19 @@ class MetricsCalculator:
                         dentro_sla += 1
                     else:
                         fora_sla += 1
+
                 except Exception as e:
-                    print(f"Erro ao calcular SLA do chamado {chamado.id}: {e}")
+                    print(f"Erro ao processar chamado {chamado.id}: {e}")
                     continue
 
             total = dentro_sla + fora_sla
             if total == 0:
                 return 0
 
-            percentual = int((dentro_sla / total) * 100)
-            return percentual
+            return int((dentro_sla / total) * 100)
 
         except Exception as e:
-            print(f"Erro ao calcular SLA compliance do mês: {e}")
+            print(f"Erro ao calcular SLA compliance mês: {e}")
             import traceback
             traceback.print_exc()
             return 0
