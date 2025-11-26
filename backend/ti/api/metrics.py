@@ -189,9 +189,13 @@ def get_chamados_por_semana(semanas: int = 4, db: Session = Depends(get_db)):
     """Retorna quantidade de chamados por semana dos últimos N semanas"""
     try:
         dados = MetricsCalculator.get_chamados_por_semana(db, semanas)
+        if not isinstance(dados, list):
+            return {"dados": []}
         return {"dados": dados}
     except Exception as e:
         print(f"Erro ao calcular chamados por semana: {e}")
+        import traceback
+        traceback.print_exc()
         return {"dados": []}
 
 
