@@ -526,15 +526,37 @@ class MetricsCalculator:
     @staticmethod
     def get_dashboard_metrics(db: Session) -> dict:
         """Retorna todos os métricas do dashboard"""
-        tempo_resposta_mes, total_chamados_mes = MetricsCalculator.get_tempo_medio_resposta_mes(db)
+        try:
+            tempo_resposta_mes, total_chamados_mes = MetricsCalculator.get_tempo_medio_resposta_mes(db)
 
-        return {
-            "chamados_hoje": MetricsCalculator.get_chamados_abertos_hoje(db),
-            "comparacao_ontem": MetricsCalculator.get_comparacao_ontem(db),
-            "tempo_resposta_24h": MetricsCalculator.get_tempo_medio_resposta_24h(db),
-            "tempo_resposta_mes": tempo_resposta_mes,
-            "total_chamados_mes": total_chamados_mes,
-            "sla_compliance_24h": MetricsCalculator.get_sla_compliance_24h(db),
-            "abertos_agora": MetricsCalculator.get_abertos_agora(db),
-            "tempo_resolucao_30dias": MetricsCalculator.get_tempo_resolucao_media_30dias(db),
-        }
+            chamados_hoje = MetricsCalculator.get_chamados_abertos_hoje(db)
+            comparacao_ontem = MetricsCalculator.get_comparacao_ontem(db)
+            tempo_resposta_24h = MetricsCalculator.get_tempo_medio_resposta_24h(db)
+            sla_compliance = MetricsCalculator.get_sla_compliance_24h(db)
+            abertos_agora = MetricsCalculator.get_abertos_agora(db)
+            tempo_resolucao = MetricsCalculator.get_tempo_resolucao_media_30dias(db)
+
+            return {
+                "chamados_hoje": chamados_hoje,
+                "comparacao_ontem": comparacao_ontem,
+                "tempo_resposta_24h": tempo_resposta_24h,
+                "tempo_resposta_mes": tempo_resposta_mes,
+                "total_chamados_mes": total_chamados_mes,
+                "sla_compliance_24h": sla_compliance,
+                "abertos_agora": abertos_agora,
+                "tempo_resolucao_30dias": tempo_resolucao,
+            }
+        except Exception as e:
+            print(f"Erro crítico ao calcular métricas do dashboard: {e}")
+            import traceback
+            traceback.print_exc()
+            return {
+                "chamados_hoje": 0,
+                "comparacao_ontem": {"hoje": 0, "ontem": 0, "percentual": 0, "direcao": "up"},
+                "tempo_resposta_24h": "—",
+                "tempo_resposta_mes": "—",
+                "total_chamados_mes": 0,
+                "sla_compliance_24h": 0,
+                "abertos_agora": 0,
+                "tempo_resolucao_30dias": "—",
+            }
