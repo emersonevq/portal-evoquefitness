@@ -36,14 +36,20 @@ class MetricsCalculator:
         Retorna quantidade de chamados ATIVOS (não concluídos nem cancelados).
         Equivalente a "todos" na página de gerenciar chamados.
         """
-        count = db.query(Chamado).filter(
-            and_(
-                Chamado.status != "Concluído",
-                Chamado.status != "Cancelado"
-            )
-        ).count()
+        try:
+            count = db.query(Chamado).filter(
+                and_(
+                    Chamado.status != "Concluído",
+                    Chamado.status != "Cancelado"
+                )
+            ).count()
 
-        return count
+            return count
+        except Exception as e:
+            print(f"Erro ao contar chamados ativos: {e}")
+            import traceback
+            traceback.print_exc()
+            return 0
 
     @staticmethod
     def get_tempo_medio_resposta_24h(db: Session) -> str:
