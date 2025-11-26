@@ -264,7 +264,7 @@ export default function Overview() {
               </div>
             </div>
             <ResponsiveContainer width="100%" height={260}>
-              <BarChart data={weekly}>
+              <BarChart data={weeklyData}>
                 <CartesianGrid
                   strokeDasharray="3 3"
                   stroke="hsl(var(--border))"
@@ -284,7 +284,7 @@ export default function Overview() {
                   }}
                 />
                 <Bar
-                  dataKey="chamados"
+                  dataKey="quantidade"
                   fill="hsl(var(--primary))"
                   radius={[8, 8, 0, 0]}
                 />
