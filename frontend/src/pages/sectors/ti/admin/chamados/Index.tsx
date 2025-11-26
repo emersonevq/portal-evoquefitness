@@ -571,19 +571,43 @@ export default function ChamadosPage() {
         />
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-wrap gap-2 flex-shrink-0">
-        {statusMap.map((s) => (
-          <NavLink
-            key={s.key}
-            to={`/setor/ti/admin/chamados/${s.key}`}
-            className={({ isActive }) =>
-              `rounded-full px-3 py-1.5 text-sm border transition-colors ${isActive ? "bg-primary text-primary-foreground border-transparent" : "bg-secondary hover:bg-secondary/80"}`
-            }
+      {/* Filters and View Toggle */}
+      <div className="flex flex-wrap gap-2 flex-shrink-0 items-center justify-between">
+        <div className="flex flex-wrap gap-2">
+          {statusMap.map((s) => (
+            <NavLink
+              key={s.key}
+              to={`/setor/ti/admin/chamados/${s.key}`}
+              className={({ isActive }) =>
+                `rounded-full px-3 py-1.5 text-sm border transition-colors ${isActive ? "bg-primary text-primary-foreground border-transparent" : "bg-secondary hover:bg-secondary/80"}`
+              }
+            >
+              {s.label}
+            </NavLink>
+          ))}
+        </div>
+        <div className="flex gap-2">
+          <Button
+            type="button"
+            variant={viewMode === "grid" ? "default" : "secondary"}
+            onClick={() => setViewMode("grid")}
+            size="sm"
+            className="inline-flex items-center gap-2"
           >
-            {s.label}
-          </NavLink>
-        ))}
+            <Grid3x3 className="h-4 w-4" />
+            Grade
+          </Button>
+          <Button
+            type="button"
+            variant={viewMode === "list" ? "default" : "secondary"}
+            onClick={() => setViewMode("list")}
+            size="sm"
+            className="inline-flex items-center gap-2"
+          >
+            <List className="h-4 w-4" />
+            Lista
+          </Button>
+        </div>
       </div>
 
       {/* Tickets Grid com Scroll Infinito */}
