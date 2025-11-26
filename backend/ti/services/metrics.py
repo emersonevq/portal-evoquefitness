@@ -565,7 +565,8 @@ class MetricsCalculator:
                         continue
 
                     data_final = chamado.data_conclusao if chamado.data_conclusao else agora
-                    tempo_resolucao_horas = SLACalculator.calculate_business_hours(
+                    tempo_resolucao_horas = SLACalculator.calculate_business_hours_excluding_paused(
+                        chamado.id,
                         chamado.data_abertura,
                         data_final,
                         db
