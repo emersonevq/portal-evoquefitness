@@ -128,9 +128,14 @@ export default function Overview() {
           .catch(() => ({
             data: {
               chamados_hoje: 0,
-              comparacao_ontem: { hoje: 0, ontem: 0, percentual: 0, direcao: "up" },
-              abertos_agora: 0
-            }
+              comparacao_ontem: {
+                hoje: 0,
+                ontem: 0,
+                percentual: 0,
+                direcao: "up",
+              },
+              abertos_agora: 0,
+            },
           }));
 
         if (mounted) {
@@ -164,8 +169,8 @@ export default function Overview() {
               sla_distribution: { dentro_sla: 0, fora_sla: 0 },
               tempo_resposta_24h: "—",
               tempo_resposta_mes: "—",
-              total_chamados_mes: 0
-            }
+              total_chamados_mes: 0,
+            },
           }));
 
         if (mounted) {
