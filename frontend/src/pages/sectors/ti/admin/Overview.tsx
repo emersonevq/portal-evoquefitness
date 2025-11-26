@@ -161,6 +161,7 @@ export default function Overview() {
             data: {
               sla_compliance_24h: 0,
               sla_compliance_mes: 0,
+              sla_distribution: { dentro_sla: 0, fora_sla: 0 },
               tempo_resposta_24h: "—",
               tempo_resposta_mes: "—",
               total_chamados_mes: 0
@@ -173,6 +174,11 @@ export default function Overview() {
             ...prev,
             ...slaMetrics.data,
           }));
+
+          // Atualiza distribuição SLA se disponível
+          if (slaMetrics.data?.sla_distribution) {
+            setSLAData(slaMetrics.data.sla_distribution);
+          }
         }
       } catch (error) {
         console.error("Erro ao carregar dados do dashboard:", error);
