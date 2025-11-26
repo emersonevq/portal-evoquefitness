@@ -47,12 +47,11 @@ class MetricsCalculator:
 
         try:
             # Busca todos os chamados que tiveram primeira resposta nas últimas 24h
-            # Uma "primeira resposta" é quando um chamado sai do status "Aberto"
+            # Uma "primeira resposta" é quando um chamado muda para "Em Atendimento", "Em análise" ou "Em andamento"
             chamados_com_resposta = db.query(HistoricoStatus).filter(
                 and_(
-                    HistoricoStatus.criado_em >= ontem,
-                    HistoricoStatus.status_anterior == "Aberto",
-                    HistoricoStatus.status_novo != "Aberto"
+                    HistoricoStatus.created_at >= ontem,
+                    HistoricoStatus.status.in_(["Em Atendimento", "Em análise", "Em andamento"])
                 )
             ).all()
 
