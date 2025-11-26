@@ -220,14 +220,14 @@ export default function Overview() {
               </div>
             </div>
             <ResponsiveContainer width="100%" height={260}>
-              <LineChart data={daily}>
+              <LineChart data={dailyData}>
                 <CartesianGrid
                   strokeDasharray="3 3"
                   stroke="hsl(var(--border))"
                   opacity={0.3}
                 />
                 <XAxis
-                  dataKey="day"
+                  dataKey="dia"
                   stroke="hsl(var(--muted-foreground))"
                   fontSize={12}
                 />
@@ -241,7 +241,7 @@ export default function Overview() {
                 />
                 <Line
                   type="monotone"
-                  dataKey="abertos"
+                  dataKey="quantidade"
                   stroke="hsl(var(--primary))"
                   strokeWidth={3}
                   dot={{ fill: "hsl(var(--primary))", r: 4 }}
