@@ -289,9 +289,7 @@ class MetricsCalculator:
         trinta_dias_atras = agora - timedelta(days=30)
 
         chamados_30dias = db.query(Chamado).filter(
-            and_(
-                Chamado.data_abertura >= trinta_dias_atras,
-            )
+            Chamado.data_abertura >= trinta_dias_atras
         ).all()
 
         # Tempo médio de resolução
@@ -305,26 +303,42 @@ class MetricsCalculator:
         tempo_resolucao_medio = sum(tempos_resolucao) / len(tempos_resolucao) if tempos_resolucao else 0
         horas = int(tempo_resolucao_medio)
         minutos = int((tempo_resolucao_medio - horas) * 60)
-        tempo_resolucao_str = f"{horas}h {minutos}m" if minutos > 0 else f"{horas}h"
+        tempo_resolucao_str = f"{horas}h {minutos}m" if minutos > 0 else f"{horas}h" if horas > 0 else "—"
 
-        # Tempo médio de primeira resposta
+        # Tempo médio de primeira resposta usando historico_status
         tempos_primeira_resposta = []
-        for chamado in chamados_30dias:
-            if chamado.data_primeira_resposta and chamado.data_abertura:
-                delta = chamado.data_primeira_resposta - chamado.data_abertura
-                minutos_delta = delta.total_seconds() / 60
-                tempos_primeira_resposta.append(minutos_delta)
+        historicos_primeiro_atendimento = db.query(HistoricoStatus).filter(
+            and_(
+                HistoricoStatus.criado_em >= trinta_dias_atras,
+                HistoricoStatus.status_anterior == "Aberto",
+                HistoricoStatus.status_novo != "Aberto"
+            )
+        ).all()
+
+        for historico in historicos_primeiro_atendimento:
+            try:
+                chamado = db.query(Chamado).filter(
+                    Chamado.id == historico.chamado_id
+                ).first()
+
+                if chamado and chamado.data_abertura and historico.criado_em:
+                    delta = historico.criado_em - chamado.data_abertura
+                    minutos_delta = delta.total_seconds() / 60
+                    if minutos_delta >= 0:  # Apenas valores positivos
+                        tempos_primeira_resposta.append(minutos_delta)
+            except Exception:
+                continue
 
         tempo_primeira_resposta_medio = sum(tempos_primeira_resposta) / len(tempos_primeira_resposta) if tempos_primeira_resposta else 0
-        tempo_primeira_resposta_str = f"{int(tempo_primeira_resposta_medio)}m"
+        tempo_primeira_resposta_str = f"{int(tempo_primeira_resposta_medio)}m" if tempo_primeira_resposta_medio > 0 else "—"
 
         # Taxa de reaberturas
         chamados_reabertos = sum(1 for c in chamados_30dias if c.reaberto and c.numero_reaberturas and c.numero_reaberturas > 0)
         taxa_reaberturas = int((chamados_reabertos / len(chamados_30dias)) * 100) if chamados_30dias else 0
 
-        # Chamados em backlog (status Aguardando ou Em análise)
+        # Chamados em backlog (status Aguardando ou Em análise ou Aberto)
         chamados_backlog = db.query(Chamado).filter(
-            Chamado.status.in_(["Aguardando", "Em análise"])
+            Chamado.status.in_(["Aguardando", "Em análise", "Aberto"])
         ).count()
 
         return {
