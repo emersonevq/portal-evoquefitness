@@ -171,27 +171,41 @@ export default function Overview() {
         // Carrega métricas de SLA (mais lentas) por último com cache
         const slaMetrics = await api
           .get("/metrics/dashboard/sla")
-          .catch(() => ({
-            data: {
-              sla_compliance_24h: 0,
-              sla_compliance_mes: 0,
-              sla_distribution: { dentro_sla: 0, fora_sla: 0 },
-              tempo_resposta_24h: "—",
-              tempo_resposta_mes: "—",
-              total_chamados_mes: 0,
-            },
-          }));
+          .catch((error) => {
+            console.error("Erro ao carregar métricas de SLA:", error);
+            return {
+              data: {
+                sla_compliance_24h: 0,
+                sla_compliance_mes: 0,
+                sla_distribution: { dentro_sla: 0, fora_sla: 0 },
+                tempo_resposta_24h: "—",
+                tempo_resposta_mes: "—",
+                total_chamados_mes: 0,
+              },
+            };
+          });
 
         if (mounted) {
-          // Merge das métricas básicas com SLA
+          // Validação dos dados recebidos
+          const validSLAData = slaMetrics?.data || {};
+
+          // Merge das métricas básicas com SLA com validação
           setMetrics((prev) => ({
             ...prev,
-            ...slaMetrics.data,
+            sla_compliance_24h: validSLAData.sla_compliance_24h ?? 0,
+            sla_compliance_mes: validSLAData.sla_compliance_mes ?? 0,
+            tempo_resposta_24h: validSLAData.tempo_resposta_24h ?? "—",
+            tempo_resposta_mes: validSLAData.tempo_resposta_mes ?? "—",
+            total_chamados_mes: validSLAData.total_chamados_mes ?? 0,
           }));
 
-          // Atualiza distribuição SLA se disponível
-          if (slaMetrics.data?.sla_distribution) {
-            setSLAData(slaMetrics.data.sla_distribution);
+          // Atualiza distribuição SLA com validação
+          if (validSLAData?.sla_distribution) {
+            const dist = validSLAData.sla_distribution;
+            setSLAData({
+              dentro_sla: dist.dentro_sla ?? 0,
+              fora_sla: dist.fora_sla ?? 0,
+            });
           }
         }
       } catch (error) {
