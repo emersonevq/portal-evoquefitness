@@ -291,21 +291,28 @@ class SLACalculator:
         # Verifica se está congelado
         if SLACalculator.is_frozen(db, chamado.id, agora):
             tempo_resolucao_status = "congelado"
-            tempo_resolucao_horas = SLACalculator.calculate_business_hours(data_abertura, agora, db)
+            # Desconta tempo em "Em análise"
+            tempo_resolucao_horas = SLACalculator.calculate_business_hours_excluding_paused(
+                chamado.id, data_abertura, agora, db
+            )
         else:
             # Usa data_conclusao da tabela chamado (fonte confiável)
             data_conclusao = chamado.data_conclusao
 
             if data_conclusao:
-                # Já foi concluído
-                tempo_resolucao_horas = SLACalculator.calculate_business_hours(data_abertura, data_conclusao, db)
+                # Já foi concluído - DESCONTA tempo em "Em análise"
+                tempo_resolucao_horas = SLACalculator.calculate_business_hours_excluding_paused(
+                    chamado.id, data_abertura, data_conclusao, db
+                )
                 if tempo_resolucao_horas > sla_config.tempo_resolucao_horas:
                     tempo_resolucao_status = "vencido"
                 else:
                     tempo_resolucao_status = "ok"
             elif chamado.status not in ["Concluído", "Concluido", "Cancelado"]:
-                # Ainda não concluído, calcular até agora
-                tempo_resolucao_horas = SLACalculator.calculate_business_hours(data_abertura, agora, db)
+                # Ainda não concluído - DESCONTA tempo em "Em análise"
+                tempo_resolucao_horas = SLACalculator.calculate_business_hours_excluding_paused(
+                    chamado.id, data_abertura, agora, db
+                )
                 if tempo_resolucao_horas > sla_config.tempo_resolucao_horas:
                     tempo_resolucao_status = "vencido"
                 else:
