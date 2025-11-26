@@ -21,6 +21,8 @@ import {
   UserPlus,
   Paperclip,
   Image as ImageIcon,
+  Grid3x3,
+  List,
 } from "lucide-react";
 import { ticketsMock } from "../mock";
 import { apiFetch, API_BASE } from "@/lib/api";
