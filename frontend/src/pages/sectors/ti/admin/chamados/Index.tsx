@@ -805,10 +805,11 @@ export default function ChamadosPage() {
               <div className="flex-1 overflow-y-auto px-6 pb-6">
                 {tab === "resumo" && (
                   <div className="grid gap-6 lg:grid-cols-[1fr,320px] pt-4">
-                    <div className="rounded-lg border bg-card p-5 space-y-4 h-fit">
-                      <h3 className="font-semibold text-lg">
-                        Ficha do chamado
-                      </h3>
+                    <div className="space-y-6">
+                      <div className="rounded-lg border bg-card p-5 space-y-4 h-fit">
+                        <h3 className="font-semibold text-lg">
+                          Ficha do chamado
+                        </h3>
                       <div className="grid gap-3 text-sm">
                         {[
                           ["Solicitante", selected.solicitante],
@@ -844,7 +845,9 @@ export default function ChamadosPage() {
                               <span className="break-words">{item![1]}</span>
                             </div>
                           ))}
+                        </div>
                       </div>
+                      <SLAStatusDisplay chamadoId={parseInt(selected.id)} />
                     </div>
 
                     <div className="rounded-lg border bg-card p-5 space-y-4 h-fit">
