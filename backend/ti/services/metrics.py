@@ -4,15 +4,17 @@ from sqlalchemy import func, and_, or_
 from ti.models.chamado import Chamado
 from ti.models.historico_status import HistoricoStatus
 from ti.models.sla_config import HistoricoSLA, SLAConfiguration
+from ti.models.metrics_cache import MetricsCacheDB, SLACalculationLog
 from core.utils import now_brazil_naive
 import threading
+import time
 
 
 class MetricsCache:
-    """Cache em memória para métricas pesadas com TTL"""
+    """Cache em memória para métricas pesadas com TTL aumentado para 10 minutos"""
     _cache = {}
     _lock = threading.Lock()
-    _ttl_seconds = 30  # 30 segundos de cache
+    _ttl_seconds = 600  # 10 minutos ao invés de 30 segundos
 
     @classmethod
     def get(cls, key: str):
@@ -43,8 +45,72 @@ class MetricsCache:
                 cls._cache.clear()
 
 
+class PersistentMetricsCache:
+    """Cache persistente no banco de dados para sobreviver restarts"""
+    
+    @staticmethod
+    def get(db: Session, key: str):
+        """Obtém valor do cache persistente se ainda estiver válido"""
+        try:
+            cache_entry = db.query(MetricsCacheDB).filter(
+                MetricsCacheDB.cache_key == key
+            ).first()
+            
+            if cache_entry and not cache_entry.is_expired():
+                return cache_entry.cache_value
+            elif cache_entry:
+                db.delete(cache_entry)
+                db.commit()
+        except Exception as e:
+            print(f"Erro ao ler cache persistente {key}: {e}")
+        
+        return None
+
+    @staticmethod
+    def set(db: Session, key: str, value: dict, ttl_minutes: int = 10):
+        """Armazena valor no cache persistente"""
+        try:
+            now = datetime.utcnow()
+            expires_at = now + timedelta(minutes=ttl_minutes)
+            
+            cache_entry = db.query(MetricsCacheDB).filter(
+                MetricsCacheDB.cache_key == key
+            ).first()
+            
+            if cache_entry:
+                cache_entry.cache_value = value
+                cache_entry.calculated_at = now
+                cache_entry.expires_at = expires_at
+            else:
+                cache_entry = MetricsCacheDB(
+                    cache_key=key,
+                    cache_value=value,
+                    calculated_at=now,
+                    expires_at=expires_at
+                )
+                db.add(cache_entry)
+            
+            db.commit()
+        except Exception as e:
+            print(f"Erro ao salvar cache persistente {key}: {e}")
+            db.rollback()
+
+    @staticmethod
+    def clear(db: Session, key: str = None):
+        """Limpa cache persistente"""
+        try:
+            if key:
+                db.query(MetricsCacheDB).filter(MetricsCacheDB.cache_key == key).delete()
+            else:
+                db.query(MetricsCacheDB).delete()
+            db.commit()
+        except Exception as e:
+            print(f"Erro ao limpar cache persistente: {e}")
+            db.rollback()
+
+
 class MetricsCalculator:
-    """Calcula métricas do dashboard em tempo real"""
+    """Calcula métricas do dashboard em tempo real com otimizações de cache e incrementalidade"""
 
     @staticmethod
     def get_chamados_abertos_hoje(db: Session) -> int:
@@ -96,7 +162,6 @@ class MetricsCalculator:
         ontem = agora - timedelta(hours=24)
 
         try:
-            # Busca chamados das últimas 24h que tiveram primeira resposta
             chamados = db.query(Chamado).filter(
                 and_(
                     Chamado.data_abertura >= ontem,
@@ -109,17 +174,14 @@ class MetricsCalculator:
             if not chamados:
                 return "—"
 
-            # Calcula os tempos em horas de NEGÓCIO
             tempos = []
             for chamado in chamados:
                 if chamado.data_primeira_resposta and chamado.data_abertura:
-                    # Usa horas de NEGÓCIO
                     horas = SLACalculator.calculate_business_hours(
                         chamado.data_abertura,
                         chamado.data_primeira_resposta,
                         db
                     )
-                    # Filtro de sanidade: apenas valores entre 0 e 72h
                     if 0 <= horas <= 72:
                         tempos.append(horas)
 
@@ -150,7 +212,6 @@ class MetricsCalculator:
         mes_inicio = agora.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 
         try:
-            # Busca chamados do mês que já tiveram primeira resposta
             chamados = db.query(Chamado).filter(
                 and_(
                     Chamado.data_abertura >= mes_inicio,
@@ -160,7 +221,6 @@ class MetricsCalculator:
                 )
             ).all()
 
-            # Conta total de chamados do mês (mesmo sem resposta)
             total_chamados_mes = db.query(Chamado).filter(
                 and_(
                     Chamado.data_abertura >= mes_inicio,
@@ -172,18 +232,15 @@ class MetricsCalculator:
             if not chamados:
                 return "—", total_chamados_mes
 
-            # Calcula os tempos em horas de NEGÓCIO
             tempos = []
             for chamado in chamados:
                 if chamado.data_primeira_resposta and chamado.data_abertura:
-                    # Usa horas de NEGÓCIO (não clock time)
                     horas = SLACalculator.calculate_business_hours(
                         chamado.data_abertura,
                         chamado.data_primeira_resposta,
                         db
                     )
 
-                    # Filtro de sanidade: apenas valores entre 0 e 72h
                     if 0 <= horas <= 72:
                         tempos.append(horas)
 
@@ -192,7 +249,6 @@ class MetricsCalculator:
 
             media_horas = sum(tempos) / len(tempos)
 
-            # Formata o resultado
             if media_horas < 1:
                 return f"{int(media_horas * 60)}m", total_chamados_mes
             else:
@@ -208,24 +264,33 @@ class MetricsCalculator:
 
     @staticmethod
     def get_sla_compliance_24h(db: Session) -> int:
-        """Calcula percentual de SLA cumprido (baseado em chamados ativos) - OTIMIZADO"""
-        # Tenta cache primeiro
+        """Calcula percentual de SLA cumprido (baseado em chamados ativos) - OTIMIZADO com cache persistente"""
+        # Tenta cache em memória primeiro
         cached = MetricsCache.get("sla_compliance_24h")
         if cached is not None:
             return cached
 
+        # Tenta cache persistente
+        cached_persistent = PersistentMetricsCache.get(db, "sla_compliance_24h")
+        if cached_persistent is not None:
+            result = cached_persistent.get("value", 0)
+            MetricsCache.set("sla_compliance_24h", result)
+            return result
+
+        # Se não houver cache, calcula
         result = MetricsCalculator._calculate_sla_compliance_24h(db)
         MetricsCache.set("sla_compliance_24h", result)
+        PersistentMetricsCache.set(db, "sla_compliance_24h", {"value": result}, ttl_minutes=10)
         return result
 
     @staticmethod
     def _calculate_sla_compliance_24h(db: Session) -> int:
         """Cálculo real de SLA 24h - otimizado sem N+1"""
+        start_time = time.time()
         try:
             from ti.services.sla import SLACalculator
             from ti.models.historico_status import HistoricoStatus
 
-            # 1. Carrega TODAS as configs de SLA de uma vez (não N+1)
             sla_configs = {
                 config.prioridade: config
                 for config in db.query(SLAConfiguration).filter(
@@ -236,7 +301,6 @@ class MetricsCalculator:
             if not sla_configs:
                 return 0
 
-            # 2. Busca chamados ativos
             chamados_ativos = db.query(Chamado).filter(
                 and_(
                     Chamado.status.notin_(["Concluído", "Concluido", "Cancelado"])
@@ -246,13 +310,11 @@ class MetricsCalculator:
             if not chamados_ativos:
                 return 0
 
-            # 3. PRÉ-CARREGA TODOS os históricos de UMA VEZ (otimização crítica)
             chamado_ids = [c.id for c in chamados_ativos]
             historicos_bulk = db.query(HistoricoStatus).filter(
                 HistoricoStatus.chamado_id.in_(chamado_ids)
             ).all()
 
-            # Cache: {chamado_id: [historicos]}
             historicos_cache = {}
             for hist in historicos_bulk:
                 if hist.chamado_id not in historicos_cache:
@@ -263,21 +325,19 @@ class MetricsCalculator:
             fora_sla = 0
             agora = now_brazil_naive()
 
-            # 4. Itera sem fazer queries adicionais (usa cache)
             for chamado in chamados_ativos:
                 try:
                     sla_config = sla_configs.get(chamado.prioridade)
                     if not sla_config:
                         continue
 
-                    # Cálculo de resolução DESCONTANDO tempo em "Em análise" (COM CACHE)
                     data_final = chamado.data_conclusao if chamado.data_conclusao else agora
                     tempo_decorrido = SLACalculator.calculate_business_hours_excluding_paused(
                         chamado.id,
                         chamado.data_abertura,
                         data_final,
                         db,
-                        historicos_cache  # Passa cache para evitar queries
+                        historicos_cache
                     )
 
                     if tempo_decorrido <= sla_config.tempo_resolucao_horas:
@@ -293,7 +353,13 @@ class MetricsCalculator:
             if total == 0:
                 return 0
 
-            return int((dentro_sla / total) * 100)
+            result = int((dentro_sla / total) * 100)
+            
+            # Log de execução
+            execution_time = (time.time() - start_time) * 1000
+            MetricsCalculator._log_calculation(db, "24h", len(chamados_ativos), execution_time)
+            
+            return result
 
         except Exception as e:
             print(f"Erro ao calcular SLA compliance 24h: {e}")
@@ -303,19 +369,26 @@ class MetricsCalculator:
 
     @staticmethod
     def get_sla_compliance_mes(db: Session) -> int:
-        """Calcula percentual de SLA cumprido para todos os chamados do mês - OTIMIZADO"""
-        # Tenta cache primeiro
+        """Calcula percentual de SLA cumprido para todos os chamados do mês - OTIMIZADO com cache persistente"""
         cached = MetricsCache.get("sla_compliance_mes")
         if cached is not None:
             return cached
 
+        cached_persistent = PersistentMetricsCache.get(db, "sla_compliance_mes")
+        if cached_persistent is not None:
+            result = cached_persistent.get("value", 0)
+            MetricsCache.set("sla_compliance_mes", result)
+            return result
+
         result = MetricsCalculator._calculate_sla_compliance_mes(db)
         MetricsCache.set("sla_compliance_mes", result)
+        PersistentMetricsCache.set(db, "sla_compliance_mes", {"value": result}, ttl_minutes=10)
         return result
 
     @staticmethod
     def _calculate_sla_compliance_mes(db: Session) -> int:
         """Cálculo real de SLA mensal - otimizado sem N+1"""
+        start_time = time.time()
         try:
             from ti.services.sla import SLACalculator
             from ti.models.historico_status import HistoricoStatus
@@ -323,7 +396,6 @@ class MetricsCalculator:
             agora = now_brazil_naive()
             mes_inicio = agora.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 
-            # 1. Carrega TODAS as configs de SLA de uma vez
             sla_configs = {
                 config.prioridade: config
                 for config in db.query(SLAConfiguration).filter(
@@ -334,7 +406,6 @@ class MetricsCalculator:
             if not sla_configs:
                 return 0
 
-            # 2. Busca chamados do mês que tiveram resposta
             chamados_mes = db.query(Chamado).filter(
                 and_(
                     Chamado.data_abertura >= mes_inicio,
@@ -347,13 +418,11 @@ class MetricsCalculator:
             if not chamados_mes:
                 return 0
 
-            # 3. PRÉ-CARREGA TODOS os históricos de UMA VEZ (otimização crítica)
             chamado_ids = [c.id for c in chamados_mes]
             historicos_bulk = db.query(HistoricoStatus).filter(
                 HistoricoStatus.chamado_id.in_(chamado_ids)
             ).all()
 
-            # Cache: {chamado_id: [historicos]}
             historicos_cache = {}
             for hist in historicos_bulk:
                 if hist.chamado_id not in historicos_cache:
@@ -363,26 +432,22 @@ class MetricsCalculator:
             dentro_sla = 0
             fora_sla = 0
 
-            # 4. Itera sem fazer queries adicionais (usa cache)
             for chamado in chamados_mes:
                 try:
                     sla_config = sla_configs.get(chamado.prioridade)
                     if not sla_config:
                         continue
 
-                    # Define data final para cálculo
                     data_final = chamado.data_conclusao if chamado.data_conclusao else agora
 
-                    # Calcula tempo de resolução em horas de negócio DESCONTANDO "Em análise" (COM CACHE)
                     tempo_resolucao_horas = SLACalculator.calculate_business_hours_excluding_paused(
                         chamado.id,
                         chamado.data_abertura,
                         data_final,
                         db,
-                        historicos_cache  # Passa cache para evitar queries
+                        historicos_cache
                     )
 
-                    # Verifica se atendeu o SLA de resolução
                     if tempo_resolucao_horas <= sla_config.tempo_resolucao_horas:
                         dentro_sla += 1
                     else:
@@ -396,7 +461,12 @@ class MetricsCalculator:
             if total == 0:
                 return 0
 
-            return int((dentro_sla / total) * 100)
+            result = int((dentro_sla / total) * 100)
+            
+            execution_time = (time.time() - start_time) * 1000
+            MetricsCalculator._log_calculation(db, "mes", len(chamados_mes), execution_time)
+            
+            return result
 
         except Exception as e:
             print(f"Erro ao calcular SLA compliance mês: {e}")
@@ -544,26 +614,32 @@ class MetricsCalculator:
 
     @staticmethod
     def get_sla_distribution(db: Session) -> dict:
-        """Retorna distribuição de SLA (dentro/fora) - SINCRONIZADO COM CARD SLA"""
-        # Tenta cache primeiro
+        """Retorna distribuição de SLA (dentro/fora) - SINCRONIZADO COM CARD SLA e com cache persistente"""
         cached = MetricsCache.get("sla_distribution")
         if cached is not None:
             return cached
 
+        cached_persistent = PersistentMetricsCache.get(db, "sla_distribution")
+        if cached_persistent is not None:
+            result = cached_persistent.get("value", {})
+            MetricsCache.set("sla_distribution", result)
+            return result
+
         result = MetricsCalculator._calculate_sla_distribution(db)
         MetricsCache.set("sla_distribution", result)
+        PersistentMetricsCache.set(db, "sla_distribution", {"value": result}, ttl_minutes=10)
         return result
 
     @staticmethod
     def _calculate_sla_distribution(db: Session) -> dict:
-        """Cálculo real - usa MESMOS critérios que get_sla_compliance_mes"""
+        """Cálculo real - usa MESMOS critérios que get_sla_compliance_mes com otimização historicos_cache"""
+        start_time = time.time()
         try:
             from ti.services.sla import SLACalculator
 
             agora = now_brazil_naive()
             mes_inicio = agora.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 
-            # IMPORTANTE: Usa MESMOS chamados que o card SLA (todos do mês)
             chamados_mes = db.query(Chamado).filter(
                 and_(
                     Chamado.data_abertura >= mes_inicio,
@@ -573,13 +649,32 @@ class MetricsCalculator:
                 )
             ).all()
 
-            # Carrega configs de SLA de uma vez (sem N+1)
             sla_configs = {
                 config.prioridade: config
                 for config in db.query(SLAConfiguration).filter(
                     SLAConfiguration.ativo == True
                 ).all()
             }
+
+            if not chamados_mes:
+                return {
+                    "dentro_sla": 0,
+                    "fora_sla": 0,
+                    "percentual_dentro": 0,
+                    "percentual_fora": 0,
+                    "total": 0
+                }
+
+            chamado_ids = [c.id for c in chamados_mes]
+            historicos_bulk = db.query(HistoricoStatus).filter(
+                HistoricoStatus.chamado_id.in_(chamado_ids)
+            ).all()
+
+            historicos_cache = {}
+            for hist in historicos_bulk:
+                if hist.chamado_id not in historicos_cache:
+                    historicos_cache[hist.chamado_id] = []
+                historicos_cache[hist.chamado_id].append(hist)
 
             dentro_sla = 0
             fora_sla = 0
@@ -595,7 +690,8 @@ class MetricsCalculator:
                         chamado.id,
                         chamado.data_abertura,
                         data_final,
-                        db
+                        db,
+                        historicos_cache
                     )
 
                     if tempo_resolucao_horas <= sla_config.tempo_resolucao_horas:
@@ -620,13 +716,18 @@ class MetricsCalculator:
             percentual_dentro = int((dentro_sla / total) * 100)
             percentual_fora = int((fora_sla / total) * 100)
 
-            return {
+            result = {
                 "dentro_sla": dentro_sla,
                 "fora_sla": fora_sla,
                 "percentual_dentro": percentual_dentro,
                 "percentual_fora": percentual_fora,
                 "total": total
             }
+            
+            execution_time = (time.time() - start_time) * 1000
+            MetricsCalculator._log_calculation(db, "distribution", len(chamados_mes), execution_time)
+            
+            return result
 
         except Exception as e:
             print(f"Erro ao calcular distribuição SLA: {e}")
@@ -642,14 +743,13 @@ class MetricsCalculator:
 
     @staticmethod
     def get_performance_metrics(db: Session) -> dict:
-        """Retorna métricas de performance (últimos 30 dias) - CORRIGIDO"""
+        """Retorna métricas de performance (últimos 30 dias) - OTIMIZADO sem N+1 queries"""
         try:
             from ti.services.sla import SLACalculator
 
             agora = now_brazil_naive()
             trinta_dias_atras = agora - timedelta(days=30)
 
-            # Busca chamados dos últimos 30 dias
             chamados_30dias = db.query(Chamado).filter(
                 and_(
                     Chamado.data_abertura >= trinta_dias_atras,
@@ -657,16 +757,28 @@ class MetricsCalculator:
                 )
             ).all()
 
-            # ===== TEMPO MÉDIO DE RESOLUÇÃO (horas de negócio SEM "Em análise") =====
+            chamado_ids = [c.id for c in chamados_30dias]
+            
+            # OTIMIZAÇÃO: Carregar TODOS os históricos de UMA VEZ ao invés de N queries
+            historicos_bulk = db.query(HistoricoStatus).filter(
+                HistoricoStatus.chamado_id.in_(chamado_ids)
+            ).all()
+
+            historicos_cache = {}
+            for hist in historicos_bulk:
+                if hist.chamado_id not in historicos_cache:
+                    historicos_cache[hist.chamado_id] = []
+                historicos_cache[hist.chamado_id].append(hist)
+
             tempos_resolucao = []
             for chamado in chamados_30dias:
                 if chamado.data_conclusao and chamado.data_abertura:
-                    # Usa horas de NEGÓCIO DESCONTANDO "Em análise"
                     horas = SLACalculator.calculate_business_hours_excluding_paused(
                         chamado.id,
                         chamado.data_abertura,
                         chamado.data_conclusao,
-                        db
+                        db,
+                        historicos_cache
                     )
                     tempos_resolucao.append(horas)
 
@@ -675,24 +787,19 @@ class MetricsCalculator:
             minutos = int((tempo_resolucao_medio - horas) * 60)
             tempo_resolucao_str = f"{horas}h {minutos}m" if minutos > 0 else f"{horas}h" if horas > 0 else "—"
 
-            # ===== TEMPO MÉDIO DE PRIMEIRA RESPOSTA =====
-            # Usa Chamado.data_primeira_resposta (fonte confiável)
             tempos_primeira_resposta = []
             for chamado in chamados_30dias:
                 if chamado.data_primeira_resposta and chamado.data_abertura:
-                    # Usa horas de NEGÓCIO (não desconta nada para primeira resposta)
                     horas = SLACalculator.calculate_business_hours(
                         chamado.data_abertura,
                         chamado.data_primeira_resposta,
                         db
                     )
-                    # Filtro de sanidade: máximo 72h
                     if 0 <= horas <= 72:
                         tempos_primeira_resposta.append(horas)
 
             tempo_primeira_resposta_medio = sum(tempos_primeira_resposta) / len(tempos_primeira_resposta) if tempos_primeira_resposta else 0
 
-            # Formata corretamente: horas e minutos
             if tempo_primeira_resposta_medio > 0:
                 hrs = int(tempo_primeira_resposta_medio)
                 mins = int((tempo_primeira_resposta_medio - hrs) * 60)
@@ -700,28 +807,18 @@ class MetricsCalculator:
             else:
                 tempo_primeira_resposta_str = "—"
 
-            # ===== TAXA DE REABERTURAS =====
-            # Calcula % de chamados que foram reaberlos (status != Concluído em algum momento)
-            # Para simplificar: verifica chamados com múltiplas transições
             chamados_reaberlos = 0
+            total_com_historico = 0
+            
             for chamado in chamados_30dias:
-                historicos = db.query(HistoricoStatus).filter(
-                    HistoricoStatus.chamado_id == chamado.id
-                ).count()
-                # Se tem mais de 5 históricos, provavelmente foi reaberto
-                if historicos > 5:
-                    chamados_reaberlos += 1
+                historicos = historicos_cache.get(chamado.id, [])
+                if len(historicos) > 0:
+                    total_com_historico += 1
+                    if len(historicos) > 5:
+                        chamados_reaberlos += 1
 
-            total_com_historico = sum(
-                1 for c in chamados_30dias
-                if db.query(HistoricoStatus).filter(
-                    HistoricoStatus.chamado_id == c.id
-                ).count() > 0
-            )
             taxa_reaberturas = int((chamados_reaberlos / total_com_historico * 100)) if total_com_historico > 0 else 0
 
-            # ===== CHAMADOS EM BACKLOG =====
-            # Chamados que estão aguardando (congelados)
             chamados_backlog = db.query(Chamado).filter(
                 and_(
                     Chamado.status.in_(["Aguardando", "Em análise"]),
@@ -759,7 +856,7 @@ class MetricsCalculator:
             inicio = agora.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
         elif periodo == "24h":
             inicio = agora - timedelta(hours=24)
-        else:  # 30dias
+        else:
             inicio = agora - timedelta(days=30)
 
         historicos = db.query(HistoricoStatus).filter(
@@ -775,7 +872,6 @@ class MetricsCalculator:
         print(f"Total de registros encontrados: {len(historicos)}")
         print(f"{'='*100}")
 
-        # Agrupa por chamado_id para mostrar quantos registros por chamado
         from collections import Counter
         chamado_counts = Counter(h.chamado_id for h in historicos)
         print(f"\nTotal de chamados únicos: {len(chamado_counts)}")
@@ -791,8 +887,7 @@ class MetricsCalculator:
         print(f"{'Chamado':>8} | {'Aberto':>19} | {'Status':>15} | {'Resposta':>19} | {'Delta (horas)':>14} | {'Validado?':>10}")
         print(f"{'─'*100}")
 
-        # Mostra exemplos detalhados
-        for h in historicos[:15]:  # Primeiros 15
+        for h in historicos[:15]:
             chamado = db.query(Chamado).filter(Chamado.id == h.chamado_id).first()
             if chamado:
                 delta = h.data_inicio - chamado.data_abertura if h.data_inicio else None
@@ -846,3 +941,29 @@ class MetricsCalculator:
                 "abertos_agora": 0,
                 "tempo_resolucao_30dias": "—",
             }
+
+    @staticmethod
+    def _log_calculation(db: Session, calculation_type: str, chamados_count: int, execution_time_ms: float):
+        """Log da execução de cálculos SLA para rastrear performance"""
+        try:
+            log_entry = db.query(SLACalculationLog).filter(
+                SLACalculationLog.calculation_type == calculation_type
+            ).first()
+
+            if log_entry:
+                log_entry.last_calculated_at = datetime.utcnow()
+                log_entry.chamados_count = chamados_count
+                log_entry.execution_time_ms = execution_time_ms
+            else:
+                log_entry = SLACalculationLog(
+                    calculation_type=calculation_type,
+                    last_calculated_at=datetime.utcnow(),
+                    chamados_count=chamados_count,
+                    execution_time_ms=execution_time_ms
+                )
+                db.add(log_entry)
+
+            db.commit()
+        except Exception as e:
+            print(f"Erro ao logar cálculo SLA: {e}")
+            db.rollback()
