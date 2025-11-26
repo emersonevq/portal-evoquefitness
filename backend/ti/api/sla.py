@@ -407,3 +407,103 @@ def recalcular_sla_painel(db: Session = Depends(get_db)):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro ao recalcular SLAs: {e}")
+
+
+@router.post("/cache/invalidate-chamado/{chamado_id}")
+def invalidar_cache_chamado(chamado_id: int, db: Session = Depends(get_db)):
+    """
+    Invalida caches relacionados a um chamado específico.
+    Deve ser chamado quando um chamado é atualizado.
+    """
+    try:
+        SLACacheManager.invalidate_by_chamado(db, chamado_id)
+        return {"ok": True, "chamado_id": chamado_id}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao invalidar cache: {e}")
+
+
+@router.post("/cache/invalidate-all")
+def invalidar_todos_caches(db: Session = Depends(get_db)):
+    """
+    Invalida TODOS os caches de SLA.
+    Deve ser chamado quando configurações de SLA são alteradas.
+    """
+    try:
+        SLACacheManager.invalidate_all_sla(db)
+        return {"ok": True, "message": "Todos os caches de SLA foram invalidados"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao invalidar cache: {e}")
+
+
+@router.post("/cache/warmup")
+def preaquecer_cache(db: Session = Depends(get_db)):
+    """
+    Pré-aquece o cache ao abrir o painel administrativo.
+    Calcula todas as métricas pesadas antecipadamente.
+    """
+    try:
+        from ti.services.metrics import MetricsCalculator
+
+        stats = {
+            "total_calculados": 0,
+            "tempo_ms": 0,
+            "erro": None
+        }
+
+        import time
+        start = time.time()
+
+        MetricsCalculator.get_sla_compliance_24h(db)
+        MetricsCalculator.get_sla_compliance_mes(db)
+        MetricsCalculator.get_sla_distribution(db)
+        MetricsCalculator.get_tempo_medio_resposta_24h(db)
+        MetricsCalculator.get_tempo_medio_resposta_mes(db)
+        MetricsCalculator.get_abertos_agora(db)
+        MetricsCalculator.get_chamados_abertos_hoje(db)
+
+        stats["total_calculados"] = 7
+        stats["tempo_ms"] = int((time.time() - start) * 1000)
+
+        return stats
+    except Exception as e:
+        print(f"Erro ao preaquecer cache: {e}")
+        import traceback
+        traceback.print_exc()
+        return {
+            "total_calculados": 0,
+            "tempo_ms": 0,
+            "erro": str(e)
+        }
+
+
+@router.get("/cache/stats")
+def obter_stats_cache(db: Session = Depends(get_db)):
+    """
+    Retorna estatísticas do sistema de cache.
+    """
+    try:
+        stats = SLACacheManager.get_stats(db)
+        return stats
+    except Exception as e:
+        return {
+            "error": str(e),
+            "memory_entries": 0,
+            "database_entries": 0,
+            "expired_in_db": 0
+        }
+
+
+@router.post("/cache/cleanup")
+def limpar_cache_expirado(db: Session = Depends(get_db)):
+    """
+    Remove caches expirados do banco de dados.
+    Deve ser executado periodicamente (recomendado: a cada hora).
+    """
+    try:
+        removed = SLACacheManager.clear_expired(db)
+        return {
+            "ok": True,
+            "removed": removed
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao limpar cache: {e}")
