@@ -1,7 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { useEffect } from "react";
-import { getSocketInstance } from "@/lib/socket-instance";
 
 interface DashboardMetrics {
   chamados_hoje: number;
@@ -43,11 +42,15 @@ export function useMetrics() {
   // Listener WebSocket para atualizações em tempo real
   useEffect(() => {
     try {
-      const socket = getSocketInstance();
+      const socket = (window as any).__APP_SOCK__;
 
-      if (!socket) return;
+      if (!socket) {
+        console.debug("[useMetrics] WebSocket não disponível ainda, usando polling apenas");
+        return;
+      }
 
       const handleMetricsUpdated = () => {
+        console.debug("[useMetrics] Recebido evento metrics:updated, invalidando cache");
         // Invalida query para forçar refetch imediato
         queryClient.invalidateQueries({ queryKey: ["metrics-dashboard"] });
       };
@@ -58,7 +61,7 @@ export function useMetrics() {
         socket.off("metrics:updated", handleMetricsUpdated);
       };
     } catch (error) {
-      console.debug("[useMetrics] WebSocket não disponível ainda, usando polling apenas");
+      console.debug("[useMetrics] Erro ao configurar listener WebSocket:", error);
     }
   }, [queryClient]);
 
