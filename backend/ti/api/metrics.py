@@ -6,29 +6,43 @@ from ti.services.metrics import MetricsCalculator
 router = APIRouter(prefix="/api", tags=["metrics"])
 
 
-@router.get("/metrics/dashboard/basic")
-def get_basic_metrics(db: Session = Depends(get_db)):
+@router.get("/metrics/realtime")
+def get_realtime_metrics(db: Session = Depends(get_db)):
     """
-    Retorna métricas RÁPIDAS (carrega primeiro - quase instantâneo).
+    Retorna métricas instantâneas (sem cache, sem cálculos pesados).
 
-    Retorna:
+    Endpoint consolidado para dados rápidos:
     - chamados_hoje: Quantidade de chamados abertos hoje
     - comparacao_ontem: Comparação com ontem
     - abertos_agora: Quantidade de chamados ativos
+    - timestamp: Momento do cálculo
     """
     try:
         return {
             "chamados_hoje": MetricsCalculator.get_chamados_abertos_hoje(db),
             "comparacao_ontem": MetricsCalculator.get_comparacao_ontem(db),
             "abertos_agora": MetricsCalculator.get_abertos_agora(db),
+            "timestamp": now_brazil_naive().isoformat(),
         }
     except Exception as e:
-        print(f"[ERROR] Erro ao calcular métricas básicas: {e}")
-        return {
-            "chamados_hoje": 0,
-            "comparacao_ontem": {"hoje": 0, "ontem": 0, "percentual": 0, "direcao": "up"},
-            "abertos_agora": 0,
-        }
+        print(f"[ERROR] Erro ao calcular métricas em tempo real: {e}")
+        import traceback
+        traceback.print_exc()
+        from fastapi import HTTPException
+        raise HTTPException(
+            status_code=500,
+            detail=f"Erro ao calcular métricas em tempo real: {str(e)}"
+        )
+
+
+@router.get("/metrics/dashboard/basic")
+def get_basic_metrics(db: Session = Depends(get_db)):
+    """
+    [DEPRECATED] Use /metrics/realtime instead.
+
+    Mantido por compatibilidade com código antigo.
+    """
+    return get_realtime_metrics(db)
 
 
 @router.get("/metrics/dashboard/sla")
