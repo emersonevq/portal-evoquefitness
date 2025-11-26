@@ -631,12 +631,13 @@ class MetricsCalculator:
                 )
             ).all()
 
-            # ===== TEMPO MÉDIO DE RESOLUÇÃO (horas de negócio) =====
+            # ===== TEMPO MÉDIO DE RESOLUÇÃO (horas de negócio SEM "Em análise") =====
             tempos_resolucao = []
             for chamado in chamados_30dias:
                 if chamado.data_conclusao and chamado.data_abertura:
-                    # Usa horas de NEGÓCIO (não clock time)
-                    horas = SLACalculator.calculate_business_hours(
+                    # Usa horas de NEGÓCIO DESCONTANDO "Em análise"
+                    horas = SLACalculator.calculate_business_hours_excluding_paused(
+                        chamado.id,
                         chamado.data_abertura,
                         chamado.data_conclusao,
                         db
