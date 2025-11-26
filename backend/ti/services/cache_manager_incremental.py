@@ -133,17 +133,22 @@ class ChamadosTodayCounter:
                 current_value = 0
             
             new_value = max(0, current_value - count)
-            
+
             agora = now_brazil_naive()
             proximo_dia = (agora + timedelta(days=1)).replace(
                 hour=0, minute=0, second=0, microsecond=0
             )
-            
-            cached.cache_value = json.dumps(new_value)
-            cached.calculated_at = agora
-            cached.expires_at = proximo_dia
-            db.add(cached)
-            db.commit()
+
+            try:
+                cached.cache_value = json.dumps(new_value)
+                cached.calculated_at = agora
+                cached.expires_at = proximo_dia
+                db.add(cached)
+                db.commit()
+            except Exception as commit_error:
+                db.rollback()
+                print(f"[CACHE] Erro ao commit decrement: {commit_error}")
+                raise
 
             return new_value
 
