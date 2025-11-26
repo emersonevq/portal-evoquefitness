@@ -249,25 +249,27 @@ class SLACalculator:
     @staticmethod
     def get_sla_status(db: Session, chamado: Chamado) -> dict:
         """
-        Calcula o status de SLA de um chamado.
+        Calcula o status de SLA de um chamado com estados claros e mutuamente exclusivos.
 
         Usa:
         - Chamado.data_primeira_resposta para data de primeira resposta (fonte confiável)
         - Chamado.data_conclusao para data de conclusão
-        - Histórico de status para verificar se está congelado
+        - Histórico de status para verificar se está pausado
+
+        Retorna status com novo sistema de estados.
         """
+        from ti.services.sla_status import SLAStatus, SLAStatusDeterminer, SLAResponseMetric, SLAResolutionMetric
+
         sla_config = SLACalculator.get_sla_config_by_priority(db, chamado.prioridade)
 
         if not sla_config:
             return {
                 "chamado_id": chamado.id,
                 "prioridade": chamado.prioridade,
-                "status": chamado.status,
-                "tempo_decorrido_horas": 0,
-                "tempo_resposta_limite_horas": 0,
-                "tempo_resolucao_limite_horas": 0,
-                "tempo_resposta_status": "sem_configuracao",
-                "tempo_resolucao_status": "sem_configuracao",
+                "status_chamado": chamado.status,
+                "resposta_metric": None,
+                "resolucao_metric": None,
+                "status_geral": SLAStatus.SEM_SLA.value,
                 "data_abertura": chamado.data_abertura,
                 "data_primeira_resposta": None,
                 "data_conclusao": None,
@@ -275,75 +277,95 @@ class SLACalculator:
 
         data_abertura = chamado.data_abertura or now_brazil_naive()
         agora = now_brazil_naive()
+        is_closed = chamado.status in SLAStatusDeterminer.CLOSED_STATUSES
 
-        # ===== CÁLCULO DE RESPOSTA (SLA de Resposta) =====
+        # ===== MÉTRICA DE RESPOSTA (SLA de Resposta) =====
         tempo_resposta_horas = 0
-        tempo_resposta_status = "ok"
-
-        # Usa data_primeira_resposta da tabela chamado (fonte confiável)
         data_primeira_resposta = chamado.data_primeira_resposta
+        resposta_metric = None
 
         if data_primeira_resposta:
             # Já houve resposta
-            tempo_resposta_horas = SLACalculator.calculate_business_hours(data_abertura, data_primeira_resposta, db)
-            if tempo_resposta_horas > sla_config.tempo_resposta_horas:
-                tempo_resposta_status = "vencido"
-            else:
-                tempo_resposta_status = "ok"
-        elif chamado.status not in ["Concluído", "Concluido", "Cancelado"]:
+            tempo_resposta_horas = SLACalculator.calculate_business_hours(
+                data_abertura, data_primeira_resposta, db
+            )
+        elif chamado.status not in SLAStatusDeterminer.CLOSED_STATUSES:
             # Ainda não respondeu, calcular até agora
-            tempo_resposta_horas = SLACalculator.calculate_business_hours(data_abertura, agora, db)
-            if tempo_resposta_horas > sla_config.tempo_resposta_horas:
-                tempo_resposta_status = "vencido"
-            else:
-                tempo_resposta_status = "em_andamento"
+            tempo_resposta_horas = SLACalculator.calculate_business_hours(
+                data_abertura, agora, db
+            )
 
-        # ===== CÁLCULO DE RESOLUÇÃO (SLA de Resolução) =====
+        resposta_status = SLAStatusDeterminer.determine_status(
+            chamado.status,
+            tempo_resposta_horas,
+            sla_config.tempo_resposta_horas,
+            is_closed and data_primeira_resposta is None
+        )
+
+        resposta_metric = SLAResponseMetric(
+            tempo_decorrido_horas=tempo_resposta_horas,
+            tempo_limite_horas=sla_config.tempo_resposta_horas,
+            data_inicio=data_abertura,
+            data_fim=data_primeira_resposta,
+            status=resposta_status
+        )
+
+        # ===== MÉTRICA DE RESOLUÇÃO (SLA de Resolução) =====
         tempo_resolucao_horas = 0
-        tempo_resolucao_status = "ok"
-        data_conclusao = None
+        data_conclusao = chamado.data_conclusao
+        resolucao_metric = None
 
-        # Verifica se está congelado
-        if SLACalculator.is_frozen(db, chamado.id, agora):
-            tempo_resolucao_status = "congelado"
-            # Desconta tempo em "Em análise"
+        # Desconta tempo em "Em análise" para chamados não pausados
+        if chamado.status not in SLAStatusDeterminer.PAUSED_STATUSES:
+            data_final = data_conclusao if data_conclusao else agora
+            tempo_resolucao_horas = SLACalculator.calculate_business_hours_excluding_paused(
+                chamado.id, data_abertura, data_final, db
+            )
+        else:
+            # Pausado: não conta tempo desde abertura até agora
             tempo_resolucao_horas = SLACalculator.calculate_business_hours_excluding_paused(
                 chamado.id, data_abertura, agora, db
             )
-        else:
-            # Usa data_conclusao da tabela chamado (fonte confiável)
-            data_conclusao = chamado.data_conclusao
 
-            if data_conclusao:
-                # Já foi concluído - DESCONTA tempo em "Em análise"
-                tempo_resolucao_horas = SLACalculator.calculate_business_hours_excluding_paused(
-                    chamado.id, data_abertura, data_conclusao, db
-                )
-                if tempo_resolucao_horas > sla_config.tempo_resolucao_horas:
-                    tempo_resolucao_status = "vencido"
-                else:
-                    tempo_resolucao_status = "ok"
-            elif chamado.status not in ["Concluído", "Concluido", "Cancelado"]:
-                # Ainda não concluído - DESCONTA tempo em "Em análise"
-                tempo_resolucao_horas = SLACalculator.calculate_business_hours_excluding_paused(
-                    chamado.id, data_abertura, agora, db
-                )
-                if tempo_resolucao_horas > sla_config.tempo_resolucao_horas:
-                    tempo_resolucao_status = "vencido"
-                else:
-                    tempo_resolucao_status = "em_andamento"
+        resolucao_status = SLAStatusDeterminer.determine_status(
+            chamado.status,
+            tempo_resolucao_horas,
+            sla_config.tempo_resolucao_horas,
+            is_closed
+        )
+
+        resolucao_metric = SLAResolutionMetric(
+            tempo_decorrido_horas=tempo_resolucao_horas,
+            tempo_limite_horas=sla_config.tempo_resolucao_horas,
+            data_inicio=data_abertura,
+            data_fim=data_conclusao,
+            status=resolucao_status
+        )
+
+        # Status geral: o mais crítico dos dois
+        status_geral = resolucao_status  # Resolução é mais crítica que resposta
 
         return {
             "chamado_id": chamado.id,
             "prioridade": chamado.prioridade,
-            "status": chamado.status,
-            "tempo_decorrido_horas": max(tempo_resposta_horas, tempo_resolucao_horas),
-            "tempo_resposta_limite_horas": sla_config.tempo_resposta_horas,
-            "tempo_resolucao_limite_horas": sla_config.tempo_resolucao_horas,
-            "tempo_resposta_horas": tempo_resposta_horas,
-            "tempo_resposta_status": tempo_resposta_status,
-            "tempo_resolucao_horas": tempo_resolucao_horas,
-            "tempo_resolucao_status": tempo_resolucao_status,
+            "status_chamado": chamado.status,
+            "resposta_metric": {
+                "tempo_decorrido_horas": resposta_metric.tempo_decorrido_horas,
+                "tempo_limite_horas": resposta_metric.tempo_limite_horas,
+                "percentual_consumido": resposta_metric.percentual_consumido,
+                "status": resposta_metric.status.value,
+                "data_inicio": data_abertura,
+                "data_fim": data_primeira_resposta,
+            },
+            "resolucao_metric": {
+                "tempo_decorrido_horas": resolucao_metric.tempo_decorrido_horas,
+                "tempo_limite_horas": resolucao_metric.tempo_limite_horas,
+                "percentual_consumido": resolucao_metric.percentual_consumido,
+                "status": resolucao_metric.status.value,
+                "data_inicio": data_abertura,
+                "data_fim": data_conclusao,
+            },
+            "status_geral": status_geral.value,
             "data_abertura": chamado.data_abertura,
             "data_primeira_resposta": data_primeira_resposta,
             "data_conclusao": data_conclusao,
