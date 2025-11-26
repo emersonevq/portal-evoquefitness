@@ -35,7 +35,8 @@ export function useSLAStatus(chamadoId: number) {
       return response.data as SLAStatus;
     },
     enabled: !!chamadoId,
-    refetchInterval: 30000,
+    refetchInterval: 10000,
+    staleTime: 9000,
   });
 }
 
