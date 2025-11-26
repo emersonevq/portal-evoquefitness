@@ -41,36 +41,54 @@ class MetricsCalculator:
 
     @staticmethod
     def get_tempo_medio_resposta_24h(db: Session) -> str:
-        """Calcula tempo médio de resposta das últimas 24h usando historico_status"""
+        """Calcula tempo médio de PRIMEIRA resposta das últimas 24h"""
         agora = now_brazil_naive()
         ontem = agora - timedelta(hours=24)
 
         try:
-            # Busca todos os chamados que tiveram primeira resposta nas últimas 24h
-            # Uma "primeira resposta" é quando um chamado muda para "Em Atendimento", "Em análise" ou "Em andamento"
-            chamados_com_resposta = db.query(HistoricoStatus).filter(
+            # Pega apenas a PRIMEIRA mudança de status por chamado nas últimas 24h
+            subquery = db.query(
+                HistoricoStatus.chamado_id,
+                func.min(HistoricoStatus.created_at).label('primeira_resposta_at')
+            ).filter(
                 and_(
                     HistoricoStatus.created_at >= ontem,
                     HistoricoStatus.status.in_(["Em Atendimento", "Em análise", "Em andamento"])
                 )
+            ).group_by(HistoricoStatus.chamado_id).subquery()
+
+            # Busca os históricos correspondentes à primeira resposta
+            primeiras_respostas = db.query(
+                HistoricoStatus.chamado_id,
+                HistoricoStatus.data_inicio
+            ).join(
+                subquery,
+                and_(
+                    HistoricoStatus.chamado_id == subquery.c.chamado_id,
+                    HistoricoStatus.created_at == subquery.c.primeira_resposta_at
+                )
             ).all()
 
-            if not chamados_com_resposta:
+            if not primeiras_respostas:
                 return "—"
 
-            tempos = []
-            for historico in chamados_com_resposta:
-                try:
-                    chamado = db.query(Chamado).filter(
-                        Chamado.id == historico.chamado_id
-                    ).first()
+            # Busca todos os chamados de uma vez (evita N+1 queries)
+            chamado_ids = [pr.chamado_id for pr in primeiras_respostas]
+            chamados = db.query(Chamado).filter(
+                Chamado.id.in_(chamado_ids)
+            ).all()
 
-                    if chamado and chamado.data_abertura and historico.data_inicio:
-                        delta = historico.data_inicio - chamado.data_abertura
-                        horas = delta.total_seconds() / 3600
+            chamados_dict = {c.id: c for c in chamados}
+
+            # Calcula os tempos
+            tempos = []
+            for pr in primeiras_respostas:
+                chamado = chamados_dict.get(pr.chamado_id)
+                if chamado and chamado.data_abertura and pr.data_inicio:
+                    delta = pr.data_inicio - chamado.data_abertura
+                    horas = delta.total_seconds() / 3600
+                    if 0 <= horas <= 168:  # Máximo 1 semana (filtro de sanidade)
                         tempos.append(horas)
-                except Exception:
-                    continue
 
             if not tempos:
                 return "—"
