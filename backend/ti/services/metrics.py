@@ -414,10 +414,14 @@ class MetricsCalculator:
     @staticmethod
     def get_dashboard_metrics(db: Session) -> dict:
         """Retorna todos os métricas do dashboard"""
+        tempo_resposta_mes, total_chamados_mes = MetricsCalculator.get_tempo_medio_resposta_mes(db)
+
         return {
             "chamados_hoje": MetricsCalculator.get_chamados_abertos_hoje(db),
             "comparacao_ontem": MetricsCalculator.get_comparacao_ontem(db),
             "tempo_resposta_24h": MetricsCalculator.get_tempo_medio_resposta_24h(db),
+            "tempo_resposta_mes": tempo_resposta_mes,
+            "total_chamados_mes": total_chamados_mes,
             "sla_compliance_24h": MetricsCalculator.get_sla_compliance_24h(db),
             "abertos_agora": MetricsCalculator.get_abertos_agora(db),
             "tempo_resolucao_30dias": MetricsCalculator.get_tempo_resolucao_media_30dias(db),
