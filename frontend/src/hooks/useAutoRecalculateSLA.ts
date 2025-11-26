@@ -28,12 +28,6 @@ export function useAutoRecalculateSLA() {
     },
   });
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      mutation.mutate();
-    }, 3000);
-    return () => clearTimeout(timer);
-  }, [mutation]);
 
   return {
     stats: mutation.data,
