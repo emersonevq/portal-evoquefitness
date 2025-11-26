@@ -364,22 +364,33 @@ export default function Overview() {
           <div className="relative card-surface rounded-2xl p-6 border border-border/60">
             <h3 className="font-semibold text-lg mb-4">Desempenho do mês</h3>
             <div className="space-y-4">
-              {performanceItems.map((item, i) => (
-                <div
-                  key={i}
-                  className="flex items-center justify-between p-3 bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <div
-                      className={`w-1.5 h-8 rounded-full ${colorStyles[item.color as keyof typeof colorStyles]}`}
-                    />
-                    <span className="text-sm text-muted-foreground">
-                      {item.label}
-                    </span>
-                  </div>
-                  <span className="text-lg font-bold">{item.value}</span>
+              {!performanceData ? (
+                <div className="text-muted-foreground text-center py-4">
+                  Carregando dados de desempenho...
                 </div>
-              ))}
+              ) : (
+                [
+                  { label: "Tempo médio de resolução", value: performanceData.tempo_resolucao_medio, color: "orange" },
+                  { label: "Primeira resposta", value: performanceData.primeira_resposta_media, color: "blue" },
+                  { label: "Taxa de reaberturas", value: performanceData.taxa_reaberturas, color: "green" },
+                  { label: "Chamados em backlog", value: String(performanceData.chamados_backlog), color: "purple" },
+                ].map((item, i) => (
+                  <div
+                    key={i}
+                    className="flex items-center justify-between p-3 bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={`w-1.5 h-8 rounded-full ${colorStyles[item.color as keyof typeof colorStyles]}`}
+                      />
+                      <span className="text-sm text-muted-foreground">
+                        {item.label}
+                      </span>
+                    </div>
+                    <span className="text-lg font-bold">{item.value}</span>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </div>
