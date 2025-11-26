@@ -221,38 +221,46 @@ class MetricsCalculator:
 
     @staticmethod
     def get_sla_compliance_mes(db: Session) -> int:
-        """Calcula percentual de SLA cumprido para todos os chamados abertos neste mês (concluídos e ativos)"""
+        """Calcula percentual de SLA cumprido para chamados concluídos neste mês (mais rápido)"""
         try:
             from ti.services.sla import SLACalculator
 
             agora = now_brazil_naive()
             mes_inicio = agora.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 
-            # Busca TODOS os chamados abertos neste mês (não cancelados)
-            chamados_mes = db.query(Chamado).filter(
+            # Busca apenas chamados CONCLUÍDOS neste mês para contar SLA
+            chamados_concluidos = db.query(Chamado).filter(
                 and_(
                     Chamado.data_abertura >= mes_inicio,
                     Chamado.data_abertura <= agora,
-                    Chamado.status != "Cancelado"
+                    Chamado.status.in_(["Concluído", "Concluido"]),
+                    Chamado.data_conclusao.isnot(None)
                 )
             ).all()
 
-            if not chamados_mes:
+            if not chamados_concluidos:
                 return 0
 
             dentro_sla = 0
             fora_sla = 0
 
-            for chamado in chamados_mes:
+            for chamado in chamados_concluidos:
                 try:
-                    sla_status = SLACalculator.get_sla_status(db, chamado)
-                    status_resolucao = sla_status.get("tempo_resolucao_status")
+                    sla_config = SLACalculator.get_sla_config_by_priority(db, chamado.prioridade)
+                    if not sla_config:
+                        continue
 
-                    # Conta como "dentro" se: ok, em_andamento ou congelado
-                    # Conta como "fora" se: vencido
-                    if status_resolucao in ("ok", "em_andamento", "congelado"):
+                    # Calcula tempo de resolução em horas de negócio
+                    tempo_resolucao_horas = SLACalculator.calculate_business_hours(
+                        chamado.data_abertura,
+                        chamado.data_conclusao,
+                        db
+                    )
+
+                    # Verifica se atendeu o SLA
+                    if tempo_resolucao_horas <= sla_config.tempo_resolucao_horas:
                         dentro_sla += 1
-                    elif status_resolucao == "vencido":
+                    else:
                         fora_sla += 1
                 except Exception as e:
                     print(f"Erro ao calcular SLA do chamado {chamado.id}: {e}")
@@ -596,7 +604,7 @@ class MetricsCalculator:
 
     @staticmethod
     def get_dashboard_metrics(db: Session) -> dict:
-        """Retorna todos os métricas do dashboard"""
+        """Retorna todos os m��tricas do dashboard"""
         try:
             tempo_resposta_mes, total_chamados_mes = MetricsCalculator.get_tempo_medio_resposta_mes(db)
 
