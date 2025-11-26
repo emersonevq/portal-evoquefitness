@@ -318,6 +318,7 @@ class MetricsCalculator:
         """Cálculo real de SLA mensal - otimizado sem N+1"""
         try:
             from ti.services.sla import SLACalculator
+            from ti.models.historico_status import HistoricoStatus
 
             agora = now_brazil_naive()
             mes_inicio = agora.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
@@ -346,10 +347,23 @@ class MetricsCalculator:
             if not chamados_mes:
                 return 0
 
+            # 3. PRÉ-CARREGA TODOS os históricos de UMA VEZ (otimização crítica)
+            chamado_ids = [c.id for c in chamados_mes]
+            historicos_bulk = db.query(HistoricoStatus).filter(
+                HistoricoStatus.chamado_id.in_(chamado_ids)
+            ).all()
+
+            # Cache: {chamado_id: [historicos]}
+            historicos_cache = {}
+            for hist in historicos_bulk:
+                if hist.chamado_id not in historicos_cache:
+                    historicos_cache[hist.chamado_id] = []
+                historicos_cache[hist.chamado_id].append(hist)
+
             dentro_sla = 0
             fora_sla = 0
 
-            # 3. Itera sem fazer queries adicionais
+            # 4. Itera sem fazer queries adicionais (usa cache)
             for chamado in chamados_mes:
                 try:
                     sla_config = sla_configs.get(chamado.prioridade)
@@ -359,12 +373,13 @@ class MetricsCalculator:
                     # Define data final para cálculo
                     data_final = chamado.data_conclusao if chamado.data_conclusao else agora
 
-                    # Calcula tempo de resolução em horas de negócio DESCONTANDO "Em análise"
+                    # Calcula tempo de resolução em horas de negócio DESCONTANDO "Em análise" (COM CACHE)
                     tempo_resolucao_horas = SLACalculator.calculate_business_hours_excluding_paused(
                         chamado.id,
                         chamado.data_abertura,
                         data_final,
-                        db
+                        db,
+                        historicos_cache  # Passa cache para evitar queries
                     )
 
                     # Verifica se atendeu o SLA de resolução
