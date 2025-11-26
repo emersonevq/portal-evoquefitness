@@ -122,9 +122,26 @@ class SLACalculator:
         return max(0, tempo_sla)  # Nunca negativo
 
     @staticmethod
-    def calculate_business_hours(start: datetime, end: datetime, db: Session | None = None) -> float:
+    def calculate_business_hours(start: datetime, end: datetime, db: Session | None = None, business_hours_cache: dict | None = None) -> float:
         if start >= end:
             return 0.0
+
+        # Cache business hours para evitar queries repetidas (CRÍTICO!)
+        if business_hours_cache is None:
+            business_hours_cache = {}
+            # Pré-carregar business hours para toda semana se db fornecido
+            if db:
+                for weekday in range(5):  # Segunda a Sexta
+                    bh_result = db.query(SLABusinessHours).filter(
+                        and_(
+                            SLABusinessHours.dia_semana == weekday,
+                            SLABusinessHours.ativo == True
+                        )
+                    ).first()
+                    if bh_result:
+                        business_hours_cache[weekday] = (bh_result.hora_inicio, bh_result.hora_fim)
+                    else:
+                        business_hours_cache[weekday] = SLACalculator.DEFAULT_BUSINESS_HOURS.get(weekday)
 
         total_minutes = 0
         current = start
@@ -136,11 +153,9 @@ class SLACalculator:
                 current = next_day
                 continue
 
-            bh = None
-            if db:
-                bh = SLACalculator.get_business_hours(db, current.weekday())
-            else:
-                bh = SLACalculator.DEFAULT_BUSINESS_HOURS.get(current.weekday())
+            # Usar cache ao invés de queries ao banco
+            weekday = current.weekday()
+            bh = business_hours_cache.get(weekday)
 
             if not bh:
                 current = next_day
