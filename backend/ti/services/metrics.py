@@ -166,6 +166,161 @@ class MetricsCalculator:
         return f"{horas}h {minutos}m" if minutos > 0 else f"{horas}h"
 
     @staticmethod
+    def get_chamados_por_dia(db: Session, dias: int = 7) -> list[dict]:
+        """Retorna quantidade de chamados por dia dos últimos N dias"""
+        agora = now_brazil_naive()
+        dias_atras = agora - timedelta(days=dias)
+
+        dias_data = []
+        for i in range(dias):
+            dia = agora - timedelta(days=dias - 1 - i)
+            dias_data.append(dia.replace(hour=0, minute=0, second=0, microsecond=0))
+
+        resultado = []
+        for i, dia_inicio in enumerate(dias_data):
+            dia_fim = dia_inicio + timedelta(days=1)
+
+            count = db.query(Chamado).filter(
+                and_(
+                    Chamado.data_abertura >= dia_inicio,
+                    Chamado.data_abertura < dia_fim,
+                    Chamado.status != "Cancelado"
+                )
+            ).count()
+
+            dia_nome = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"][dia_inicio.weekday()]
+            resultado.append({
+                "dia": dia_nome,
+                "data": dia_inicio.strftime("%Y-%m-%d"),
+                "quantidade": count
+            })
+
+        return resultado
+
+    @staticmethod
+    def get_chamados_por_semana(db: Session, semanas: int = 4) -> list[dict]:
+        """Retorna quantidade de chamados por semana dos últimos N semanas"""
+        agora = now_brazil_naive()
+        resultado = []
+
+        for i in range(semanas):
+            semana_num = semanas - i
+            semana_inicio = agora - timedelta(weeks=i)
+            semana_inicio = semana_inicio - timedelta(days=semana_inicio.weekday())
+            semana_inicio = semana_inicio.replace(hour=0, minute=0, second=0, microsecond=0)
+            semana_fim = semana_inicio + timedelta(days=7)
+
+            count = db.query(Chamado).filter(
+                and_(
+                    Chamado.data_abertura >= semana_inicio,
+                    Chamado.data_abertura < semana_fim,
+                    Chamado.status != "Cancelado"
+                )
+            ).count()
+
+            resultado.insert(0, {
+                "semana": f"S{semana_num}",
+                "quantidade": count
+            })
+
+        return resultado
+
+    @staticmethod
+    def get_sla_distribution(db: Session) -> dict:
+        """Retorna distribuição de SLA (dentro/fora)"""
+        from ti.services.sla import SLACalculator
+
+        chamados_ativos = db.query(Chamado).filter(
+            and_(
+                Chamado.status != "Concluído",
+                Chamado.status != "Cancelado"
+            )
+        ).all()
+
+        dentro_sla = 0
+        fora_sla = 0
+
+        for chamado in chamados_ativos:
+            sla_status = SLACalculator.get_sla_status(db, chamado)
+            if sla_status.get("tempo_resolucao_status") == "ok":
+                dentro_sla += 1
+            elif sla_status.get("tempo_resolucao_status") == "vencido":
+                fora_sla += 1
+
+        total = dentro_sla + fora_sla
+        if total == 0:
+            return {
+                "dentro_sla": 0,
+                "fora_sla": 0,
+                "percentual_dentro": 0,
+                "percentual_fora": 0,
+                "total": 0
+            }
+
+        percentual_dentro = int((dentro_sla / total) * 100)
+        percentual_fora = int((fora_sla / total) * 100)
+
+        return {
+            "dentro_sla": dentro_sla,
+            "fora_sla": fora_sla,
+            "percentual_dentro": percentual_dentro,
+            "percentual_fora": percentual_fora,
+            "total": total
+        }
+
+    @staticmethod
+    def get_performance_metrics(db: Session) -> dict:
+        """Retorna métricas de performance (últimos 30 dias)"""
+        agora = now_brazil_naive()
+        trinta_dias_atras = agora - timedelta(days=30)
+
+        chamados_30dias = db.query(Chamado).filter(
+            and_(
+                Chamado.data_abertura >= trinta_dias_atras,
+            )
+        ).all()
+
+        # Tempo médio de resolução
+        tempos_resolucao = []
+        for chamado in chamados_30dias:
+            if chamado.data_conclusao and chamado.data_abertura:
+                delta = chamado.data_conclusao - chamado.data_abertura
+                horas = delta.total_seconds() / 3600
+                tempos_resolucao.append(horas)
+
+        tempo_resolucao_medio = sum(tempos_resolucao) / len(tempos_resolucao) if tempos_resolucao else 0
+        horas = int(tempo_resolucao_medio)
+        minutos = int((tempo_resolucao_medio - horas) * 60)
+        tempo_resolucao_str = f"{horas}h {minutos}m" if minutos > 0 else f"{horas}h"
+
+        # Tempo médio de primeira resposta
+        tempos_primeira_resposta = []
+        for chamado in chamados_30dias:
+            if chamado.data_primeira_resposta and chamado.data_abertura:
+                delta = chamado.data_primeira_resposta - chamado.data_abertura
+                minutos_delta = delta.total_seconds() / 60
+                tempos_primeira_resposta.append(minutos_delta)
+
+        tempo_primeira_resposta_medio = sum(tempos_primeira_resposta) / len(tempos_primeira_resposta) if tempos_primeira_resposta else 0
+        tempo_primeira_resposta_str = f"{int(tempo_primeira_resposta_medio)}m"
+
+        # Taxa de reaberturas
+        chamados_reabertos = sum(1 for c in chamados_30dias if c.reaberto and c.numero_reaberturas and c.numero_reaberturas > 0)
+        taxa_reaberturas = int((chamados_reabertos / len(chamados_30dias)) * 100) if chamados_30dias else 0
+
+        # Chamados em backlog (status Aguardando ou Em análise)
+        chamados_backlog = db.query(Chamado).filter(
+            Chamado.status.in_(["Aguardando", "Em análise"])
+        ).count()
+
+        return {
+            "tempo_resolucao_medio": tempo_resolucao_str,
+            "primeira_resposta_media": tempo_primeira_resposta_str,
+            "taxa_reaberturas": f"{taxa_reaberturas}%",
+            "chamados_backlog": chamados_backlog
+        }
+
+    @staticmethod
     def get_dashboard_metrics(db: Session) -> dict:
         """Retorna todos os métricas do dashboard"""
         return {
