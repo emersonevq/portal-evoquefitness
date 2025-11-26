@@ -4,43 +4,9 @@ from sqlalchemy import func, and_, or_
 from ti.models.chamado import Chamado
 from ti.models.historico_status import HistoricoStatus
 from ti.models.sla_config import HistoricoSLA, SLAConfiguration
+from ti.services.sla_cache import SLACacheManager
 from core.utils import now_brazil_naive
 import threading
-
-
-class MetricsCache:
-    """Cache em memória para métricas pesadas com TTL"""
-    _cache = {}
-    _lock = threading.Lock()
-    _ttl_seconds = 30  # 30 segundos de cache
-
-    @classmethod
-    def get(cls, key: str):
-        """Obtém valor do cache se ainda estiver válido"""
-        with cls._lock:
-            if key in cls._cache:
-                value, timestamp = cls._cache[key]
-                age = (datetime.now() - timestamp).total_seconds()
-                if age < cls._ttl_seconds:
-                    return value
-                else:
-                    del cls._cache[key]
-        return None
-
-    @classmethod
-    def set(cls, key: str, value):
-        """Armazena valor no cache com timestamp"""
-        with cls._lock:
-            cls._cache[key] = (value, datetime.now())
-
-    @classmethod
-    def clear(cls, key: str = None):
-        """Limpa cache (específico ou tudo)"""
-        with cls._lock:
-            if key:
-                cls._cache.pop(key, None)
-            else:
-                cls._cache.clear()
 
 
 class MetricsCalculator:
@@ -210,12 +176,12 @@ class MetricsCalculator:
     def get_sla_compliance_24h(db: Session) -> int:
         """Calcula percentual de SLA cumprido (baseado em chamados ativos) - OTIMIZADO"""
         # Tenta cache primeiro
-        cached = MetricsCache.get("sla_compliance_24h")
+        cached = SLACacheManager.get(db, "sla_compliance_24h")
         if cached is not None:
             return cached
 
         result = MetricsCalculator._calculate_sla_compliance_24h(db)
-        MetricsCache.set("sla_compliance_24h", result)
+        SLACacheManager.set(db, "sla_compliance_24h", result)
         return result
 
     @staticmethod
@@ -305,12 +271,12 @@ class MetricsCalculator:
     def get_sla_compliance_mes(db: Session) -> int:
         """Calcula percentual de SLA cumprido para todos os chamados do mês - OTIMIZADO"""
         # Tenta cache primeiro
-        cached = MetricsCache.get("sla_compliance_mes")
+        cached = SLACacheManager.get(db, "sla_compliance_mes")
         if cached is not None:
             return cached
 
         result = MetricsCalculator._calculate_sla_compliance_mes(db)
-        MetricsCache.set("sla_compliance_mes", result)
+        SLACacheManager.set(db, "sla_compliance_mes", result)
         return result
 
     @staticmethod
@@ -546,12 +512,12 @@ class MetricsCalculator:
     def get_sla_distribution(db: Session) -> dict:
         """Retorna distribuição de SLA (dentro/fora) - SINCRONIZADO COM CARD SLA"""
         # Tenta cache primeiro
-        cached = MetricsCache.get("sla_distribution")
+        cached = SLACacheManager.get(db, "sla_distribution")
         if cached is not None:
             return cached
 
         result = MetricsCalculator._calculate_sla_distribution(db)
-        MetricsCache.set("sla_distribution", result)
+        SLACacheManager.set(db, "sla_distribution", result)
         return result
 
     @staticmethod
