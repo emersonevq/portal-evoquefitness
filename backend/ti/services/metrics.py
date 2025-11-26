@@ -198,7 +198,7 @@ class MetricsCalculator:
                     sla_status = SLACalculator.get_sla_status(db, chamado)
                     status_resolucao = sla_status.get("tempo_resolucao_status")
 
-                    if status_resolucao == "ok":
+                    if status_resolucao in ("ok", "em_andamento", "congelado"):
                         dentro_sla += 1
                     elif status_resolucao == "vencido":
                         fora_sla += 1
