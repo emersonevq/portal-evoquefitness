@@ -15,6 +15,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import NotificationBell from "./components/NotificationBell";
+import { useAutoRecalculateSLA } from "@/hooks/useAutoRecalculateSLA";
 
 const iconMap = {
   "Visão geral": LayoutDashboard,
@@ -54,6 +55,8 @@ const groups = [
 ];
 
 export default function AdminLayout() {
+  useAutoRecalculateSLA();
+
   return (
     <Layout>
       {/* Header */}

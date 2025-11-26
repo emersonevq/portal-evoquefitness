@@ -26,6 +26,7 @@ import { ticketsMock } from "../mock";
 import { apiFetch, API_BASE } from "@/lib/api";
 import { useAuthContext } from "@/lib/auth-context";
 import { toast } from "@/hooks/use-toast";
+import { SLAStatusDisplay } from "@/components/sla/SLAStatusDisplay";
 
 type TicketStatus =
   | "ABERTO"
@@ -804,46 +805,49 @@ export default function ChamadosPage() {
               <div className="flex-1 overflow-y-auto px-6 pb-6">
                 {tab === "resumo" && (
                   <div className="grid gap-6 lg:grid-cols-[1fr,320px] pt-4">
-                    <div className="rounded-lg border bg-card p-5 space-y-4 h-fit">
-                      <h3 className="font-semibold text-lg">
-                        Ficha do chamado
-                      </h3>
-                      <div className="grid gap-3 text-sm">
-                        {[
-                          ["Solicitante", selected.solicitante],
-                          ["Cargo", selected.cargo],
-                          ["Gerente", selected.gerente || "—"],
-                          ["E-mail", selected.email],
-                          ["Telefone", selected.telefone],
-                          ["Unidade", selected.unidade],
-                          ["Problema", selected.categoria],
-                          selected.descricao && [
-                            "Descrição",
-                            selected.descricao,
-                          ],
-                          selected.internetItem && [
-                            "Item Internet",
-                            selected.internetItem,
-                          ],
-                          [
-                            "Data de abertura",
-                            new Date(selected.criadoEm).toLocaleString(),
-                          ],
-                          ["Visita técnica", selected.visita || "—"],
-                        ]
-                          .filter(Boolean)
-                          .map((item, i) => (
-                            <div
-                              key={i}
-                              className="grid grid-cols-[140px,1fr] gap-4 py-2 border-b last:border-0"
-                            >
-                              <span className="text-muted-foreground font-medium">
-                                {item![0]}:
-                              </span>
-                              <span className="break-words">{item![1]}</span>
-                            </div>
-                          ))}
+                    <div className="space-y-6">
+                      <div className="rounded-lg border bg-card p-5 space-y-4 h-fit">
+                        <h3 className="font-semibold text-lg">
+                          Ficha do chamado
+                        </h3>
+                        <div className="grid gap-3 text-sm">
+                          {[
+                            ["Solicitante", selected.solicitante],
+                            ["Cargo", selected.cargo],
+                            ["Gerente", selected.gerente || "—"],
+                            ["E-mail", selected.email],
+                            ["Telefone", selected.telefone],
+                            ["Unidade", selected.unidade],
+                            ["Problema", selected.categoria],
+                            selected.descricao && [
+                              "Descrição",
+                              selected.descricao,
+                            ],
+                            selected.internetItem && [
+                              "Item Internet",
+                              selected.internetItem,
+                            ],
+                            [
+                              "Data de abertura",
+                              new Date(selected.criadoEm).toLocaleString(),
+                            ],
+                            ["Visita técnica", selected.visita || "—"],
+                          ]
+                            .filter(Boolean)
+                            .map((item, i) => (
+                              <div
+                                key={i}
+                                className="grid grid-cols-[140px,1fr] gap-4 py-2 border-b last:border-0"
+                              >
+                                <span className="text-muted-foreground font-medium">
+                                  {item![0]}:
+                                </span>
+                                <span className="break-words">{item![1]}</span>
+                              </div>
+                            ))}
+                        </div>
                       </div>
+                      <SLAStatusDisplay chamadoId={parseInt(selected.id)} />
                     </div>
 
                     <div className="rounded-lg border bg-card p-5 space-y-4 h-fit">
