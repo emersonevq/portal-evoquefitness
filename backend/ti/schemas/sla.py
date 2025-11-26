@@ -1,14 +1,39 @@
 from __future__ import annotations
 from datetime import datetime
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, validator
+from enum import Enum
+
+
+class SLAStatusEnum(str, Enum):
+    """Estados de SLA mutuamente exclusivos"""
+    CUMPRIDO = "cumprido"
+    VIOLADO = "violado"
+    DENTRO_PRAZO = "dentro_prazo"
+    PROXIMO_VENCER = "proximo_vencer"
+    VENCIDO_ATIVO = "vencido_ativo"
+    PAUSADO = "pausado"
+    SEM_SLA = "sem_sla"
 
 
 class SLAConfigurationCreate(BaseModel):
     prioridade: str = Field(..., description="Nível de prioridade")
-    tempo_resposta_horas: float = Field(..., description="Tempo máximo de resposta em horas")
-    tempo_resolucao_horas: float = Field(..., description="Tempo máximo de resolução em horas")
+    tempo_resposta_horas: float = Field(..., gt=0, description="Tempo máximo de resposta em horas (deve ser positivo)")
+    tempo_resolucao_horas: float = Field(..., gt=0, description="Tempo máximo de resolução em horas (deve ser positivo)")
     descricao: str | None = Field(None, description="Descrição da configuração")
     ativo: bool = Field(True, description="Se a configuração está ativa")
+
+    @validator("tempo_resposta_horas", "tempo_resolucao_horas")
+    def validate_positive_hours(cls, v):
+        if v <= 0:
+            raise ValueError("Tempo deve ser maior que zero")
+        return v
+
+    @validator("tempo_resolucao_horas")
+    def validate_resolucao_maior_que_resposta(cls, v, values):
+        if "tempo_resposta_horas" in values:
+            if v < values["tempo_resposta_horas"]:
+                raise ValueError("Tempo de resolução deve ser >= tempo de resposta")
+        return v
 
 
 class SLAConfigurationUpdate(BaseModel):
