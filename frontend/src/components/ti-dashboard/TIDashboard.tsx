@@ -16,6 +16,8 @@ interface DashboardData {
     direcao: "up" | "down";
   };
   tempo_resposta_24h: string;
+  tempo_resposta_mes: string;
+  total_chamados_mes: number;
   sla_compliance_24h: number;
   abertos_agora: number;
   tempo_resolucao_30dias: string;
@@ -126,8 +128,8 @@ export function TIDashboard() {
 
         <MetricsCard
           title="Tempo médio de resposta"
-          value={dashboardData?.tempo_resposta_24h || "—"}
-          subtitle="Últimas 24h"
+          value={dashboardData?.tempo_resposta_mes || "—"}
+          subtitle={`Este mês (${dashboardData?.total_chamados_mes || 0} chamados)`}
           icon={<Clock className="w-6 h-6" />}
         />
 

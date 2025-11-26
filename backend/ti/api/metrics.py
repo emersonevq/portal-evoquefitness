@@ -10,11 +10,13 @@ router = APIRouter(prefix="/api", tags=["metrics"])
 def get_dashboard_metrics(db: Session = Depends(get_db)):
     """
     Retorna todas as métricas do dashboard administrativo em tempo real.
-    
+
     Retorna:
     - chamados_hoje: Quantidade de chamados abertos hoje
     - comparacao_ontem: Comparação com ontem (hoje, ontem, percentual, direcao)
     - tempo_resposta_24h: Tempo médio de primeira resposta nas últimas 24h
+    - tempo_resposta_mes: Tempo médio de primeira resposta deste mês
+    - total_chamados_mes: Total de chamados abertos neste mês
     - sla_compliance_24h: Percentual de SLA cumprido nas últimas 24h
     - abertos_agora: Quantidade de chamados com status "Aberto"
     - tempo_resolucao_30dias: Tempo médio de resolução dos últimos 30 dias
@@ -28,6 +30,8 @@ def get_dashboard_metrics(db: Session = Depends(get_db)):
             "chamados_hoje": 0,
             "comparacao_ontem": {"hoje": 0, "ontem": 0, "percentual": 0, "direcao": "up"},
             "tempo_resposta_24h": "—",
+            "tempo_resposta_mes": "—",
+            "total_chamados_mes": 0,
             "sla_compliance_24h": 0,
             "abertos_agora": 0,
             "tempo_resolucao_30dias": "—",
@@ -130,4 +134,26 @@ def get_performance_metrics(db: Session = Depends(get_db)):
             "primeira_resposta_media": "—",
             "taxa_reaberturas": "0%",
             "chamados_backlog": 0
+        }
+
+
+@router.get("/metrics/debug/tempo-resposta")
+def debug_tempo_resposta(periodo: str = "mes", db: Session = Depends(get_db)):
+    """
+    Debug: retorna dados brutos de tempo de resposta
+    periodo: "mes", "24h" ou "30dias"
+    """
+    try:
+        historicos = MetricsCalculator.debug_tempo_resposta(db, periodo)
+        return {
+            "status": "ok",
+            "total_registros": len(historicos),
+            "periodo": periodo
+        }
+    except Exception as e:
+        print(f"Erro ao debugar tempo de resposta: {e}")
+        return {
+            "status": "erro",
+            "erro": str(e),
+            "periodo": periodo
         }

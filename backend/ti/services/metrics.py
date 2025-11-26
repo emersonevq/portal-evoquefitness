@@ -41,36 +41,49 @@ class MetricsCalculator:
 
     @staticmethod
     def get_tempo_medio_resposta_24h(db: Session) -> str:
-        """Calcula tempo médio de resposta das últimas 24h usando historico_status"""
+        """Calcula tempo médio de PRIMEIRA resposta das últimas 24h"""
         agora = now_brazil_naive()
         ontem = agora - timedelta(hours=24)
 
         try:
-            # Busca todos os chamados que tiveram primeira resposta nas últimas 24h
-            # Uma "primeira resposta" é quando um chamado muda para "Em Atendimento", "Em análise" ou "Em andamento"
-            chamados_com_resposta = db.query(HistoricoStatus).filter(
+            # Subquery para pegar apenas a PRIMEIRA resposta por chamado nas últimas 24h
+            subquery = db.query(
+                HistoricoStatus.chamado_id,
+                func.min(HistoricoStatus.created_at).label('primeira_resposta_at')
+            ).filter(
                 and_(
                     HistoricoStatus.created_at >= ontem,
                     HistoricoStatus.status.in_(["Em Atendimento", "Em análise", "Em andamento"])
                 )
+            ).group_by(HistoricoStatus.chamado_id).subquery()
+
+            # Busca os históricos da primeira resposta + dados do chamado (JOIN direto)
+            resultados = db.query(
+                HistoricoStatus.data_inicio,
+                Chamado.data_abertura
+            ).join(
+                subquery,
+                and_(
+                    HistoricoStatus.chamado_id == subquery.c.chamado_id,
+                    HistoricoStatus.created_at == subquery.c.primeira_resposta_at
+                )
+            ).join(
+                Chamado,
+                Chamado.id == HistoricoStatus.chamado_id
             ).all()
 
-            if not chamados_com_resposta:
+            if not resultados:
                 return "—"
 
+            # Calcula os tempos
             tempos = []
-            for historico in chamados_com_resposta:
-                try:
-                    chamado = db.query(Chamado).filter(
-                        Chamado.id == historico.chamado_id
-                    ).first()
-
-                    if chamado and chamado.data_abertura and historico.data_inicio:
-                        delta = historico.data_inicio - chamado.data_abertura
-                        horas = delta.total_seconds() / 3600
+            for data_inicio, data_abertura in resultados:
+                if data_inicio and data_abertura:
+                    delta = data_inicio - data_abertura
+                    horas = delta.total_seconds() / 3600
+                    # Filtro de sanidade: apenas valores entre 0 e 72h
+                    if 0 <= horas <= 72:
                         tempos.append(horas)
-                except Exception:
-                    continue
 
             if not tempos:
                 return "—"
@@ -86,24 +99,85 @@ class MetricsCalculator:
                 return f"{horas}h {minutos}m" if minutos > 0 else f"{horas}h"
         except Exception as e:
             print(f"Erro ao calcular tempo de resposta: {e}")
+            import traceback
+            traceback.print_exc()
             return "—"
+
+    @staticmethod
+    def get_tempo_medio_resposta_mes(db: Session) -> tuple[str, int]:
+        """Calcula tempo médio de PRIMEIRA resposta deste mês usando Chamado.data_primeira_resposta"""
+        agora = now_brazil_naive()
+        mes_inicio = agora.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+
+        try:
+            # Busca chamados do mês que já tiveram primeira resposta
+            chamados = db.query(Chamado).filter(
+                and_(
+                    Chamado.data_abertura >= mes_inicio,
+                    Chamado.data_abertura <= agora,
+                    Chamado.status != "Cancelado",
+                    Chamado.data_primeira_resposta.isnot(None)
+                )
+            ).all()
+
+            # Conta total de chamados do mês (mesmo sem resposta)
+            total_chamados_mes = db.query(Chamado).filter(
+                and_(
+                    Chamado.data_abertura >= mes_inicio,
+                    Chamado.data_abertura <= agora,
+                    Chamado.status != "Cancelado"
+                )
+            ).count()
+
+            if not chamados:
+                return "—", total_chamados_mes
+
+            # Calcula os tempos
+            tempos = []
+            for chamado in chamados:
+                if chamado.data_primeira_resposta and chamado.data_abertura:
+                    delta = chamado.data_primeira_resposta - chamado.data_abertura
+                    horas = delta.total_seconds() / 3600
+
+                    # Filtro de sanidade: apenas valores entre 0 e 24h
+                    if 0 <= horas <= 24:
+                        tempos.append(horas)
+
+            if not tempos:
+                return "—", total_chamados_mes
+
+            media_horas = sum(tempos) / len(tempos)
+
+            # Formata o resultado
+            if media_horas < 1:
+                return f"{int(media_horas * 60)}m", total_chamados_mes
+            else:
+                horas = int(media_horas)
+                minutos = int((media_horas - horas) * 60)
+                return (f"{horas}h {minutos}m" if minutos > 0 else f"{horas}h"), total_chamados_mes
+
+        except Exception as e:
+            print(f"Erro ao calcular tempo de resposta do mês: {e}")
+            import traceback
+            traceback.print_exc()
+            return "—", 0
 
     @staticmethod
     def get_sla_compliance_24h(db: Session) -> int:
         """Calcula percentual de SLA cumprido nas últimas 24h"""
         agora = now_brazil_naive()
         ontem = agora - timedelta(hours=24)
-        
+
         historicos = db.query(HistoricoSLA).filter(
             HistoricoSLA.criado_em >= ontem
         ).all()
-        
+
         if not historicos:
             return 0
-        
+
         em_dia = sum(1 for h in historicos if h.status_sla == "ok")
         percentual = int((em_dia / len(historicos)) * 100)
-        
+
         return percentual
 
     @staticmethod
@@ -304,28 +378,42 @@ class MetricsCalculator:
         minutos = int((tempo_resolucao_medio - horas) * 60)
         tempo_resolucao_str = f"{horas}h {minutos}m" if minutos > 0 else f"{horas}h" if horas > 0 else "—"
 
-        # Tempo médio de primeira resposta usando historico_status
+        # Tempo médio de PRIMEIRA resposta usando historico_status
         tempos_primeira_resposta = []
-        historicos_primeiro_atendimento = db.query(HistoricoStatus).filter(
+
+        # Subquery: pega apenas a PRIMEIRA mudança de status por chamado nos últimos 30 dias
+        subquery = db.query(
+            HistoricoStatus.chamado_id,
+            func.min(HistoricoStatus.created_at).label('primeira_resposta_at')
+        ).filter(
             and_(
                 HistoricoStatus.created_at >= trinta_dias_atras,
                 HistoricoStatus.status.in_(["Em Atendimento", "Em análise", "Em andamento"])
             )
+        ).group_by(HistoricoStatus.chamado_id).subquery()
+
+        # Busca os históricos da primeira resposta + dados do chamado (JOIN direto)
+        resultados = db.query(
+            HistoricoStatus.data_inicio,
+            Chamado.data_abertura
+        ).join(
+            subquery,
+            and_(
+                HistoricoStatus.chamado_id == subquery.c.chamado_id,
+                HistoricoStatus.created_at == subquery.c.primeira_resposta_at
+            )
+        ).join(
+            Chamado,
+            Chamado.id == HistoricoStatus.chamado_id
         ).all()
 
-        for historico in historicos_primeiro_atendimento:
-            try:
-                chamado = db.query(Chamado).filter(
-                    Chamado.id == historico.chamado_id
-                ).first()
-
-                if chamado and chamado.data_abertura and historico.data_inicio:
-                    delta = historico.data_inicio - chamado.data_abertura
-                    minutos_delta = delta.total_seconds() / 60
-                    if minutos_delta >= 0:  # Apenas valores positivos
-                        tempos_primeira_resposta.append(minutos_delta)
-            except Exception:
-                continue
+        for data_inicio, data_abertura in resultados:
+            if data_inicio and data_abertura:
+                delta = data_inicio - data_abertura
+                minutos_delta = delta.total_seconds() / 60
+                # Filtro de sanidade: máximo 72h (4320 minutos)
+                if 0 <= minutos_delta <= 4320:
+                    tempos_primeira_resposta.append(minutos_delta)
 
         tempo_primeira_resposta_medio = sum(tempos_primeira_resposta) / len(tempos_primeira_resposta) if tempos_primeira_resposta else 0
         tempo_primeira_resposta_str = f"{int(tempo_primeira_resposta_medio)}m" if tempo_primeira_resposta_medio > 0 else "—"
@@ -347,12 +435,78 @@ class MetricsCalculator:
         }
 
     @staticmethod
+    def debug_tempo_resposta(db: Session, periodo: str = "mes"):
+        """
+        Debug: mostra os dados brutos de tempo de resposta
+        periodo: "mes", "24h" ou "30dias"
+        """
+        agora = now_brazil_naive()
+
+        if periodo == "mes":
+            inicio = agora.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        elif periodo == "24h":
+            inicio = agora - timedelta(hours=24)
+        else:  # 30dias
+            inicio = agora - timedelta(days=30)
+
+        historicos = db.query(HistoricoStatus).filter(
+            and_(
+                HistoricoStatus.created_at >= inicio,
+                HistoricoStatus.status.in_(["Em Atendimento", "Em análise", "Em andamento"])
+            )
+        ).all()
+
+        print(f"\n{'='*100}")
+        print(f"DEBUG: Tempo de Resposta ({periodo})")
+        print(f"Período: {inicio.strftime('%Y-%m-%d %H:%M:%S')} a {agora.strftime('%Y-%m-%d %H:%M:%S')}")
+        print(f"Total de registros encontrados: {len(historicos)}")
+        print(f"{'='*100}")
+
+        # Agrupa por chamado_id para mostrar quantos registros por chamado
+        from collections import Counter
+        chamado_counts = Counter(h.chamado_id for h in historicos)
+        print(f"\nTotal de chamados únicos: {len(chamado_counts)}")
+        duplicados = {k: v for k, v in chamado_counts.items() if v > 1}
+        print(f"Chamados com múltiplos registros: {len(duplicados)}")
+
+        if duplicados:
+            print(f"\nExemplos de chamados com duplicatas:")
+            for chamado_id, count in list(duplicados.items())[:5]:
+                print(f"  - Chamado #{chamado_id}: {count} registros")
+
+        print(f"\n{'─'*100}")
+        print(f"{'Chamado':>8} | {'Aberto':>19} | {'Status':>15} | {'Resposta':>19} | {'Delta (horas)':>14} | {'Validado?':>10}")
+        print(f"{'─'*100}")
+
+        # Mostra exemplos detalhados
+        for h in historicos[:15]:  # Primeiros 15
+            chamado = db.query(Chamado).filter(Chamado.id == h.chamado_id).first()
+            if chamado:
+                delta = h.data_inicio - chamado.data_abertura if h.data_inicio else None
+                horas = delta.total_seconds() / 3600 if delta else 0
+                validado = "✓" if (0 <= horas <= 72) else "✗"
+                print(f"{h.chamado_id:>8} | {str(chamado.data_abertura):>19} | {h.status:>15} | "
+                      f"{str(h.data_inicio):>19} | {horas:>14.1f} | {validado:>10}")
+
+        if len(historicos) > 15:
+            print(f"{'─'*100}")
+            print(f"... e mais {len(historicos) - 15} registros")
+
+        print(f"{'='*100}\n")
+
+        return historicos
+
+    @staticmethod
     def get_dashboard_metrics(db: Session) -> dict:
         """Retorna todos os métricas do dashboard"""
+        tempo_resposta_mes, total_chamados_mes = MetricsCalculator.get_tempo_medio_resposta_mes(db)
+
         return {
             "chamados_hoje": MetricsCalculator.get_chamados_abertos_hoje(db),
             "comparacao_ontem": MetricsCalculator.get_comparacao_ontem(db),
             "tempo_resposta_24h": MetricsCalculator.get_tempo_medio_resposta_24h(db),
+            "tempo_resposta_mes": tempo_resposta_mes,
+            "total_chamados_mes": total_chamados_mes,
             "sla_compliance_24h": MetricsCalculator.get_sla_compliance_24h(db),
             "abertos_agora": MetricsCalculator.get_abertos_agora(db),
             "tempo_resolucao_30dias": MetricsCalculator.get_tempo_resolucao_media_30dias(db),

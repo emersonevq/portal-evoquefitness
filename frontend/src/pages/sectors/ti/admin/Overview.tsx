@@ -155,8 +155,8 @@ export default function Overview() {
         />
         <Metric
           label="Tempo médio de resposta"
-          value={metrics?.tempo_resposta_24h || "—"}
-          sub="Últimas 24h"
+          value={metrics?.tempo_resposta_mes || "—"}
+          sub={`Este mês (${metrics?.total_chamados_mes || 0} chamados)`}
           variant="blue"
           icon={Clock}
         />
