@@ -65,8 +65,8 @@ class MetricsCalculator:
                         Chamado.id == historico.chamado_id
                     ).first()
 
-                    if chamado and chamado.data_abertura and historico.criado_em:
-                        delta = historico.criado_em - chamado.data_abertura
+                    if chamado and chamado.data_abertura and historico.data_inicio:
+                        delta = historico.data_inicio - chamado.data_abertura
                         horas = delta.total_seconds() / 3600
                         tempos.append(horas)
                 except Exception:
