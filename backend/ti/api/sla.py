@@ -268,8 +268,10 @@ def obter_historico_sla(chamado_id: int, db: Session = Depends(get_db)):
 def sincronizar_todos_chamados(db: Session = Depends(get_db)):
     """
     Sincroniza todos os chamados existentes com a tabela de histórico de SLA.
-    Deve ser executado uma única vez ou para revalidação completa.
+    Operação atômica: ou sincroniza tudo ou não sincroniza nada.
     """
+    from ti.services.sla_transaction_manager import SLATransactionManager
+
     try:
         try:
             HistoricoSLA.__table__.create(bind=engine, checkfirst=True)
@@ -277,24 +279,25 @@ def sincronizar_todos_chamados(db: Session = Depends(get_db)):
         except Exception:
             pass
 
-        stats = {
-            "total_chamados": 0,
-            "sincronizados": 0,
-            "atualizados": 0,
-            "erros": 0,
-        }
+        def _sincronizar_impl(db_session: Session) -> dict:
+            """Implementação da sincronização"""
+            stats = {
+                "total_chamados": 0,
+                "sincronizados": 0,
+                "atualizados": 0,
+                "erros": 0,
+            }
 
-        chamados = db.query(Chamado).all()
-        stats["total_chamados"] = len(chamados)
+            chamados = db_session.query(Chamado).all()
+            stats["total_chamados"] = len(chamados)
 
-        for chamado in chamados:
-            try:
+            for chamado in chamados:
                 # Verifica se já existe histórico para este chamado
-                existing = db.query(HistoricoSLA).filter(
+                existing = db_session.query(HistoricoSLA).filter(
                     HistoricoSLA.chamado_id == chamado.id
                 ).first()
 
-                sla_status = SLACalculator.get_sla_status(db, chamado)
+                sla_status = SLACalculator.get_sla_status(db_session, chamado)
 
                 if existing:
                     # Atualiza registro existente
@@ -302,7 +305,7 @@ def sincronizar_todos_chamados(db: Session = Depends(get_db)):
                     existing.tempo_resolucao_horas = sla_status.get("tempo_resolucao_horas")
                     existing.limite_sla_horas = sla_status.get("tempo_resolucao_limite_horas")
                     existing.status_sla = sla_status.get("tempo_resolucao_status")
-                    db.add(existing)
+                    db_session.add(existing)
                     stats["atualizados"] += 1
                 else:
                     # Cria novo registro
@@ -317,16 +320,25 @@ def sincronizar_todos_chamados(db: Session = Depends(get_db)):
                         status_sla=sla_status.get("tempo_resolucao_status"),
                         criado_em=chamado.data_abertura or now_brazil_naive(),
                     )
-                    db.add(historico)
+                    db_session.add(historico)
                     stats["sincronizados"] += 1
 
-            except Exception:
-                stats["erros"] += 1
-                db.rollback()
+            return stats
 
-        db.commit()
-        return stats
+        # Executa com transação atômica
+        result = SLATransactionManager.execute_with_lock(
+            db,
+            "historico_sla",
+            _sincronizar_impl
+        )
 
+        if result.success:
+            return result.data
+        else:
+            raise HTTPException(status_code=500, detail=result.error)
+
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro ao sincronizar chamados: {e}")
 
