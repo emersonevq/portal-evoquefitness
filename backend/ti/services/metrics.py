@@ -516,28 +516,93 @@ class MetricsCalculator:
 
     @staticmethod
     def get_sla_distribution(db: Session) -> dict:
-        """Retorna distribuição de SLA (dentro/fora)"""
-        from ti.services.sla import SLACalculator
+        """Retorna distribuição de SLA (dentro/fora) - SINCRONIZADO COM CARD SLA"""
+        # Tenta cache primeiro
+        cached = MetricsCache.get("sla_distribution")
+        if cached is not None:
+            return cached
 
-        chamados_ativos = db.query(Chamado).filter(
-            and_(
-                Chamado.status != "Concluído",
-                Chamado.status != "Cancelado"
-            )
-        ).all()
+        result = MetricsCalculator._calculate_sla_distribution(db)
+        MetricsCache.set("sla_distribution", result)
+        return result
 
-        dentro_sla = 0
-        fora_sla = 0
+    @staticmethod
+    def _calculate_sla_distribution(db: Session) -> dict:
+        """Cálculo real - usa MESMOS critérios que get_sla_compliance_mes"""
+        try:
+            from ti.services.sla import SLACalculator
 
-        for chamado in chamados_ativos:
-            sla_status = SLACalculator.get_sla_status(db, chamado)
-            if sla_status.get("tempo_resolucao_status") == "ok":
-                dentro_sla += 1
-            elif sla_status.get("tempo_resolucao_status") == "vencido":
-                fora_sla += 1
+            agora = now_brazil_naive()
+            mes_inicio = agora.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 
-        total = dentro_sla + fora_sla
-        if total == 0:
+            # IMPORTANTE: Usa MESMOS chamados que o card SLA (todos do mês)
+            chamados_mes = db.query(Chamado).filter(
+                and_(
+                    Chamado.data_abertura >= mes_inicio,
+                    Chamado.data_abertura <= agora,
+                    Chamado.status != "Cancelado",
+                    Chamado.data_primeira_resposta.isnot(None)
+                )
+            ).all()
+
+            # Carrega configs de SLA de uma vez (sem N+1)
+            sla_configs = {
+                config.prioridade: config
+                for config in db.query(SLAConfiguration).filter(
+                    SLAConfiguration.ativo == True
+                ).all()
+            }
+
+            dentro_sla = 0
+            fora_sla = 0
+
+            for chamado in chamados_mes:
+                try:
+                    sla_config = sla_configs.get(chamado.prioridade)
+                    if not sla_config:
+                        continue
+
+                    data_final = chamado.data_conclusao if chamado.data_conclusao else agora
+                    tempo_resolucao_horas = SLACalculator.calculate_business_hours(
+                        chamado.data_abertura,
+                        data_final,
+                        db
+                    )
+
+                    if tempo_resolucao_horas <= sla_config.tempo_resolucao_horas:
+                        dentro_sla += 1
+                    else:
+                        fora_sla += 1
+
+                except Exception as e:
+                    print(f"Erro ao processar chamado {chamado.id}: {e}")
+                    continue
+
+            total = dentro_sla + fora_sla
+            if total == 0:
+                return {
+                    "dentro_sla": 0,
+                    "fora_sla": 0,
+                    "percentual_dentro": 0,
+                    "percentual_fora": 0,
+                    "total": 0
+                }
+
+            percentual_dentro = int((dentro_sla / total) * 100)
+            percentual_fora = int((fora_sla / total) * 100)
+
+            return {
+                "dentro_sla": dentro_sla,
+                "fora_sla": fora_sla,
+                "percentual_dentro": percentual_dentro,
+                "percentual_fora": percentual_fora,
+                "total": total
+            }
+
+        except Exception as e:
+            print(f"Erro ao calcular distribuição SLA: {e}")
+            import traceback
+            traceback.print_exc()
             return {
                 "dentro_sla": 0,
                 "fora_sla": 0,
@@ -545,17 +610,6 @@ class MetricsCalculator:
                 "percentual_fora": 0,
                 "total": 0
             }
-
-        percentual_dentro = int((dentro_sla / total) * 100)
-        percentual_fora = int((fora_sla / total) * 100)
-
-        return {
-            "dentro_sla": dentro_sla,
-            "fora_sla": fora_sla,
-            "percentual_dentro": percentual_dentro,
-            "percentual_fora": percentual_fora,
-            "total": total
-        }
 
     @staticmethod
     def get_performance_metrics(db: Session) -> dict:
