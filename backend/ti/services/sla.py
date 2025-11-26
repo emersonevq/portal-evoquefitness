@@ -117,7 +117,8 @@ class SLACalculator:
                 tempo_analise = SLACalculator.calculate_business_hours(
                     hist.data_inicio,
                     hist.data_fim,
-                    db
+                    db,
+                    business_hours_cache
                 )
                 tempo_analise_total += tempo_analise
 
