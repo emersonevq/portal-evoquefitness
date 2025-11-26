@@ -260,9 +260,10 @@ class MetricsCalculator:
                     if not sla_config:
                         continue
 
-                    # Cálculo de resolução (sem chamar SLACalculator)
+                    # Cálculo de resolução DESCONTANDO tempo em "Em análise"
                     data_final = chamado.data_conclusao if chamado.data_conclusao else agora
-                    tempo_decorrido = SLACalculator.calculate_business_hours(
+                    tempo_decorrido = SLACalculator.calculate_business_hours_excluding_paused(
+                        chamado.id,
                         chamado.data_abertura,
                         data_final,
                         db
