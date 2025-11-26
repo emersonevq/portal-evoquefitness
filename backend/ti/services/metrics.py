@@ -223,6 +223,7 @@ class MetricsCalculator:
         """Cálculo real de SLA 24h - otimizado sem N+1"""
         try:
             from ti.services.sla import SLACalculator
+            from ti.models.historico_status import HistoricoStatus
 
             # 1. Carrega TODAS as configs de SLA de uma vez (não N+1)
             sla_configs = {
@@ -245,24 +246,38 @@ class MetricsCalculator:
             if not chamados_ativos:
                 return 0
 
+            # 3. PRÉ-CARREGA TODOS os históricos de UMA VEZ (otimização crítica)
+            chamado_ids = [c.id for c in chamados_ativos]
+            historicos_bulk = db.query(HistoricoStatus).filter(
+                HistoricoStatus.chamado_id.in_(chamado_ids)
+            ).all()
+
+            # Cache: {chamado_id: [historicos]}
+            historicos_cache = {}
+            for hist in historicos_bulk:
+                if hist.chamado_id not in historicos_cache:
+                    historicos_cache[hist.chamado_id] = []
+                historicos_cache[hist.chamado_id].append(hist)
+
             dentro_sla = 0
             fora_sla = 0
             agora = now_brazil_naive()
 
-            # 3. Itera sem fazer queries adicionais
+            # 4. Itera sem fazer queries adicionais (usa cache)
             for chamado in chamados_ativos:
                 try:
                     sla_config = sla_configs.get(chamado.prioridade)
                     if not sla_config:
                         continue
 
-                    # Cálculo de resolução DESCONTANDO tempo em "Em análise"
+                    # Cálculo de resolução DESCONTANDO tempo em "Em análise" (COM CACHE)
                     data_final = chamado.data_conclusao if chamado.data_conclusao else agora
                     tempo_decorrido = SLACalculator.calculate_business_hours_excluding_paused(
                         chamado.id,
                         chamado.data_abertura,
                         data_final,
-                        db
+                        db,
+                        historicos_cache  # Passa cache para evitar queries
                     )
 
                     if tempo_decorrido <= sla_config.tempo_resolucao_horas:
