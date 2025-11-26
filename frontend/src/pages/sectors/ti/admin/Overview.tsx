@@ -138,23 +138,19 @@ export default function Overview() {
         }
 
         // Carrega gráficos e dados em paralelo
-        const [daily, weekly, sla, performance] = await Promise.all([
+        const [daily, weekly, performance] = await Promise.all([
           api
             .get("/metrics/chamados-por-dia")
             .catch(() => ({ data: { dados: [] } })),
           api
             .get("/metrics/chamados-por-semana")
             .catch(() => ({ data: { dados: [] } })),
-          api
-            .get("/metrics/sla-distribution")
-            .catch(() => ({ data: { dentro_sla: 0, fora_sla: 0 } })),
           api.get("/metrics/performance").catch(() => ({ data: null })),
         ]);
 
         if (mounted) {
           setDailyData(daily.data?.dados || []);
           setWeeklyData(weekly.data?.dados || []);
-          setSLAData(sla.data || { dentro_sla: 0, fora_sla: 0 });
           setPerformanceData(performance.data);
         }
 
