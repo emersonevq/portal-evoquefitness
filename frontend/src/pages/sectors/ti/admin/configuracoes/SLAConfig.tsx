@@ -108,56 +108,6 @@ function SLAConfigCard({
   );
 }
 
-function BusinessHoursCard({
-  hours,
-  onEdit,
-  onDelete,
-}: {
-  hours: BusinessHours;
-  onEdit: (hours: BusinessHours) => void;
-  onDelete: (id: number) => void;
-}) {
-  const getDiaLabel = (dia: number) => {
-    return DIAS_SEMANA.find((d) => d.id === dia)?.label || `Dia ${dia}`;
-  };
-
-  return (
-    <div className="rounded-lg border border-border/60 bg-card overflow-hidden hover:shadow-md hover:border-primary/20 transition-all">
-      <div className="px-4 py-3 border-b border-border/60 bg-muted/30 flex items-center gap-2">
-        <Clock className="w-4 h-4 text-primary" />
-        <div className="font-semibold text-sm text-primary">{getDiaLabel(hours.dia_semana)}</div>
-      </div>
-      <div className="p-4 space-y-3">
-        <div className="flex items-center justify-between">
-          <div className="text-sm font-medium text-muted-foreground">Horário</div>
-          <div className="font-semibold text-sm">
-            {hours.hora_inicio} - {hours.hora_fim}
-          </div>
-        </div>
-        <div className="pt-3 border-t border-border/40 flex gap-2">
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => onEdit(hours)}
-            className="flex-1 h-8 text-xs"
-          >
-            <Edit2 className="w-3.5 h-3.5 mr-1" />
-            Editar
-          </Button>
-          <Button
-            size="sm"
-            variant="destructive"
-            onClick={() => onDelete(hours.id)}
-            className="flex-1 h-8 text-xs"
-          >
-            <Trash2 className="w-3.5 h-3.5 mr-1" />
-            Remover
-          </Button>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 export function SLA() {
   const queryClient = useQueryClient();
@@ -166,7 +116,6 @@ export function SLA() {
   const [editingConfig, setEditingConfig] = useState<SLAConfig | null>(null);
   const [editingHours, setEditingHours] = useState<BusinessHours | null>(null);
   const [configViewMode, setConfigViewMode] = useState<"grid" | "list">("grid");
-  const [hoursViewMode, setHoursViewMode] = useState<"grid" | "list">("grid");
 
   const [formData, setFormData] = useState({
     prioridade: "",
