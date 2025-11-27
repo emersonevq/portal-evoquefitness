@@ -670,6 +670,28 @@ def atualizar_status(chamado_id: int, payload: ChamadoStatusUpdate, db: Session 
 @router.delete("/{chamado_id}")
 def deletar_chamado(chamado_id: int, payload: ChamadoDeleteRequest = Body(...), db: Session = Depends(get_db)):
     try:
+        # Ensure all related tables exist
+        try:
+            HistoricoAnexo.__table__.create(bind=engine, checkfirst=True)
+        except Exception:
+            pass
+        try:
+            HistoricoStatus.__table__.create(bind=engine, checkfirst=True)
+        except Exception:
+            pass
+        try:
+            HistoricoTicket.__table__.create(bind=engine, checkfirst=True)
+        except Exception:
+            pass
+        try:
+            ChamadoAnexo.__table__.create(bind=engine, checkfirst=True)
+        except Exception:
+            pass
+        try:
+            TicketAnexo.__table__.create(bind=engine, checkfirst=True)
+        except Exception:
+            pass
+
         user = db.query(User).filter(User.email == payload.email).first()
         if not user:
             raise HTTPException(status_code=401, detail="Usuário não encontrado")
@@ -685,6 +707,7 @@ def deletar_chamado(chamado_id: int, payload: ChamadoDeleteRequest = Body(...), 
         db.query(HistoricoStatus).filter(HistoricoStatus.chamado_id == chamado_id).delete()
         db.query(HistoricoTicket).filter(HistoricoTicket.chamado_id == chamado_id).delete()
         db.query(TicketAnexo).filter(TicketAnexo.chamado_id == chamado_id).delete()
+        db.query(HistoricoAnexo).filter(HistoricoAnexo.chamado_id == chamado_id).delete()
         db.commit()
 
         # Now delete the chamado
