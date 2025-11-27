@@ -19,16 +19,16 @@ def listar_problemas(db: Session = Depends(get_db)):
         result = []
 
         # 1) Try legacy table "problema_reportado" - PRIORIDADE: Tabela principal com a estrutura correcta
-        # Estrutura confirmada: id, nome (unique), prioridade_padrao, requer_item_internet, ativo, session_revoked_at
+        # Estrutura confirmada: id, nome (unique), prioridade_padrao, requer_item_internet, ativo, session_revoked_at, tempo_resolucao_horas
         legacy_queries = [
             # Sem filtro de ativo (inclui tudo)
-            "SELECT id, nome, COALESCE(prioridade_padrao, 'Normal') as prioridade, COALESCE(requer_item_internet, 0) as requer_internet FROM problema_reportado ORDER BY nome",
+            "SELECT id, nome, COALESCE(prioridade_padrao, 'Normal') as prioridade, COALESCE(requer_item_internet, 0) as requer_internet, tempo_resolucao_horas FROM problema_reportado ORDER BY nome",
             # Com filtro de ativo (somente ativos)
-            "SELECT id, nome, COALESCE(prioridade_padrao, 'Normal') as prioridade, COALESCE(requer_item_internet, 0) as requer_internet FROM problema_reportado WHERE ativo = 1 ORDER BY nome",
+            "SELECT id, nome, COALESCE(prioridade_padrao, 'Normal') as prioridade, COALESCE(requer_item_internet, 0) as requer_internet, tempo_resolucao_horas FROM problema_reportado WHERE ativo = 1 ORDER BY nome",
             # Sem order by, sem filtro
-            "SELECT id, nome, prioridade_padrao, requer_item_internet FROM problema_reportado",
+            "SELECT id, nome, prioridade_padrao, requer_item_internet, tempo_resolucao_horas FROM problema_reportado",
             # Sem order by, com filtro
-            "SELECT id, nome, prioridade_padrao, requer_item_internet FROM problema_reportado WHERE ativo = 1 OR ativo IS NULL",
+            "SELECT id, nome, prioridade_padrao, requer_item_internet, tempo_resolucao_horas FROM problema_reportado WHERE ativo = 1 OR ativo IS NULL",
         ]
 
         for sql in legacy_queries:
@@ -43,6 +43,7 @@ def listar_problemas(db: Session = Depends(get_db)):
                             "nome": str(r[1]).strip() if r[1] else "Sem nome",
                             "prioridade": str(r[2] or "Normal").strip(),
                             "requer_internet": bool(r[3]) if len(r) > 3 else False,
+                            "tempo_resolucao_horas": int(r[4]) if len(r) > 4 and r[4] else None,
                         }
                         for r in fetched
                     ]
