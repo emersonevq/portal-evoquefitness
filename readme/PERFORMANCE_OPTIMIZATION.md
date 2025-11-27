@@ -30,7 +30,7 @@ O dashboard estava lento ao carregar métricas de SLA porque executava múltipla
 
 **Arquivo**: `backend/ti/services/metrics.py`
 
-```python
+```pythonf
 class MetricsCache:
     _cache = {}
     _ttl_seconds = 30  # Cache por 30 segundos
