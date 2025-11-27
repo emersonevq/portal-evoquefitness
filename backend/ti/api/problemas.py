@@ -138,3 +138,13 @@ def criar_problema(payload: ProblemaCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro ao criar problema: {e}")
+
+@router.patch("/{problema_id}", response_model=ProblemaOut)
+def atualizar_problema(problema_id: int, payload: ProblemaUpdate, db: Session = Depends(get_db)):
+    try:
+        from ti.services.problemas import atualizar_problema as service_atualizar
+        return service_atualizar(db, problema_id, payload)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao atualizar problema: {e}")
