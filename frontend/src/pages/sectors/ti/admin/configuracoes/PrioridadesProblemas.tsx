@@ -170,7 +170,7 @@ export function PrioridadesProblemas() {
       console.error("Erro ao salvar problema:", error);
       toast({
         title: "Erro",
-        description: "N��o foi possível salvar o problema",
+        description: "Não foi possível salvar o problema",
         variant: "destructive",
       });
     }
@@ -214,6 +214,30 @@ export function PrioridadesProblemas() {
         "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
     };
     return colors[prioridade] || colors.Normal;
+  };
+
+  const filteredProblemas = useMemo(() => {
+    return problemas.filter((problema) => {
+      const matchesSearch = problema.nome
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase());
+      const matchesPrioridade =
+        filterPrioridade === "Todos" || problema.prioridade === filterPrioridade;
+      return matchesSearch && matchesPrioridade;
+    });
+  }, [problemas, searchTerm, filterPrioridade]);
+
+  const totalPages = Math.ceil(filteredProblemas.length / ITEMS_PER_PAGE);
+  const paginatedProblemas = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredProblemas.slice(
+      startIndex,
+      startIndex + ITEMS_PER_PAGE
+    );
+  }, [filteredProblemas, currentPage]);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(Math.max(1, Math.min(page, totalPages)));
   };
 
   return (
