@@ -536,7 +536,9 @@ function TicketForm(props: {
           <div className="space-y-2">
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium">Prioridade:</span>
-              <span className={`font-semibold text-sm ${getPrioridadeColor(selectedProblem.prioridade)}`}>
+              <span
+                className={`font-semibold text-sm ${getPrioridadeColor(selectedProblem.prioridade)}`}
+              >
                 {selectedProblem.prioridade}
               </span>
             </div>

@@ -326,7 +326,8 @@ function TicketForm({
   });
 
   const [problemas, setProblemas] = useState<Problema[]>([]);
-  const [problemaSelecionado, setProblemaSelecionado] = useState<Problema | null>(null);
+  const [problemaSelecionado, setProblemaSelecionado] =
+    useState<Problema | null>(null);
   const [loadingProblemas, setLoadingProblemas] = useState(true);
 
   useEffect(() => {
@@ -466,7 +467,9 @@ function TicketForm({
             disabled={loadingProblemas}
           >
             <SelectTrigger>
-              <SelectValue placeholder={loadingProblemas ? "Carregando..." : "Selecione"} />
+              <SelectValue
+                placeholder={loadingProblemas ? "Carregando..." : "Selecione"}
+              />
             </SelectTrigger>
             <SelectContent>
               {problemas.map((p) => (
@@ -483,7 +486,9 @@ function TicketForm({
             <div className="space-y-2">
               <div className="flex items-center gap-2">
                 <span className="text-sm font-medium">Prioridade:</span>
-                <span className={`font-semibold text-sm ${getPrioridadeColor(problemaSelecionado.prioridade)}`}>
+                <span
+                  className={`font-semibold text-sm ${getPrioridadeColor(problemaSelecionado.prioridade)}`}
+                >
                   {problemaSelecionado.prioridade}
                 </span>
               </div>
