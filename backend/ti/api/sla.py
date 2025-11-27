@@ -271,7 +271,9 @@ def obter_sla_status_chamado(chamado_id: int, db: Session = Depends(get_db)):
         except Exception:
             pass
 
-        chamado = db.query(Chamado).filter(Chamado.id == chamado_id).first()
+        chamado = db.query(Chamado).filter(
+            (Chamado.id == chamado_id) & (Chamado.deletado_em.is_(None))
+        ).first()
         if not chamado:
             raise HTTPException(status_code=404, detail="Chamado não encontrado")
 
@@ -316,7 +318,7 @@ def sincronizar_todos_chamados(db: Session = Depends(get_db)):
             pass
 
         def _sincronizar_impl(db_session: Session) -> dict:
-            """Implementação da sincronização"""
+            """Implementa��ão da sincronização"""
             stats = {
                 "total_chamados": 0,
                 "sincronizados": 0,
