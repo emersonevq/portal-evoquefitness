@@ -144,12 +144,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
   };
 
-  const loginWithAuth0 = async () => {
+  const loginWithAuth0 = () => {
     try {
-      await loginWithRedirect({
-        appState: { returnTo: window.location.pathname },
+      const domain = import.meta.env.VITE_AUTH0_DOMAIN;
+      const clientId = import.meta.env.VITE_AUTH0_CLIENT_ID;
+      const redirectUri = import.meta.env.VITE_AUTH0_REDIRECT_URI;
+      const audience = import.meta.env.VITE_AUTH0_AUDIENCE;
+
+      if (!domain || !clientId || !redirectUri) {
+        throw new Error("Auth0 environment variables not configured");
+      }
+
+      const params = new URLSearchParams({
+        response_type: "code",
+        client_id: clientId,
+        redirect_uri: redirectUri,
+        scope: "openid profile email",
+        audience: audience,
         connection: "Portalevoquefitness",
       });
+
+      const authUrl = `https://${domain}/authorize?${params.toString()}`;
+      window.location.href = authUrl;
     } catch (error) {
       console.error("Erro ao fazer login com Auth0:", error);
       throw error;
