@@ -676,7 +676,8 @@ class MetricsCalculator:
             chamados_30dias = db.query(Chamado).filter(
                 and_(
                     Chamado.data_abertura >= trinta_dias_atras,
-                    Chamado.status != "Cancelado"
+                    Chamado.status != "Cancelado",
+                    Chamado.is_deleted == False
                 )
             ).all()
 
