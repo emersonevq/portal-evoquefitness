@@ -18,7 +18,7 @@ from werkzeug.security import check_password_hash
 from ..models.notification import Notification
 import json
 from core.utils import now_brazil_naive
-from ..models import Chamado, User, TicketAnexo, ChamadoAnexo, HistoricoTicket, HistoricoStatus, HistoricoAnexo
+from ..models import Chamado, User, TicketAnexo, ChamadoAnexo, HistoricoTicket, HistoricoStatus
 from ti.schemas.attachment import AnexoOut
 from ti.schemas.ticket import HistoricoItem, HistoricoResponse
 from sqlalchemy import inspect, text
@@ -115,10 +115,6 @@ def listar_chamados(db: Session = Depends(get_db)):
         except Exception:
             pass
         try:
-            HistoricoAnexo.__table__.create(bind=engine, checkfirst=True)
-        except Exception:
-            pass
-        try:
             return db.query(Chamado).order_by(Chamado.id.desc()).all()
         except Exception:
             return []
@@ -130,10 +126,6 @@ def criar_chamado(payload: ChamadoCreate, db: Session = Depends(get_db)):
     try:
         try:
             Chamado.__table__.create(bind=engine, checkfirst=True)
-        except Exception:
-            pass
-        try:
-            HistoricoAnexo.__table__.create(bind=engine, checkfirst=True)
         except Exception:
             pass
         ch = service_criar(db, payload)
@@ -279,7 +271,6 @@ def criar_chamado_com_anexos(
         try:
             Chamado.__table__.create(bind=engine, checkfirst=True)
             ChamadoAnexo.__table__.create(bind=engine, checkfirst=True)
-            HistoricoAnexo.__table__.create(bind=engine, checkfirst=True)
             _ensure_column("chamado_anexo", "conteudo", "MEDIUMBLOB NULL")
         except Exception:
             pass
@@ -396,7 +387,6 @@ def enviar_ticket(
     try:
         # garantir tabelas necessárias para anexos de ticket
         TicketAnexo.__table__.create(bind=engine, checkfirst=True)
-        HistoricoAnexo.__table__.create(bind=engine, checkfirst=True)
         _ensure_column("ticket_anexos", "conteudo", "MEDIUMBLOB NULL")
         user_id = None
         if autor_email:
@@ -485,10 +475,6 @@ def baixar_anexo_ticket(anexo_id: int, db: Session = Depends(get_db)):
 @router.get("/{chamado_id}/historico", response_model=HistoricoResponse)
 def obter_historico(chamado_id: int, db: Session = Depends(get_db)):
     try:
-        try:
-            HistoricoAnexo.__table__.create(bind=engine, checkfirst=True)
-        except Exception:
-            pass
         items: list[HistoricoItem] = []
         ch = db.query(Chamado).filter(Chamado.id == chamado_id).first()
         if not ch:
@@ -590,10 +576,6 @@ def obter_historico(chamado_id: int, db: Session = Depends(get_db)):
 def atualizar_status(chamado_id: int, payload: ChamadoStatusUpdate, db: Session = Depends(get_db)):
     try:
         # Ensure all related tables exist
-        try:
-            HistoricoAnexo.__table__.create(bind=engine, checkfirst=True)
-        except Exception:
-            pass
         try:
             HistoricoStatus.__table__.create(bind=engine, checkfirst=True)
         except Exception:
@@ -700,10 +682,6 @@ def deletar_chamado(chamado_id: int, payload: ChamadoDeleteRequest = Body(...), 
     try:
         # Ensure all related tables exist
         try:
-            HistoricoAnexo.__table__.create(bind=engine, checkfirst=True)
-        except Exception:
-            pass
-        try:
             HistoricoStatus.__table__.create(bind=engine, checkfirst=True)
         except Exception:
             pass
@@ -735,7 +713,6 @@ def deletar_chamado(chamado_id: int, payload: ChamadoDeleteRequest = Body(...), 
         db.query(HistoricoStatus).filter(HistoricoStatus.chamado_id == chamado_id).delete()
         db.query(HistoricoTicket).filter(HistoricoTicket.chamado_id == chamado_id).delete()
         db.query(TicketAnexo).filter(TicketAnexo.chamado_id == chamado_id).delete()
-        db.query(HistoricoAnexo).filter(HistoricoAnexo.chamado_id == chamado_id).delete()
         db.commit()
 
         # Now delete the chamado
