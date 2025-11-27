@@ -643,17 +643,25 @@ def atualizar_status(chamado_id: int, payload: ChamadoStatusUpdate, db: Session 
             )
             db.add(n)
             # registrar em historico_status (única fonte de verdade)
-            hs = HistoricoStatus(
-                chamado_id=ch.id,
-                usuario_id=None,
-                status=ch.status,
-                data_inicio=agora,
-                descricao=f"Migrado: {prev} → {ch.status}",
-                created_at=agora,
-                updated_at=agora,
-            )
-            db.add(hs)
-            db.commit()
+            try:
+                hs = HistoricoStatus(
+                    chamado_id=ch.id,
+                    usuario_id=None,
+                    status=ch.status,
+                    data_inicio=agora,
+                    descricao=f"Migrado: {prev} → {ch.status}",
+                    created_at=agora,
+                    updated_at=agora,
+                )
+                print(f"[HISTORICO STATUS] Criando novo: chamado_id={ch.id}, status={ch.status}, data_inicio={agora}")
+                db.add(hs)
+                db.commit()
+                print(f"[HISTORICO STATUS] Sucesso ao salvar registro")
+            except Exception as e:
+                print(f"[HISTORICO STATUS - Novo registro ERROR] {e}")
+                import traceback
+                traceback.print_exc()
+                db.rollback()
             db.refresh(n)
 
             import anyio
