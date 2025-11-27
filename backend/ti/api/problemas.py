@@ -155,3 +155,74 @@ def atualizar_problema(problema_id: int, payload: ProblemaUpdate, db: Session = 
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Erro ao atualizar problema: {e}")
+
+@router.post("/sincronizar/sla")
+def sincronizar_problemas_com_sla(prioridade: str | None = None, db: Session = Depends(get_db)):
+    """
+    Sincroniza os tempos de resolução dos problemas com as configurações de SLA.
+    Se uma prioridade for fornecida, sincroniza apenas problemas com essa prioridade.
+    Caso contrário, sincroniza todos os problemas.
+
+    Retorna estatísticas de sincronização.
+    """
+    try:
+        from ..models import Problema
+        from ti.models.sla_config import SLAConfiguration
+
+        Problema.__table__.create(bind=engine, checkfirst=True)
+        SLAConfiguration.__table__.create(bind=engine, checkfirst=True)
+
+        stats = {
+            "total_processados": 0,
+            "sincronizados": 0,
+            "sem_configuracao_sla": 0,
+            "ja_sincronizados": 0,
+            "erros": 0,
+        }
+
+        # Busca todos os problemas (ou apenas os da prioridade especificada)
+        query = db.query(Problema)
+        if prioridade:
+            query = query.filter(Problema.prioridade == prioridade)
+
+        problemas = query.all()
+        stats["total_processados"] = len(problemas)
+
+        for problema in problemas:
+            try:
+                # Busca a configuração SLA para a prioridade do problema
+                sla_config = db.query(SLAConfiguration).filter(
+                    SLAConfiguration.prioridade == problema.prioridade
+                ).first()
+
+                if not sla_config:
+                    stats["sem_configuracao_sla"] += 1
+                    continue
+
+                # Verifica se o problema já tem o tempo de resolução correto
+                if problema.tempo_resolucao_horas == sla_config.tempo_resolucao_horas:
+                    stats["ja_sincronizados"] += 1
+                    continue
+
+                # Atualiza o tempo de resolução do problema
+                problema.tempo_resolucao_horas = int(sla_config.tempo_resolucao_horas)
+                db.add(problema)
+                stats["sincronizados"] += 1
+
+            except Exception as e:
+                print(f"❌ Erro ao sincronizar problema {problema.id}: {e}")
+                stats["erros"] += 1
+
+        db.commit()
+        return {
+            "sucesso": True,
+            "mensagem": f"Sincronização concluída: {stats['sincronizados']} problemas atualizados",
+            "estatisticas": stats,
+        }
+
+    except Exception as e:
+        db.rollback()
+        print(f"❌ Erro na sincronização: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Erro ao sincronizar problemas com SLA: {e}")

@@ -146,7 +146,7 @@ def sync_chamados_to_sla(db: Session) -> dict:
                 sla_status = SLACalculator.get_sla_status(db, chamado)
 
                 # Se não há configuração de SLA, registra e pula
-                if sla_status.get("tempo_resolucao_status") == "sem_configuracao":
+                if sla_status.get("status_geral") == "sem_sla":
                     stats["sem_configuracao"] += 1
                     stats["detalhes"].append({
                         "chamado_id": chamado.id,
@@ -157,6 +157,15 @@ def sync_chamados_to_sla(db: Session) -> dict:
                     })
                     continue
 
+                # Extrai métricas de resposta e resolução
+                resposta_metric = sla_status.get("resposta_metric")
+                resolucao_metric = sla_status.get("resolucao_metric")
+
+                tempo_resposta_horas = resposta_metric.get("tempo_decorrido_horas") if resposta_metric else None
+                limite_sla_resposta_horas = resposta_metric.get("tempo_limite_horas") if resposta_metric else None
+                tempo_resolucao_horas = resolucao_metric.get("tempo_decorrido_horas") if resolucao_metric else None
+                limite_sla_horas = resolucao_metric.get("tempo_limite_horas") if resolucao_metric else None
+
                 # Cria o registro histórico inicial
                 historico = HistoricoSLA(
                     chamado_id=chamado.id,
@@ -164,9 +173,11 @@ def sync_chamados_to_sla(db: Session) -> dict:
                     acao="sincronizacao_inicial",
                     status_anterior=None,
                     status_novo=chamado.status,
-                    tempo_resolucao_horas=sla_status.get("tempo_resolucao_horas"),
-                    limite_sla_horas=sla_status.get("tempo_resolucao_limite_horas"),
-                    status_sla=sla_status.get("tempo_resolucao_status"),
+                    tempo_resposta_horas=tempo_resposta_horas,
+                    limite_sla_resposta_horas=limite_sla_resposta_horas,
+                    tempo_resolucao_horas=tempo_resolucao_horas,
+                    limite_sla_horas=limite_sla_horas,
+                    status_sla=sla_status.get("status_geral"),
                     criado_em=chamado.data_abertura or now_brazil_naive(),
                 )
                 db.add(historico)
@@ -178,7 +189,7 @@ def sync_chamados_to_sla(db: Session) -> dict:
                     "codigo": chamado.codigo,
                     "status": "sincronizado",
                     "prioridade": chamado.prioridade,
-                    "tempo_resolucao": round(sla_status.get("tempo_resolucao_horas", 0), 2),
+                    "tempo_resolucao": round(tempo_resolucao_horas or 0, 2),
                 })
 
             except Exception as e:

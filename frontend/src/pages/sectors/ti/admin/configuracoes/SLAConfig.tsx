@@ -17,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Trash2, Plus, Edit2 } from "lucide-react";
+import { Trash2, Plus, Edit2, Sync2 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
@@ -207,6 +207,24 @@ export function SLA() {
     },
   });
 
+  const sincronizarProblemasMutation = useMutation({
+    mutationFn: async () => {
+      const response = await api.post("/problemas/sincronizar/sla");
+      return response.data;
+    },
+    onSuccess: (data: any) => {
+      const stats = data.estatisticas || {};
+      toast.success(
+        `${stats.sincronizados || 0} problema(s) sincronizado(s) com SLA`,
+      );
+    },
+    onError: (error: any) => {
+      toast.error(
+        error.response?.data?.detail || "Erro ao sincronizar problemas",
+      );
+    },
+  });
+
   const handleAddConfig = () => {
     setEditingConfig(null);
     setFormData({
@@ -296,85 +314,96 @@ export function SLA() {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold">Níveis de SLA e Prioridades</h2>
-          <Dialog open={showConfigDialog} onOpenChange={setShowConfigDialog}>
-            <DialogTrigger asChild>
-              <Button onClick={handleAddConfig} className="gap-2">
-                <Plus className="w-4 h-4" />
-                Adicionar SLA
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-md">
-              <DialogHeader>
-                <DialogTitle>
-                  {editingConfig ? "Editar SLA" : "Criar novo SLA"}
-                </DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div>
-                  <Label>Prioridade</Label>
-                  <Input
-                    disabled={!!editingConfig}
-                    placeholder="Ex: Crítico, Alto, Normal, Baixo"
-                    value={formData.prioridade}
-                    onChange={(e) =>
-                      setFormData({ ...formData, prioridade: e.target.value })
-                    }
-                  />
+          <div className="flex gap-2">
+            <Button
+              onClick={() => sincronizarProblemasMutation.mutate()}
+              disabled={sincronizarProblemasMutation.isPending}
+              variant="outline"
+              className="gap-2"
+            >
+              <Sync2 className="w-4 h-4" />
+              Sincronizar Problemas
+            </Button>
+            <Dialog open={showConfigDialog} onOpenChange={setShowConfigDialog}>
+              <DialogTrigger asChild>
+                <Button onClick={handleAddConfig} className="gap-2">
+                  <Plus className="w-4 h-4" />
+                  Adicionar SLA
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-md">
+                <DialogHeader>
+                  <DialogTitle>
+                    {editingConfig ? "Editar SLA" : "Criar novo SLA"}
+                  </DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div>
+                    <Label>Prioridade</Label>
+                    <Input
+                      disabled={!!editingConfig}
+                      placeholder="Ex: Crítico, Alto, Normal, Baixo"
+                      value={formData.prioridade}
+                      onChange={(e) =>
+                        setFormData({ ...formData, prioridade: e.target.value })
+                      }
+                    />
+                  </div>
+                  <div>
+                    <Label>Tempo de Resposta (horas)</Label>
+                    <Input
+                      type="number"
+                      min="0.5"
+                      step="0.5"
+                      value={formData.tempo_resposta_horas}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          tempo_resposta_horas: parseFloat(e.target.value),
+                        })
+                      }
+                    />
+                  </div>
+                  <div>
+                    <Label>Tempo de Resolução (horas)</Label>
+                    <Input
+                      type="number"
+                      min="1"
+                      step="1"
+                      value={formData.tempo_resolucao_horas}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          tempo_resolucao_horas: parseFloat(e.target.value),
+                        })
+                      }
+                    />
+                  </div>
+                  <div>
+                    <Label>Descrição</Label>
+                    <Input
+                      placeholder="Descrição do nível de SLA"
+                      value={formData.descricao}
+                      onChange={(e) =>
+                        setFormData({ ...formData, descricao: e.target.value })
+                      }
+                    />
+                  </div>
+                  <div className="flex gap-2 justify-end">
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowConfigDialog(false)}
+                    >
+                      Cancelar
+                    </Button>
+                    <Button onClick={handleSaveConfig}>
+                      {editingConfig ? "Atualizar" : "Criar"}
+                    </Button>
+                  </div>
                 </div>
-                <div>
-                  <Label>Tempo de Resposta (horas)</Label>
-                  <Input
-                    type="number"
-                    min="0.5"
-                    step="0.5"
-                    value={formData.tempo_resposta_horas}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        tempo_resposta_horas: parseFloat(e.target.value),
-                      })
-                    }
-                  />
-                </div>
-                <div>
-                  <Label>Tempo de Resolução (horas)</Label>
-                  <Input
-                    type="number"
-                    min="1"
-                    step="1"
-                    value={formData.tempo_resolucao_horas}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        tempo_resolucao_horas: parseFloat(e.target.value),
-                      })
-                    }
-                  />
-                </div>
-                <div>
-                  <Label>Descrição</Label>
-                  <Input
-                    placeholder="Descrição do nível de SLA"
-                    value={formData.descricao}
-                    onChange={(e) =>
-                      setFormData({ ...formData, descricao: e.target.value })
-                    }
-                  />
-                </div>
-                <div className="flex gap-2 justify-end">
-                  <Button
-                    variant="outline"
-                    onClick={() => setShowConfigDialog(false)}
-                  >
-                    Cancelar
-                  </Button>
-                  <Button onClick={handleSaveConfig}>
-                    {editingConfig ? "Atualizar" : "Criar"}
-                  </Button>
-                </div>
-              </div>
-            </DialogContent>
-          </Dialog>
+              </DialogContent>
+            </Dialog>
+          </div>
         </div>
 
         {configsLoading ? (

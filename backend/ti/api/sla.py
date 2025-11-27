@@ -305,7 +305,7 @@ def obter_historico_sla(chamado_id: int, db: Session = Depends(get_db)):
 @router.post("/sync/todos-chamados")
 def sincronizar_todos_chamados(db: Session = Depends(get_db)):
     """
-    Sincroniza todos os chamados existentes com a tabela de histórico de SLA.
+    Sincroniza todos os chamados existentes com a tabela de hist��rico de SLA.
     Operação atômica: ou sincroniza tudo ou não sincroniza nada.
     """
     from ti.services.sla_transaction_manager import SLATransactionManager
@@ -337,12 +337,23 @@ def sincronizar_todos_chamados(db: Session = Depends(get_db)):
 
                 sla_status = SLACalculator.get_sla_status(db_session, chamado)
 
+                # Extrai métricas de resposta e resolução
+                resposta_metric = sla_status.get("resposta_metric")
+                resolucao_metric = sla_status.get("resolucao_metric")
+
+                tempo_resposta_horas = resposta_metric.get("tempo_decorrido_horas") if resposta_metric else None
+                limite_sla_resposta_horas = resposta_metric.get("tempo_limite_horas") if resposta_metric else None
+                tempo_resolucao_horas = resolucao_metric.get("tempo_decorrido_horas") if resolucao_metric else None
+                limite_sla_horas = resolucao_metric.get("tempo_limite_horas") if resolucao_metric else None
+
                 if existing:
                     # Atualiza registro existente
                     existing.status_novo = chamado.status
-                    existing.tempo_resolucao_horas = sla_status.get("tempo_resolucao_horas")
-                    existing.limite_sla_horas = sla_status.get("tempo_resolucao_limite_horas")
-                    existing.status_sla = sla_status.get("tempo_resolucao_status")
+                    existing.tempo_resposta_horas = tempo_resposta_horas
+                    existing.limite_sla_resposta_horas = limite_sla_resposta_horas
+                    existing.tempo_resolucao_horas = tempo_resolucao_horas
+                    existing.limite_sla_horas = limite_sla_horas
+                    existing.status_sla = sla_status.get("status_geral")
                     db_session.add(existing)
                     stats["atualizados"] += 1
                 else:
@@ -353,9 +364,11 @@ def sincronizar_todos_chamados(db: Session = Depends(get_db)):
                         acao="sincronizacao",
                         status_anterior=None,
                         status_novo=chamado.status,
-                        tempo_resolucao_horas=sla_status.get("tempo_resolucao_horas"),
-                        limite_sla_horas=sla_status.get("tempo_resolucao_limite_horas"),
-                        status_sla=sla_status.get("tempo_resolucao_status"),
+                        tempo_resposta_horas=tempo_resposta_horas,
+                        limite_sla_resposta_horas=limite_sla_resposta_horas,
+                        tempo_resolucao_horas=tempo_resolucao_horas,
+                        limite_sla_horas=limite_sla_horas,
+                        status_sla=sla_status.get("status_geral"),
                         criado_em=chamado.data_abertura or now_brazil_naive(),
                     )
                     db_session.add(historico)
@@ -417,14 +430,26 @@ def recalcular_sla_painel(db: Session = Depends(get_db)):
             for chamado in chamados:
                 sla_status = SLACalculator.get_sla_status(db_session, chamado)
 
+                # Extrai métricas de resposta e resolução
+                resposta_metric = sla_status.get("resposta_metric")
+                resolucao_metric = sla_status.get("resolucao_metric")
+
+                tempo_resposta_horas = resposta_metric.get("tempo_decorrido_horas") if resposta_metric else None
+                limite_sla_resposta_horas = resposta_metric.get("tempo_limite_horas") if resposta_metric else None
+                tempo_resolucao_horas = resolucao_metric.get("tempo_decorrido_horas") if resolucao_metric else None
+                limite_sla_horas = resolucao_metric.get("tempo_limite_horas") if resolucao_metric else None
+
                 # Atualiza ou cria histórico com cálculo atual
                 existing = db_session.query(HistoricoSLA).filter(
                     HistoricoSLA.chamado_id == chamado.id
                 ).order_by(HistoricoSLA.criado_em.desc()).first()
 
                 if existing:
-                    existing.tempo_resolucao_horas = sla_status.get("tempo_resolucao_horas")
-                    existing.status_sla = sla_status.get("tempo_resolucao_status")
+                    existing.tempo_resposta_horas = tempo_resposta_horas
+                    existing.limite_sla_resposta_horas = limite_sla_resposta_horas
+                    existing.tempo_resolucao_horas = tempo_resolucao_horas
+                    existing.limite_sla_horas = limite_sla_horas
+                    existing.status_sla = sla_status.get("status_geral")
                     db_session.add(existing)
                 else:
                     historico = HistoricoSLA(
@@ -432,23 +457,25 @@ def recalcular_sla_painel(db: Session = Depends(get_db)):
                         usuario_id=None,
                         acao="recalculo_painel",
                         status_novo=chamado.status,
-                        tempo_resolucao_horas=sla_status.get("tempo_resolucao_horas"),
-                        limite_sla_horas=sla_status.get("tempo_resolucao_limite_horas"),
-                        status_sla=sla_status.get("tempo_resolucao_status"),
+                        tempo_resposta_horas=tempo_resposta_horas,
+                        limite_sla_resposta_horas=limite_sla_resposta_horas,
+                        tempo_resolucao_horas=tempo_resolucao_horas,
+                        limite_sla_horas=limite_sla_horas,
+                        status_sla=sla_status.get("status_geral"),
                         criado_em=now_brazil_naive(),
                     )
                     db_session.add(historico)
 
                 stats["total_recalculados"] += 1
 
-                status_sla = sla_status.get("tempo_resolucao_status", "sem_configuracao")
-                if status_sla == "ok":
+                status_sla = sla_status.get("status_geral", "sem_sla")
+                if status_sla in ["cumprido", "dentro_prazo"]:
                     stats["em_dia"] += 1
-                elif status_sla == "vencido":
+                elif status_sla in ["violado", "vencido_ativo"]:
                     stats["vencidos"] += 1
-                elif status_sla == "em_andamento":
+                elif status_sla == "proximo_vencer":
                     stats["em_andamento"] += 1
-                elif status_sla == "congelado":
+                elif status_sla == "pausado":
                     stats["congelados"] += 1
 
             return stats
