@@ -623,7 +623,9 @@ def atualizar_status(chamado_id: int, payload: ChamadoStatusUpdate, db: Session 
         novo = _normalize_status(payload.status)
         if novo not in ALLOWED_STATUSES:
             raise HTTPException(status_code=400, detail="Status inválido")
-        ch = db.query(Chamado).filter(Chamado.id == chamado_id).first()
+        ch = db.query(Chamado).filter(
+            (Chamado.id == chamado_id) & (Chamado.deletado_em.is_(None))
+        ).first()
         if not ch:
             raise HTTPException(status_code=404, detail="Chamado não encontrado")
         prev = ch.status or "Aberto"
