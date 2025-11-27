@@ -518,7 +518,9 @@ def baixar_anexo_ticket(anexo_id: int, db: Session = Depends(get_db)):
 def obter_historico(chamado_id: int, db: Session = Depends(get_db)):
     try:
         items: list[HistoricoItem] = []
-        ch = db.query(Chamado).filter(Chamado.id == chamado_id).first()
+        ch = db.query(Chamado).filter(
+            (Chamado.id == chamado_id) & (Chamado.deletado_em.is_(None))
+        ).first()
         if not ch:
             raise HTTPException(status_code=404, detail="Chamado não encontrado")
         # anexos enviados na abertura (chamado_anexo) e descrição do chamado
