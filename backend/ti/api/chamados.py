@@ -753,13 +753,13 @@ def deletar_chamado(chamado_id: int, payload: ChamadoDeleteRequest = Body(...), 
         from werkzeug.security import check_password_hash as _chk
         if not _chk(user.senha_hash, payload.senha):
             raise HTTPException(status_code=401, detail="Senha inválida")
-
+        
         # Buscar o chamado SEM carregar relações automaticamente (evita erro de tabelas inexistentes)
         ch = db.execute(
             text("SELECT * FROM chamado WHERE id = :id"),
             {"id": chamado_id}
         ).fetchone()
-
+        
         if not ch:
             raise HTTPException(status_code=404, detail="Chamado não encontrado")
 
@@ -827,7 +827,7 @@ def deletar_chamado(chamado_id: int, payload: ChamadoDeleteRequest = Body(...), 
             )
             if result.rowcount == 0:
                 raise HTTPException(status_code=404, detail="Chamado não encontrado na tabela principal")
-
+            
             db.commit()
             print(f"[DELETE] Chamado {chamado_id} deletado com sucesso")
             print(f"[DELETE] Total de registros deletados: {total_deletados + 1}")
@@ -897,7 +897,7 @@ def deletar_chamado(chamado_id: int, payload: ChamadoDeleteRequest = Body(...), 
                 "lido": n.lido,
                 "criado_em": n.criado_em.isoformat() if n.criado_em else None,
             })
-
+            
             # Emitir atualização de métricas
             from ti.services.cache_manager_incremental import IncrementalMetricsCache
             metricas = IncrementalMetricsCache.get_metrics(db)
@@ -905,14 +905,14 @@ def deletar_chamado(chamado_id: int, payload: ChamadoDeleteRequest = Body(...), 
                 "sla_metrics": metricas,
                 "timestamp": now_brazil_naive().isoformat(),
             })
-
+            
             print(f"[DELETE] Notificação e eventos WebSocket emitidos")
         except Exception as e:
             print(f"[DELETE] Erro ao criar notificação/WebSocket: {e}")
             # Não falhar a operação por causa disso
 
         return {
-            "ok": True,
+            "ok": True, 
             "message": f"Chamado {chamado_info['codigo']} excluído com sucesso",
             "registros_deletados": total_deletados + 1,
             "detalhes": {
