@@ -342,12 +342,13 @@ class MetricsCalculator:
                         continue
 
                     # Define data final para cálculo
+                    data_abertura = chamado.data_abertura or agora
                     data_final = chamado.data_conclusao if chamado.data_conclusao else agora
 
                     # Calcula tempo de resolução em horas de negócio DESCONTANDO "Em análise" (COM CACHE)
                     tempo_resolucao_horas = SLACalculator.calculate_business_hours_excluding_paused(
                         chamado.id,
-                        chamado.data_abertura,
+                        data_abertura,
                         data_final,
                         db,
                         historicos_cache  # Passa cache para evitar queries
