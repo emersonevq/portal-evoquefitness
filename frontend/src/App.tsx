@@ -38,7 +38,6 @@ import {
 import ConfiguracoesLayout from "./pages/sectors/ti/admin/configuracoes/ConfiguracoesLayout";
 import {
   SLA as ConfSLA,
-  Prioridades as ConfPrioridades,
   Notificacoes as ConfNotificacoes,
   Sistema as ConfSistema,
   Seguranca as ConfSeguranca,
