@@ -26,6 +26,14 @@ try:
 except Exception as e:
     print(f"⚠️  Erro ao criar índices de performance: {e}")
 
+# Executar migração do historico_status na inicialização
+try:
+    from ti.scripts.migrate_historico_status import migrate_historico_status
+    migrate_historico_status()
+    print("✅ Migração historico_status executada com sucesso")
+except Exception as e:
+    print(f"⚠️  Erro ao migrar historico_status: {e}")
+
 # Static uploads mount
 _base_dir = Path(__file__).resolve().parent
 _uploads = _base_dir / "uploads"

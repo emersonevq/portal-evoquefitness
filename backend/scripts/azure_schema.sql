@@ -115,14 +115,17 @@ CREATE TABLE IF NOT EXISTS `chamado_anexo` (
 CREATE TABLE IF NOT EXISTS `historico_status` (
   `id` INT NOT NULL AUTO_INCREMENT,
   `chamado_id` INT NOT NULL,
-  `status_anterior` VARCHAR(20) NULL,
-  `status_novo` VARCHAR(20) NOT NULL,
+  `status` VARCHAR(50) NOT NULL,
+  `data_inicio` DATETIME NULL,
+  `data_fim` DATETIME NULL,
   `usuario_id` INT NULL,
-  `data_mudanca` DATETIME DEFAULT CURRENT_TIMESTAMP,
-  `motivo` TEXT NULL,
+  `descricao` TEXT NULL,
+  `created_at` DATETIME NULL,
+  `updated_at` DATETIME NULL,
   PRIMARY KEY (`id`),
   KEY `chamado_id` (`chamado_id`),
   KEY `usuario_id` (`usuario_id`),
+  KEY `status` (`status`),
   CONSTRAINT `historico_status_ibfk_1` FOREIGN KEY (`chamado_id`) REFERENCES `chamado` (`id`) ON DELETE CASCADE,
   CONSTRAINT `historico_status_ibfk_2` FOREIGN KEY (`usuario_id`) REFERENCES `user` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

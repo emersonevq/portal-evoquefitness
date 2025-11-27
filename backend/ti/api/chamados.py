@@ -87,25 +87,46 @@ def _sincronizar_sla(db: Session, chamado: Chamado, status_anterior: str | None 
 
 
 def _normalize_status(s: str) -> str:
+    """
+    Normaliza o status para o formato padrão.
+    Formatos aceitos: Aberto, Em andamento, Em análise, Concluído, Cancelado
+    """
     if not s:
         return "Aberto"
-    s_up = s.strip().upper()
-    mapping = {
-        "ABERTO": "Aberto",
-        "AGUARDANDO": "Em andamento",
-        "EM_ANDAMENTO": "Em andamento",
-        "EM ANDAMENTO": "Em andamento",
-        "EM_ANALISE": "Em análise",
-        "EM ANÁLISE": "Em análise",
-        "EM ANALISE": "Em análise",
-        "CONCLUIDO": "Concluído",
-        "CONCLUÍDO": "Concluído",
-        "CANCELADO": "Cancelado",
+    
+    # Remove espaços extras e converte para lowercase para comparação
+    s_lower = s.strip().lower()
+    
+    # Mapeamento direto baseado em lowercase
+    mapping_lower = {
+        "aberto": "Aberto",
+        "em andamento": "Em andamento",
+        "emandamento": "Em andamento",
+        "em_andamento": "Em andamento",
+        "aguardando": "Em andamento",
+        "em análise": "Em análise",
+        "em analise": "Em análise",
+        "emanalise": "Em análise",
+        "em_analise": "Em análise",
+        "em_análise": "Em análise",
+        "analise": "Em análise",
+        "análise": "Em análise",
+        "concluído": "Concluído",
+        "concluido": "Concluído",
+        "finalizado": "Concluído",
+        "cancelado": "Cancelado",
     }
-    if s_up in mapping:
-        return mapping[s_up]
-    s_title = s.strip().title()
-    return s_title if s_title in ALLOWED_STATUSES else "Aberto"
+    
+    if s_lower in mapping_lower:
+        return mapping_lower[s_lower]
+    
+    # Se não encontrou, verifica se já está no formato correto
+    if s in ALLOWED_STATUSES:
+        return s
+    
+    # Caso padrão
+    print(f"[NORMALIZE] Status não reconhecido: '{s}' - retornando 'Aberto'")
+    return "Aberto" 
 
 @router.get("", response_model=list[ChamadoOut])
 def listar_chamados(db: Session = Depends(get_db)):
@@ -700,6 +721,15 @@ def atualizar_status(chamado_id: int, payload: ChamadoStatusUpdate, db: Session 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro ao atualizar status: {e}")
 
+def _table_exists(table_name: str) -> bool:
+    """Verifica se uma tabela existe no banco de dados"""
+    try:
+        from sqlalchemy import inspect as sa_inspect
+        insp = sa_inspect(engine)
+        return insp.has_table(table_name)
+    except Exception:
+        return False
+
 @router.delete("/{chamado_id}")
 def deletar_chamado(chamado_id: int, payload: ChamadoDeleteRequest = Body(...), db: Session = Depends(get_db)):
     try:
@@ -713,16 +743,61 @@ def deletar_chamado(chamado_id: int, payload: ChamadoDeleteRequest = Body(...), 
         if not ch:
             raise HTTPException(status_code=404, detail="Chamado não encontrado")
 
-        # Delete all related records to avoid foreign key constraint violations
-        db.query(ChamadoAnexo).filter(ChamadoAnexo.chamado_id == chamado_id).delete()
-        db.query(HistoricoStatus).filter(HistoricoStatus.chamado_id == chamado_id).delete()
-        db.query(HistoricoTicket).filter(HistoricoTicket.chamado_id == chamado_id).delete()
-        db.query(TicketAnexo).filter(TicketAnexo.chamado_id == chamado_id).delete()
-        db.commit()
+        print(f"[DELETE] Iniciando exclusão do chamado {chamado_id}")
 
-        # Now delete the chamado
+        # Lista de tabelas relacionadas com seus nomes CORRETOS
+        tabelas_relacionadas = [
+            "chamado_anexo",
+            "ticket_anexos",
+            "historico_status",
+            "historicos_tickets",
+            "historico_sla",
+        ]
+
+        # Deletar registros relacionados de cada tabela
+        for tabela in tabelas_relacionadas:
+            if _table_exists(tabela):
+                try:
+                    result = db.execute(
+                        text(f"DELETE FROM {tabela} WHERE chamado_id = :id"),
+                        {"id": chamado_id}
+                    )
+                    deleted_count = result.rowcount
+                    print(f"[DELETE] Deletados {deleted_count} registros de {tabela}")
+                except Exception as e:
+                    print(f"[DELETE] Erro ao deletar de {tabela}: {e}")
+
+        # Deletar notificações relacionadas ao chamado
+        if _table_exists("notification"):
+            try:
+                result = db.execute(
+                    text("DELETE FROM notification WHERE recurso = 'chamado' AND recurso_id = :id"),
+                    {"id": chamado_id}
+                )
+                deleted_count = result.rowcount
+                print(f"[DELETE] Deletadas {deleted_count} notificações")
+            except Exception as e:
+                print(f"[DELETE] Erro ao deletar notifications: {e}")
+
+        # Commit das exclusões relacionadas
+        db.commit()
+        print(f"[DELETE] Registros relacionados deletados com sucesso")
+
+        # Deletar o chamado principal
         db.delete(ch)
         db.commit()
+        print(f"[DELETE] Chamado {chamado_id} deletado com sucesso")
+
+        # Decrementar contador se o chamado não estava cancelado
+        if ch.status != "Cancelado":
+            try:
+                from ti.services.cache_manager_incremental import ChamadosTodayCounter
+                ChamadosTodayCounter.decrement(db, 1)
+                print(f"[DELETE] Contador decrementado")
+            except Exception as e:
+                print(f"[DELETE] Erro ao decrementar contador: {e}")
+
+        # Criar notificação de exclusão
         try:
             Notification.__table__.create(bind=engine, checkfirst=True)
             dados = json.dumps({
@@ -730,10 +805,11 @@ def deletar_chamado(chamado_id: int, payload: ChamadoDeleteRequest = Body(...), 
                 "codigo": ch.codigo,
                 "protocolo": ch.protocolo,
             }, ensure_ascii=False)
+
             n = Notification(
                 tipo="chamado",
                 titulo=f"Chamado excluído: {ch.codigo}",
-                mensagem=f"Chamado {ch.protocolo} removido",
+                mensagem=f"Chamado {ch.protocolo} foi removido do sistema",
                 recurso="chamado",
                 recurso_id=chamado_id,
                 acao="excluido",
@@ -742,6 +818,8 @@ def deletar_chamado(chamado_id: int, payload: ChamadoDeleteRequest = Body(...), 
             db.add(n)
             db.commit()
             db.refresh(n)
+
+            # Emitir eventos WebSocket
             import anyio
             anyio.from_thread.run(sio.emit, "chamado:deleted", {"id": chamado_id})
             anyio.from_thread.run(sio.emit, "notification:new", {
@@ -756,10 +834,17 @@ def deletar_chamado(chamado_id: int, payload: ChamadoDeleteRequest = Body(...), 
                 "lido": n.lido,
                 "criado_em": n.criado_em.isoformat() if n.criado_em else None,
             })
-        except Exception:
-            pass
-        return {"ok": True}
+            print(f"[DELETE] Notificação e eventos WebSocket emitidos")
+        except Exception as e:
+            print(f"[DELETE] Erro ao criar notificação/WebSocket: {e}")
+
+        return {"ok": True, "message": f"Chamado {ch.codigo} excluído com sucesso"}
+
     except HTTPException:
         raise
     except Exception as e:
+        import traceback
+        print(f"[DELETE] ERRO GERAL: {e}")
+        print(f"[DELETE] TRACEBACK: {traceback.format_exc()}")
+        db.rollback()
         raise HTTPException(status_code=500, detail=f"Erro ao excluir chamado: {e}")

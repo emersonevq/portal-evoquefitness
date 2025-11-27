@@ -51,10 +51,13 @@ EXPECTED: Dict[str, Dict[str, str]] = {
     "historico_status": {
         "id": "INT PRIMARY KEY AUTO_INCREMENT",
         "chamado_id": "INT NOT NULL",
+        "status": "VARCHAR(50) NOT NULL",
+        "data_inicio": "DATETIME NULL",
+        "data_fim": "DATETIME NULL",
         "usuario_id": "INT NULL",
-        "status_anterior": "VARCHAR(20) NULL",
-        "status_novo": "VARCHAR(20) NOT NULL",
-        "criado_em": "DATETIME NULL",
+        "descricao": "TEXT NULL",
+        "created_at": "DATETIME NULL",
+        "updated_at": "DATETIME NULL",
     },
 }
 
