@@ -78,13 +78,15 @@ export function PrioridadesProblemas() {
 
     try {
       const payload = {
-        nome: formData.nome,
+        nome: formData.nome.trim(),
         prioridade: formData.prioridade,
         tempo_resolucao_horas: formData.tempo_resolucao_horas
           ? parseInt(formData.tempo_resolucao_horas)
           : null,
         requer_internet: formData.requer_internet,
       };
+
+      console.log("Enviando payload:", payload);
 
       if (editingId) {
         // Edição via PATCH (seria necessário implementar no backend)
@@ -98,7 +100,11 @@ export function PrioridadesProblemas() {
           body: JSON.stringify(payload),
         });
 
-        if (!response.ok) throw new Error("Falha ao criar problema");
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          console.error("Erro ao criar problema:", errorData);
+          throw new Error(errorData.detail || "Falha ao criar problema");
+        }
 
         toast({
           title: "Sucesso",
