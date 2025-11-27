@@ -419,6 +419,23 @@ function TicketForm(props: {
     [listaProblemas, form.problema],
   );
 
+  const formatTempo = (horas: number | null) => {
+    if (!horas) return null;
+    if (horas < 24) return `${horas}h`;
+    const dias = horas / 24;
+    return dias % 1 === 0 ? `${dias}d` : `${horas}h`;
+  };
+
+  const getPrioridadeColor = (prioridade: string) => {
+    const colors: Record<string, string> = {
+      Crítica: "text-red-600 dark:text-red-400",
+      Alta: "text-orange-600 dark:text-orange-400",
+      Normal: "text-blue-600 dark:text-blue-400",
+      Baixa: "text-green-600 dark:text-green-400",
+    };
+    return colors[prioridade] || colors.Normal;
+  };
+
   return (
     <form onSubmit={submit} className="grid gap-4">
       <div className="grid gap-2">
