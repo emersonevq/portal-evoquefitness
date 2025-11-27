@@ -89,11 +89,37 @@ export function PrioridadesProblemas() {
       console.log("Enviando payload:", payload);
 
       if (editingId) {
-        // Edição via PATCH (seria necessário implementar no backend)
-        toast({
-          title: "Info",
-          description: "Edição será implementada em breve",
+        const response = await apiFetch(`/problemas/${editingId}`, {
+          method: "PATCH",
+          body: JSON.stringify({
+            prioridade: formData.prioridade,
+            tempo_resolucao_horas: formData.tempo_resolucao_horas
+              ? parseInt(formData.tempo_resolucao_horas)
+              : null,
+            requer_internet: formData.requer_internet,
+          }),
         });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          console.error("Erro ao atualizar problema:", errorData);
+          throw new Error(errorData.detail || "Falha ao atualizar problema");
+        }
+
+        toast({
+          title: "Sucesso",
+          description: "Problema atualizado com sucesso",
+        });
+
+        carregarProblemas();
+        setFormData({
+          nome: "",
+          prioridade: "Normal",
+          tempo_resolucao_horas: "",
+          requer_internet: false,
+        });
+        setOpen(false);
+        setEditingId(null);
       } else {
         const response = await apiFetch("/problemas", {
           method: "POST",
