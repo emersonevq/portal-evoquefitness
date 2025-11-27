@@ -76,7 +76,7 @@ def _sincronizar_sla(db: Session, chamado: Chamado, status_anterior: str | None 
         # INVALIDAÇÃO DE CACHE: Quando um chamado é atualizado, invalida caches relacionados
         SLACacheManager.invalidate_by_chamado(db, chamado.id)
 
-        # ATUALIZA��ÃO INCREMENTAL DE MÉTRICAS: Recalcula apenas o chamado afetado
+        # ATUALIZAÇÃO INCREMENTAL DE MÉTRICAS: Recalcula apenas o chamado afetado
         from ti.services.cache_manager_incremental import IncrementalMetricsCache
         IncrementalMetricsCache.update_for_chamado(db, chamado.id)
 
@@ -128,6 +128,17 @@ def _normalize_status(s: str) -> str:
     print(f"[NORMALIZE] Status não reconhecido: '{s}' - retornando 'Aberto'")
     return "Aberto" 
 
+
+def _table_exists(table_name: str) -> bool:
+    """Verifica se uma tabela existe no banco de dados"""
+    try:
+        from sqlalchemy import inspect as sa_inspect
+        insp = sa_inspect(engine)
+        return insp.has_table(table_name)
+    except Exception:
+        return False
+
+
 @router.get("", response_model=list[ChamadoOut])
 def listar_chamados(db: Session = Depends(get_db)):
     try:
@@ -141,6 +152,7 @@ def listar_chamados(db: Session = Depends(get_db)):
             return []
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro ao listar chamados: {e}")
+
 
 @router.post("", response_model=ChamadoOut)
 def criar_chamado(payload: ChamadoCreate, db: Session = Depends(get_db)):
@@ -213,12 +225,14 @@ def criar_chamado(payload: ChamadoCreate, db: Session = Depends(get_db)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro ao criar chamado: {e}")
 
+
 def _cols(table: str) -> set[str]:
     try:
         insp = inspect(engine)
         return {c.get("name") for c in insp.get_columns(table)}
     except Exception:
         return set()
+
 
 def _ensure_column(table: str, column: str, ddl: str) -> None:
     try:
@@ -227,6 +241,7 @@ def _ensure_column(table: str, column: str, ddl: str) -> None:
                 conn.exec_driver_sql(f"ALTER TABLE {table} ADD COLUMN {column} {ddl}")
     except Exception:
         pass
+
 
 def _insert_attachment(db: Session, table: str, values: dict) -> int:
     cols = _cols(table)
@@ -246,6 +261,7 @@ def _insert_attachment(db: Session, table: str, values: dict) -> int:
     rid = res.lastrowid  # type: ignore[attr-defined]
     db.flush()
     return int(rid or 0)
+
 
 def _update_path(db: Session, table: str, rid: int, path: str) -> None:
     cols = _cols(table)
@@ -272,6 +288,7 @@ def _select_download_query(table: str) -> str:
     mime_expr = ("tipo_mime" if "tipo_mime" in cols else ("mime_type" if "mime_type" in cols else "NULL")) + " AS tipo_mime"
     conteudo = ("conteudo" if "conteudo" in cols else "NULL") + " AS conteudo"
     return f"SELECT id, {nome_arq}, {nome_orig}, {mime_expr}, {conteudo} FROM {table} WHERE id=:i"
+
 
 @router.post("/with-attachments", response_model=ChamadoOut)
 def criar_chamado_com_anexos(
@@ -395,6 +412,7 @@ def criar_chamado_com_anexos(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro ao criar chamado com anexos: {e}")
 
+
 @router.post("/{chamado_id}/ticket")
 def enviar_ticket(
     chamado_id: int,
@@ -471,6 +489,7 @@ def enviar_ticket(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro ao enviar ticket: {e}")
 
+
 @router.get("/anexos/chamado/{anexo_id}")
 def baixar_anexo_chamado(anexo_id: int, db: Session = Depends(get_db)):
     sql = _select_download_query("chamado_anexo")
@@ -482,6 +501,7 @@ def baixar_anexo_chamado(anexo_id: int, db: Session = Depends(get_db)):
     headers = {"Content-Disposition": f"inline; filename={nome}"}
     return Response(content=res[4], media_type=mime, headers=headers)
 
+
 @router.get("/anexos/ticket/{anexo_id}")
 def baixar_anexo_ticket(anexo_id: int, db: Session = Depends(get_db)):
     sql = _select_download_query("ticket_anexos")
@@ -492,8 +512,7 @@ def baixar_anexo_ticket(anexo_id: int, db: Session = Depends(get_db)):
     mime = res[3] or "application/octet-stream"
     headers = {"Content-Disposition": f"inline; filename={nome}"}
     return Response(content=res[4], media_type=mime, headers=headers)
-    
-    
+
 
 @router.get("/{chamado_id}/historico", response_model=HistoricoResponse)
 def obter_historico(chamado_id: int, db: Session = Depends(get_db)):
@@ -595,6 +614,7 @@ def obter_historico(chamado_id: int, db: Session = Depends(get_db)):
         except Exception:
             return HistoricoResponse(items=[])
 
+
 @router.patch("/{chamado_id}/status", response_model=ChamadoOut)
 def atualizar_status(chamado_id: int, payload: ChamadoStatusUpdate, db: Session = Depends(get_db)):
     try:
@@ -658,7 +678,7 @@ def atualizar_status(chamado_id: int, payload: ChamadoStatusUpdate, db: Session 
             n = Notification(
                 tipo="chamado",
                 titulo=f"Status atualizado: {ch.codigo}",
-                mensagem=f"{prev} �� {ch.status}",
+                mensagem=f"{prev} → {ch.status}",
                 recurso="chamado",
                 recurso_id=ch.id,
                 acao="status",
@@ -722,40 +742,50 @@ def atualizar_status(chamado_id: int, payload: ChamadoStatusUpdate, db: Session 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro ao atualizar status: {e}")
 
-def _table_exists(table_name: str) -> bool:
-    """Verifica se uma tabela existe no banco de dados"""
-    try:
-        from sqlalchemy import inspect as sa_inspect
-        insp = sa_inspect(engine)
-        return insp.has_table(table_name)
-    except Exception:
-        return False
 
 @router.delete("/{chamado_id}")
 def deletar_chamado(chamado_id: int, payload: ChamadoDeleteRequest = Body(...), db: Session = Depends(get_db)):
     try:
+        # Validar usuário e senha
         user = db.query(User).filter(User.email == payload.email).first()
         if not user:
             raise HTTPException(status_code=401, detail="Usuário não encontrado")
         from werkzeug.security import check_password_hash as _chk
         if not _chk(user.senha_hash, payload.senha):
             raise HTTPException(status_code=401, detail="Senha inválida")
-        ch = db.query(Chamado).filter(Chamado.id == chamado_id).first()
+        
+        # Buscar o chamado SEM carregar relações automaticamente (evita erro de tabelas inexistentes)
+        ch = db.execute(
+            text("SELECT * FROM chamado WHERE id = :id"),
+            {"id": chamado_id}
+        ).fetchone()
+        
         if not ch:
             raise HTTPException(status_code=404, detail="Chamado não encontrado")
 
         print(f"[DELETE] Iniciando exclusão do chamado {chamado_id}")
 
-        # Lista de tabelas relacionadas com seus nomes CORRETOS
+        # Guardar informações do chamado para uso posterior
+        # Acessar por índice já que ch é um Row object do SQLAlchemy
+        chamado_info = {
+            'id': ch[0],  # id
+            'codigo': ch[1] if len(ch) > 1 else f"CH{chamado_id}",  # codigo
+            'protocolo': ch[2] if len(ch) > 2 else f"PROT{chamado_id}",  # protocolo
+            'status': ch[14] if len(ch) > 14 else 'Aberto',  # status
+        }
+
+        # Lista COMPLETA de tabelas relacionadas na ordem correta
         tabelas_relacionadas = [
-            "chamado_anexo",
-            "ticket_anexos",
-            "historico_status",
-            "historicos_tickets",
-            "historico_sla",
+            "chamado_timeline",      # Timeline de eventos do chamado
+            "chamado_anexo",         # Anexos enviados na abertura
+            "ticket_anexos",         # Anexos de tickets/histórico
+            "historico_status",      # Histórico de mudanças de status
+            "historicos_tickets",    # Histórico de tickets enviados
+            "historico_sla",         # Histórico de SLA do chamado
         ]
 
         # Deletar registros relacionados de cada tabela
+        total_deletados = 0
         for tabela in tabelas_relacionadas:
             if _table_exists(tabela):
                 try:
@@ -764,9 +794,15 @@ def deletar_chamado(chamado_id: int, payload: ChamadoDeleteRequest = Body(...), 
                         {"id": chamado_id}
                     )
                     deleted_count = result.rowcount
+                    total_deletados += deleted_count
                     print(f"[DELETE] Deletados {deleted_count} registros de {tabela}")
+                    db.commit()  # Commit após cada tabela para evitar locks
                 except Exception as e:
                     print(f"[DELETE] Erro ao deletar de {tabela}: {e}")
+                    db.rollback()
+                    # Continua tentando deletar das outras tabelas
+            else:
+                print(f"[DELETE] Tabela {tabela} não existe, pulando...")
 
         # Deletar notificações relacionadas ao chamado
         if _table_exists("notification"):
@@ -776,21 +812,34 @@ def deletar_chamado(chamado_id: int, payload: ChamadoDeleteRequest = Body(...), 
                     {"id": chamado_id}
                 )
                 deleted_count = result.rowcount
+                total_deletados += deleted_count
                 print(f"[DELETE] Deletadas {deleted_count} notificações")
+                db.commit()
             except Exception as e:
                 print(f"[DELETE] Erro ao deletar notifications: {e}")
+                db.rollback()
 
-        # Commit das exclusões relacionadas
-        db.commit()
-        print(f"[DELETE] Registros relacionados deletados com sucesso")
-
-        # Deletar o chamado principal
-        db.delete(ch)
-        db.commit()
-        print(f"[DELETE] Chamado {chamado_id} deletado com sucesso")
+        # Deletar o chamado principal usando SQL direto para evitar problemas com relações
+        try:
+            result = db.execute(
+                text("DELETE FROM chamado WHERE id = :id"),
+                {"id": chamado_id}
+            )
+            if result.rowcount == 0:
+                raise HTTPException(status_code=404, detail="Chamado não encontrado na tabela principal")
+            
+            db.commit()
+            print(f"[DELETE] Chamado {chamado_id} deletado com sucesso")
+            print(f"[DELETE] Total de registros deletados: {total_deletados + 1}")
+        except HTTPException:
+            raise
+        except Exception as e:
+            print(f"[DELETE] Erro ao deletar chamado principal: {e}")
+            db.rollback()
+            raise HTTPException(status_code=500, detail=f"Erro ao deletar chamado: {e}")
 
         # Decrementar contador se o chamado não estava cancelado
-        if ch.status != "Cancelado":
+        if chamado_info['status'] != "Cancelado":
             try:
                 from ti.services.cache_manager_incremental import ChamadosTodayCounter
                 ChamadosTodayCounter.decrement(db, 1)
@@ -798,19 +847,28 @@ def deletar_chamado(chamado_id: int, payload: ChamadoDeleteRequest = Body(...), 
             except Exception as e:
                 print(f"[DELETE] Erro ao decrementar contador: {e}")
 
+        # Invalidar cache de SLA relacionado ao chamado
+        try:
+            from ti.services.sla_cache import SLACacheManager
+            SLACacheManager.invalidate_by_chamado(db, chamado_id)
+            print(f"[DELETE] Cache de SLA invalidado")
+        except Exception as e:
+            print(f"[DELETE] Erro ao invalidar cache: {e}")
+
         # Criar notificação de exclusão
         try:
             Notification.__table__.create(bind=engine, checkfirst=True)
             dados = json.dumps({
-                "id": chamado_id,
-                "codigo": ch.codigo,
-                "protocolo": ch.protocolo,
+                "id": chamado_info['id'],
+                "codigo": chamado_info['codigo'],
+                "protocolo": chamado_info['protocolo'],
+                "registros_deletados": total_deletados + 1,
             }, ensure_ascii=False)
 
             n = Notification(
                 tipo="chamado",
-                titulo=f"Chamado excluído: {ch.codigo}",
-                mensagem=f"Chamado {ch.protocolo} foi removido do sistema",
+                titulo=f"Chamado excluído: {chamado_info['codigo']}",
+                mensagem=f"Chamado {chamado_info['protocolo']} foi removido do sistema ({total_deletados + 1} registros deletados)",
                 recurso="chamado",
                 recurso_id=chamado_id,
                 acao="excluido",
@@ -822,7 +880,11 @@ def deletar_chamado(chamado_id: int, payload: ChamadoDeleteRequest = Body(...), 
 
             # Emitir eventos WebSocket
             import anyio
-            anyio.from_thread.run(sio.emit, "chamado:deleted", {"id": chamado_id})
+            anyio.from_thread.run(sio.emit, "chamado:deleted", {
+                "id": chamado_id,
+                "codigo": chamado_info['codigo'],
+                "protocolo": chamado_info['protocolo'],
+            })
             anyio.from_thread.run(sio.emit, "notification:new", {
                 "id": n.id,
                 "tipo": n.tipo,
@@ -835,11 +897,30 @@ def deletar_chamado(chamado_id: int, payload: ChamadoDeleteRequest = Body(...), 
                 "lido": n.lido,
                 "criado_em": n.criado_em.isoformat() if n.criado_em else None,
             })
+            
+            # Emitir atualização de métricas
+            from ti.services.cache_manager_incremental import IncrementalMetricsCache
+            metricas = IncrementalMetricsCache.get_metrics(db)
+            anyio.from_thread.run(sio.emit, "metrics:updated", {
+                "sla_metrics": metricas,
+                "timestamp": now_brazil_naive().isoformat(),
+            })
+            
             print(f"[DELETE] Notificação e eventos WebSocket emitidos")
         except Exception as e:
             print(f"[DELETE] Erro ao criar notificação/WebSocket: {e}")
+            # Não falhar a operação por causa disso
 
-        return {"ok": True, "message": f"Chamado {ch.codigo} excluído com sucesso"}
+        return {
+            "ok": True, 
+            "message": f"Chamado {chamado_info['codigo']} excluído com sucesso",
+            "registros_deletados": total_deletados + 1,
+            "detalhes": {
+                "chamado_id": chamado_id,
+                "codigo": chamado_info['codigo'],
+                "protocolo": chamado_info['protocolo'],
+            }
+        }
 
     except HTTPException:
         raise
