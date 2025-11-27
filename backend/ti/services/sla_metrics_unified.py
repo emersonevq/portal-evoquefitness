@@ -125,12 +125,13 @@ class UnifiedSLAMetricsCalculator:
                         continue
                     
                     # Determina data final para cálculo
+                    data_abertura = chamado.data_abertura or end_date
                     data_final = chamado.data_conclusao if chamado.data_conclusao else end_date
-                    
+
                     # Calcula tempo de resolução excluindo pausas
                     tempo_resolucao = SLACalculator.calculate_business_hours_excluding_paused(
                         chamado.id,
-                        chamado.data_abertura,
+                        data_abertura,
                         data_final,
                         db,
                         historicos_cache
