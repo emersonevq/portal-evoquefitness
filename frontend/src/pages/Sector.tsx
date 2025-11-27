@@ -21,6 +21,7 @@ import {
 import { useState, useEffect } from "react";
 import { useAuthContext } from "@/lib/auth-context";
 import { TIDashboard } from "@/components/ti-dashboard/TIDashboard";
+import { apiFetch } from "@/lib/api";
 
 interface Ticket {
   id: string;
@@ -29,6 +30,14 @@ interface Ticket {
   data: string;
   problema: string;
   status: string;
+}
+
+interface Problema {
+  id: number;
+  nome: string;
+  prioridade: string;
+  requer_internet: boolean;
+  tempo_resolucao_horas: number | null;
 }
 
 export default function SectorPage() {
