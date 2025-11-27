@@ -608,3 +608,32 @@ def test_refresh_socket(user_id: int):
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Erro ao testar refresh: {e}")
+
+
+@router.post("/reset-password-by-email")
+def reset_password_by_email(payload: dict, db: Session = Depends(get_db)):
+    """Emergency endpoint to reset user password by email (Admin only)"""
+    try:
+        from ..models import User
+        email = payload.get("email")
+        if not email:
+            raise HTTPException(status_code=400, detail="Email não fornecido")
+
+        user = db.query(User).filter(User.email == email).first()
+        if not user:
+            raise HTTPException(status_code=404, detail=f"Usuário com email '{email}' não encontrado")
+
+        pwd = regenerate_password(db, user.id, 6)
+        return {
+            "ok": True,
+            "email": email,
+            "nova_senha": pwd,
+            "usuario_id": user.id,
+            "message": f"Senha resetada para {email}"
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Erro ao resetar senha: {str(e)}")
