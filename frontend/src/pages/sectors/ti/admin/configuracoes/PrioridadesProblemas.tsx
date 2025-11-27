@@ -17,7 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, api } from "@/lib/api";
 
 interface Problema {
   id: number;
