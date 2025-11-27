@@ -109,6 +109,7 @@ def listar_problemas(db: Session = Depends(get_db)):
                         "nome": nome,
                         "prioridade": "Normal",
                         "requer_internet": nome.lower() == "internet",
+                        "tempo_resolucao_horas": None,
                     }
                     for idx, nome in enumerate(sorted(existing_names), 1)
                 ]
