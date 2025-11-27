@@ -396,6 +396,7 @@ def enviar_ticket(
     try:
         # garantir tabelas necessárias para anexos de ticket
         TicketAnexo.__table__.create(bind=engine, checkfirst=True)
+        HistoricoAnexo.__table__.create(bind=engine, checkfirst=True)
         _ensure_column("ticket_anexos", "conteudo", "MEDIUMBLOB NULL")
         user_id = None
         if autor_email:
