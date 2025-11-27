@@ -108,20 +108,24 @@ def atualizar_problema(db: Session, problema_id: int, payload: ProblemaUpdate) -
             sql = f"UPDATE problema_reportado SET {', '.join(update_fields)} WHERE id = :id"
             res = db.execute(text(sql), params)
             db.commit()
-            if res.rowcount > 0:
-                # Fetch updated record
-                row = db.execute(
-                    text("SELECT id, nome, COALESCE(prioridade_padrao, 'Normal') as prioridade, COALESCE(requer_item_internet, 0) as requer_internet, tempo_resolucao_horas FROM problema_reportado WHERE id = :id"),
-                    {"id": problema_id}
-                ).first()
-                if row:
-                    return Problema(
-                        id=int(row[0]),
-                        nome=str(row[1]),
-                        prioridade=str(row[2]),
-                        requer_internet=bool(row[3]),
-                        tempo_resolucao_horas=int(row[4]) if row[4] else None,
-                    )
+
+            # Fetch updated record (whether rowcount > 0 or not)
+            row = db.execute(
+                text("SELECT id, nome, COALESCE(prioridade_padrao, 'Normal') as prioridade, COALESCE(requer_item_internet, 0) as requer_internet, tempo_resolucao_horas FROM problema_reportado WHERE id = :id"),
+                {"id": problema_id}
+            ).first()
+
+            if row:
+                return Problema(
+                    id=int(row[0]),
+                    nome=str(row[1]),
+                    prioridade=str(row[2]),
+                    requer_internet=bool(row[3]),
+                    tempo_resolucao_horas=int(row[4]) if row[4] else None,
+                )
+            else:
+                # Record doesn't exist in legacy table, try ORM
+                raise ValueError("Registro não encontrado na tabela legacy, tentando ORM...")
     except Exception as e:
         print(f"⚠️  Legacy table update failed: {e}")
 
@@ -129,7 +133,7 @@ def atualizar_problema(db: Session, problema_id: int, payload: ProblemaUpdate) -
     try:
         problema = db.query(Problema).filter(Problema.id == problema_id).first()
         if not problema:
-            raise ValueError("Problema não encontrado")
+            raise ValueError(f"Problema com ID {problema_id} não encontrado")
 
         if prioridade:
             problema.prioridade = prioridade
