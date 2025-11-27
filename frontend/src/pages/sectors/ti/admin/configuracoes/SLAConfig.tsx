@@ -623,28 +623,6 @@ export function SLA() {
       <div className="border-t pt-8 space-y-4">
         <div className="flex items-center justify-between flex-wrap gap-3">
           <h2 className="text-lg font-semibold">Horários Comerciais</h2>
-          <div className="flex gap-1 bg-muted rounded-lg p-1">
-            <Button
-              type="button"
-              variant={hoursViewMode === "grid" ? "default" : "ghost"}
-              onClick={() => setHoursViewMode("grid")}
-              size="sm"
-              className="h-8 px-3"
-            >
-              <Grid3x3 className="h-4 w-4" />
-              Grade
-            </Button>
-            <Button
-              type="button"
-              variant={hoursViewMode === "list" ? "default" : "ghost"}
-              onClick={() => setHoursViewMode("list")}
-              size="sm"
-              className="h-8 px-3"
-            >
-              <List className="h-4 w-4" />
-              Lista
-            </Button>
-          </div>
           <Dialog open={showHoursDialog} onOpenChange={setShowHoursDialog}>
             <DialogTrigger asChild>
               <Button onClick={handleAddHours} size="sm" className="gap-2 h-8">
@@ -731,68 +709,54 @@ export function SLA() {
         {hoursLoading ? (
           <div className="text-muted-foreground">Carregando...</div>
         ) : businessHours.length > 0 ? (
-          <div>
-            {hoursViewMode === "grid" && (
-              <div className="grid gap-3 sm:gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {businessHours.map((hours: BusinessHours) => (
-                  <BusinessHoursCard
-                    key={hours.id}
-                    hours={hours}
-                    onEdit={handleEditHours}
-                    onDelete={() => deleteHoursMutation.mutate(hours.id)}
-                  />
-                ))}
-              </div>
-            )}
-            {hoursViewMode === "list" && (
-              <div className="space-y-3">
-                {businessHours.map((hours: BusinessHours) => {
-                  const getDiaLabel = (dia: number) => {
-                    return DIAS_SEMANA.find((d) => d.id === dia)?.label || `Dia ${dia}`;
-                  };
-                  return (
-                    <div
-                      key={hours.id}
-                      className="rounded-lg border border-border/60 bg-card overflow-hidden hover:shadow-md hover:border-primary/20 transition-all"
-                    >
-                      <div className="p-4">
-                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                          <div className="flex items-center gap-2">
-                            <Clock className="w-4 h-4 text-primary" />
-                            <h3 className="font-semibold text-sm">
-                              {getDiaLabel(hours.dia_semana)}
-                            </h3>
-                          </div>
-                          <div className="font-semibold text-sm">
-                            {hours.hora_inicio} - {hours.hora_fim}
-                          </div>
-                        </div>
-                        <div className="flex gap-2 mt-4 pt-4 border-t border-border/40">
+          <div className="rounded-lg border border-border/60 bg-card overflow-hidden">
+            <div className="divide-y divide-border/60">
+              {DIAS_SEMANA.map((dia) => {
+                const horasDia = businessHours.find(
+                  (h: BusinessHours) => h.dia_semana === dia.id,
+                );
+                return (
+                  <div
+                    key={dia.id}
+                    className="p-4 hover:bg-muted/30 transition-colors flex items-center justify-between"
+                  >
+                    <div className="flex items-center gap-3">
+                      <Clock className="w-4 h-4 text-primary flex-shrink-0" />
+                      <h3 className="font-medium text-sm">{dia.label}</h3>
+                    </div>
+                    {horasDia ? (
+                      <div className="flex items-center gap-4">
+                        <span className="font-semibold text-sm text-primary">
+                          {horasDia.hora_inicio} - {horasDia.hora_fim}
+                        </span>
+                        <div className="flex gap-2">
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => handleEditHours(hours)}
-                            className="flex-1 h-8 text-xs"
+                            onClick={() => handleEditHours(horasDia)}
+                            className="h-8 px-3"
                           >
-                            <Edit2 className="w-3.5 h-3.5 mr-1" />
-                            Editar
+                            <Edit2 className="w-3.5 h-3.5" />
                           </Button>
                           <Button
                             size="sm"
                             variant="destructive"
-                            onClick={() => deleteHoursMutation.mutate(hours.id)}
-                            className="flex-1 h-8 text-xs"
+                            onClick={() => deleteHoursMutation.mutate(horasDia.id)}
+                            className="h-8 px-3"
                           >
-                            <Trash2 className="w-3.5 h-3.5 mr-1" />
-                            Remover
+                            <Trash2 className="w-3.5 h-3.5" />
                           </Button>
                         </div>
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+                    ) : (
+                      <span className="text-xs text-muted-foreground italic">
+                        Sem horário
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
         ) : (
           <div className="text-center py-8 text-muted-foreground">
