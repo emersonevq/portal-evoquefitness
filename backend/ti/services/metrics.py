@@ -203,8 +203,7 @@ class MetricsCalculator:
             # 2. Busca chamados ativos
             chamados_ativos = db.query(Chamado).filter(
                 and_(
-                    Chamado.status.notin_(["Concluido", "Cancelado"]),
-                    Chamado.is_deleted == False
+                    Chamado.status.notin_(["Concluido", "Cancelado"])
                 )
             ).all()
 
