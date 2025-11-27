@@ -73,9 +73,9 @@ def listar_problemas(db: Session = Depends(get_db)):
 
         # 3) Try "problemas" table (plural) with various column combinations
         fallback_queries = [
-            "SELECT id, nome, prioridade, requer_internet FROM problemas",
-            "SELECT id, nome, prioridade_padrao, requer_item_internet FROM problemas",
-            "SELECT id, problema AS nome, prioridade, requer_internet FROM problemas",
+            "SELECT id, nome, prioridade, requer_internet, tempo_resolucao_horas FROM problemas",
+            "SELECT id, nome, prioridade_padrao, requer_item_internet, tempo_resolucao_horas FROM problemas",
+            "SELECT id, problema AS nome, prioridade, requer_internet, tempo_resolucao_horas FROM problemas",
         ]
 
         for sql in fallback_queries:
@@ -90,6 +90,7 @@ def listar_problemas(db: Session = Depends(get_db)):
                             "nome": str(r[1]),
                             "prioridade": str(r[2] or "Normal"),
                             "requer_internet": bool(r[3]) if len(r) > 3 else False,
+                            "tempo_resolucao_horas": int(r[4]) if len(r) > 4 and r[4] else None,
                         }
                         for r in fetched
                     ]
