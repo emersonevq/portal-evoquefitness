@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from core.db import get_db, engine
-from ti.schemas.problema import ProblemaCreate, ProblemaOut
+from ti.schemas.problema import ProblemaCreate, ProblemaUpdate, ProblemaOut
 
 router = APIRouter(prefix="/problemas", tags=["TI - Problemas"])
 
