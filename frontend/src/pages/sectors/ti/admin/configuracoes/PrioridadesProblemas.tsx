@@ -226,6 +226,7 @@ export function PrioridadesProblemas() {
                     setFormData({ ...formData, nome: e.target.value })
                   }
                   disabled={editingId !== null}
+                  className={editingId !== null ? "opacity-50" : ""}
                 />
               </div>
 
