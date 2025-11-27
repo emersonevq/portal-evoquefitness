@@ -1,11 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,6 +17,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
 import { apiFetch, api } from "@/lib/api";
+import { Grid3x3, List } from "lucide-react";
 
 interface Problema {
   id: number;
@@ -28,12 +28,17 @@ interface Problema {
 }
 
 const PRIORIDADES = ["Crítica", "Alta", "Normal", "Baixa"];
+const ITEMS_PER_PAGE = 12;
 
 export function PrioridadesProblemas() {
   const [problemas, setProblemas] = useState<Problema[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [viewMode, setViewMode] = useState<"grid" | "list">("list");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterPrioridade, setFilterPrioridade] = useState<string>("Todos");
+  const [currentPage, setCurrentPage] = useState(1);
   const [formData, setFormData] = useState({
     nome: "",
     prioridade: "Normal",
@@ -165,7 +170,7 @@ export function PrioridadesProblemas() {
       console.error("Erro ao salvar problema:", error);
       toast({
         title: "Erro",
-        description: "Não foi possível salvar o problema",
+        description: "N��o foi possível salvar o problema",
         variant: "destructive",
       });
     }
