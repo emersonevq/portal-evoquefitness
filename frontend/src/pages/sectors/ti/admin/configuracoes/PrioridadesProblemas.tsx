@@ -87,21 +87,38 @@ export function PrioridadesProblemas() {
       };
 
       if (editingId) {
+        const patchPayload = {
+          prioridade: formData.prioridade,
+          tempo_resolucao_horas: formData.tempo_resolucao_horas
+            ? parseInt(formData.tempo_resolucao_horas)
+            : null,
+          requer_internet: formData.requer_internet,
+        };
+
+        console.log("Enviando PATCH com payload:", patchPayload);
+
         const response = await apiFetch(`/problemas/${editingId}`, {
           method: "PATCH",
-          body: JSON.stringify({
-            prioridade: formData.prioridade,
-            tempo_resolucao_horas: formData.tempo_resolucao_horas
-              ? parseInt(formData.tempo_resolucao_horas)
-              : null,
-            requer_internet: formData.requer_internet,
-          }),
+          body: JSON.stringify(patchPayload),
         });
 
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
-          console.error("Erro ao atualizar problema:", errorData);
-          throw new Error(errorData.detail || "Falha ao atualizar problema");
+          console.error("Erro ao atualizar problema. Status:", response.status);
+          console.error("Response:", errorData);
+
+          let errorMsg = "Falha ao atualizar problema";
+          if (errorData.detail) {
+            if (Array.isArray(errorData.detail)) {
+              errorMsg = errorData.detail.map((e: any) =>
+                e.msg || e || "Erro de validação"
+              ).join("; ");
+            } else {
+              errorMsg = errorData.detail;
+            }
+          }
+
+          throw new Error(errorMsg);
         }
 
         toast({
