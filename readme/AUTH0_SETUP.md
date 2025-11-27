@@ -40,7 +40,7 @@ Audience: https://erp-api.evoquefitness.com.br
 ### Conexão Microsoft
 
 ```
-Nome: Microsoft-Evoque
+Nome: Portalevoquefitness
 Tipo: Azure AD Enterprise
 Tenant: 9f45f492-87a3-4214-862d-4c0d080aa136
 ```
