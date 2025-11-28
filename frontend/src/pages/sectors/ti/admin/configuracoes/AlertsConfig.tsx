@@ -534,15 +534,48 @@ export default function AlertsConfig() {
                           </div>
                         )}
 
+                        {/* Páginas onde é exibido */}
+                        {alert.pages && alert.pages.length > 0 && (
+                          <div className="pt-2 border-t">
+                            <p className="text-xs font-medium text-muted-foreground mb-2">
+                              Exibido em:
+                            </p>
+                            <div className="flex flex-wrap gap-2">
+                              {alert.pages.map((pageId: string) => {
+                                const page =
+                                  ALERT_PAGES[pageId as keyof typeof ALERT_PAGES];
+                                return page ? (
+                                  <Badge key={pageId} variant="outline">
+                                    {page.label}
+                                  </Badge>
+                                ) : null;
+                              })}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Usuários que visualizaram */}
+                        {alert.usuarios_visualizaram &&
+                          alert.usuarios_visualizaram.length > 0 && (
+                            <div className="pt-2 border-t">
+                              <p className="text-xs font-medium text-muted-foreground">
+                                Visualizado por {alert.usuarios_visualizaram.length}{" "}
+                                {alert.usuarios_visualizaram.length === 1
+                                  ? "usuário"
+                                  : "usuários"}
+                              </p>
+                            </div>
+                          )}
+
                         {/* Footer */}
                         <div className="flex items-center gap-3 pt-2 border-t">
                           <Badge variant="outline" className={config.badge}>
                             {config.label}
                           </Badge>
-                          {alert.criado_em && (
+                          {alert.created_at && (
                             <div className="flex items-center gap-1 text-xs text-muted-foreground">
                               <Calendar className="w-3 h-3" />
-                              {new Date(alert.criado_em).toLocaleDateString(
+                              {new Date(alert.created_at).toLocaleDateString(
                                 "pt-BR",
                                 {
                                   day: "2-digit",
