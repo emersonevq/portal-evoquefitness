@@ -351,12 +351,12 @@ export default function Overview() {
           icon={Clock}
         />
         <Metric
-          label="SLA (30h)"
-          value={`${metrics?.sla_compliance_24h || 0}%`}
-          sub="Dentro do acordo"
+          label="Conformidade SLA"
+          value={`${slaData.dentro_sla > 0 ? Math.round((slaData.dentro_sla / (slaData.dentro_sla + slaData.fora_sla)) * 100) : 0}%`}
+          sub={`${slaData.dentro_sla} de ${slaData.dentro_sla + slaData.fora_sla} chamados`}
           variant="green"
           icon={CheckCircle2}
-          trend={metrics && metrics.sla_compliance_24h >= 80 ? "up" : "down"}
+          trend={slaData.dentro_sla > slaData.fora_sla ? "up" : "down"}
         />
         <Metric
           label="Chamados ativos"
