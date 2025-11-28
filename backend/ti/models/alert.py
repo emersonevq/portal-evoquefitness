@@ -1,5 +1,5 @@
 from datetime import datetime
-from sqlalchemy import Integer, String, DateTime, ForeignKey, Boolean, Text
+from sqlalchemy import Integer, String, DateTime, ForeignKey, Boolean, Text, LargeBinary
 from sqlalchemy.orm import Mapped, mapped_column
 from core.db import Base
 
@@ -14,6 +14,8 @@ class Alert(Base):
     end_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     link: Mapped[str | None] = mapped_column(String(1000), nullable=True)
     media_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("media.id"), nullable=True)
+    imagem_blob: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
+    imagem_mime_type: Mapped[str | None] = mapped_column(String(100), nullable=True)
     ativo: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     criado_em: Mapped[datetime | None] = mapped_column(DateTime, nullable=True, default=datetime.utcnow)
     usuario_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("user.id"), nullable=True)
