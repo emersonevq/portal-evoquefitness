@@ -145,28 +145,22 @@ class SLACacheManager:
         # No banco de dados
         try:
             from ti.models.metrics_cache import MetricsCacheDB
+            from sqlalchemy import insert
             expires_at = now_brazil_naive() + timedelta(seconds=ttl_seconds)
+            cache_value = json.dumps(value) if not isinstance(value, str) else value
+            calculated_at = now_brazil_naive()
 
-            # Tenta atualizar existente
-            cached = db.query(MetricsCacheDB).filter(
-                MetricsCacheDB.cache_key == key
-            ).first()
-
-            if cached:
-                cached.cache_value = json.dumps(value) if not isinstance(value, str) else value
-                cached.calculated_at = now_brazil_naive()
-                cached.expires_at = expires_at
-                db.add(cached)
-            else:
-                # Cria novo
-                cached = MetricsCacheDB(
-                    cache_key=key,
-                    cache_value=json.dumps(value) if not isinstance(value, str) else value,
-                    calculated_at=now_brazil_naive(),
-                    expires_at=expires_at,
-                )
-                db.add(cached)
-
+            stmt = insert(MetricsCacheDB).values(
+                cache_key=key,
+                cache_value=cache_value,
+                calculated_at=calculated_at,
+                expires_at=expires_at,
+            ).on_duplicate_key_update(
+                cache_value=cache_value,
+                calculated_at=calculated_at,
+                expires_at=expires_at,
+            )
+            db.execute(stmt)
             db.commit()
         except Exception as e:
             print(f"[CACHE] Erro ao persistir cache no banco: {e}")
