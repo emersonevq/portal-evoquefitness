@@ -225,23 +225,32 @@ export default function AlertsConfig() {
 
       <div>
         <h3 className="font-semibold mt-4 mb-2">Alertas existentes</h3>
-        <div className="grid gap-3">
+        <div className="grid gap-4">
           {alerts.map((a) => (
             <div
               key={a.id}
-              className="border rounded-md p-3 flex items-start justify-between"
+              className="border rounded-md p-3 flex items-start justify-between gap-3"
             >
-              <div>
+              <div className="flex-1">
                 <div className="font-semibold">{a.title || "(sem título)"}</div>
                 <div className="text-sm text-muted-foreground">{a.message}</div>
                 <div className="text-xs text-muted-foreground mt-1">
                   {a.severity} — {a.start_at || ""} → {a.end_at || ""}
                 </div>
+                {a.imagem_blob && (
+                  <div className="mt-2">
+                    <img
+                      src={`data:${a.imagem_mime_type || "image/jpeg"};base64,${a.imagem_blob}`}
+                      alt="Alerta"
+                      className="max-w-xs max-h-32 rounded-md border"
+                    />
+                  </div>
+                )}
               </div>
               <div>
                 <button
                   onClick={() => remove(a.id)}
-                  className="text-xs px-2 py-1 rounded-md bg-destructive text-destructive-foreground"
+                  className="text-xs px-2 py-1 rounded-md bg-destructive text-destructive-foreground whitespace-nowrap"
                 >
                   Remover
                 </button>
