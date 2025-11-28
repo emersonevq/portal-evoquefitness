@@ -14,7 +14,7 @@ class Alert(Base):
     show_on_home = Column(Boolean, nullable=False, default=False)
     created_by = Column(String(255), nullable=True)
     ativo = Column(Boolean, nullable=False, default=True)
-    usuarios_visualizaram = Column(JSON, nullable=True, default=None, comment='Array de objetos com informações de visualização: {email, nome, visualizado_em}')
+    usuarios_visualizaram = Column(JSON, nullable=True, default=None, comment='Array de objetos com informações de visualização: {id, email, nome, sobrenome, visualizado_em}')
     created_at = Column(DateTime, server_default=func.now(), nullable=False)
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False)
     imagem_blob = Column(LargeBinary, nullable=True)
