@@ -1015,7 +1015,6 @@ def analisar_p90_recomendado(db: Session = Depends(get_db)):
     Mostra quanto a conformidade melhoraria se usar P90 + 15% ao invés do SLA fixo.
     """
     try:
-        from ti.services.sla_p90_calculator import SLAP90Calculator
         from datetime import datetime, timedelta
 
         agora = now_brazil_naive()
@@ -1023,7 +1022,7 @@ def analisar_p90_recomendado(db: Session = Depends(get_db)):
 
         configs = db.query(SLAConfiguration).filter(
             SLAConfiguration.ativo == True
-        ).all()
+        ).order_by(SLAConfiguration.prioridade.asc()).all()
 
         analise = {
             "data_analise": agora.isoformat(),
@@ -1034,18 +1033,25 @@ def analisar_p90_recomendado(db: Session = Depends(get_db)):
         for config in configs:
             prioridade = config.prioridade
 
-            # Busca chamados da prioridade nos últimos 30 dias
+            print(f"\n[P90 ANALYSIS] Analisando prioridade: {prioridade}")
+            print(f"  - SLA configurado: {config.tempo_resolucao_horas}h")
+
+            # Busca APENAS chamados concluídos/cancelados dessa prioridade
             chamados = db.query(Chamado).filter(
                 and_(
                     Chamado.prioridade == prioridade,
                     Chamado.data_abertura >= data_inicio,
                     Chamado.data_abertura <= agora,
                     Chamado.deletado_em.is_(None),
-                    Chamado.status.in_(["Concluído", "Cancelado"])
+                    Chamado.status.in_(["Concluído", "Cancelado"]),
+                    Chamado.data_conclusao.isnot(None) | Chamado.cancelado_em.isnot(None)
                 )
             ).all()
 
+            print(f"  - Chamados encontrados: {len(chamados)}")
+
             if len(chamados) < 2:
+                print(f"  - ⚠️ Chamados insuficientes, pulando...")
                 continue
 
             # Calcula tempos de resolução
@@ -1062,12 +1068,17 @@ def analisar_p90_recomendado(db: Session = Depends(get_db)):
                                 data_fim,
                                 db
                             )
-                            if 0 < tempo < 720:  # Sanidade: 0-30 dias
+                            # Sanidade: 0-720 horas (30 dias)
+                            if 0 < tempo < 720:
                                 tempos.append(tempo)
-                except:
+                except Exception as e:
+                    print(f"    Erro ao processar chamado {chamado.id}: {e}")
                     pass
 
+            print(f"  - Tempos válidos: {len(tempos)}")
+
             if len(tempos) < 2:
+                print(f"  - ⚠️ Tempos insuficientes, pulando...")
                 continue
 
             # Calcula P90
@@ -1080,6 +1091,13 @@ def analisar_p90_recomendado(db: Session = Depends(get_db)):
             margem = 1.15
             p90_com_margem = p90 * margem
             media = sum(tempos) / len(tempos)
+            minimo = min(tempos)
+            maximo = max(tempos)
+
+            print(f"  - Mínimo: {minimo:.1f}h")
+            print(f"  - Média: {media:.1f}h")
+            print(f"  - P90: {p90:.1f}h")
+            print(f"  - Máximo: {maximo:.1f}h")
 
             # Calcula conformidade com SLA atual
             dentro_atual = sum(1 for t in tempos if t <= config.tempo_resolucao_horas)
@@ -1089,11 +1107,17 @@ def analisar_p90_recomendado(db: Session = Depends(get_db)):
             dentro_p90 = sum(1 for t in tempos if t <= p90_com_margem)
             conformidade_p90 = int((dentro_p90 / len(tempos)) * 100)
 
+            print(f"  - Conformidade SLA atual ({config.tempo_resolucao_horas}h): {conformidade_atual}%")
+            print(f"  - Conformidade P90 ({int(p90_com_margem)}h): {conformidade_p90}%")
+            print(f"  - Melhoria: +{conformidade_p90 - conformidade_atual}%")
+
             analise["prioridades"][prioridade] = {
                 "sla_atual": int(config.tempo_resolucao_horas),
                 "conformidade_atual": conformidade_atual,
                 "chamados_analisados": len(tempos),
+                "tempo_minimo": round(minimo, 2),
                 "tempo_medio": round(media, 2),
+                "tempo_maximo": round(maximo, 2),
                 "p90": round(p90, 2),
                 "p90_recomendado": int(p90_com_margem),
                 "conformidade_com_p90": conformidade_p90,
