@@ -664,30 +664,30 @@ def validar_dados_chamado(chamado_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/holidays", response_model=list[SLAHolidayOut])
+@router.get("/feriados", response_model=list[SLAFeriadoOut])
 def listar_feriados(db: Session = Depends(get_db)):
     """Lista todos os feriados cadastrados"""
     try:
         try:
-            SLAHoliday.__table__.create(bind=engine, checkfirst=True)
+            SLAFeriado.__table__.create(bind=engine, checkfirst=True)
         except Exception:
             pass
-        return db.query(SLAHoliday).order_by(SLAHoliday.data.asc()).all()
+        return db.query(SLAFeriado).order_by(SLAFeriado.data.asc()).all()
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro ao listar feriados: {e}")
 
 
-@router.post("/holidays", response_model=SLAHolidayOut)
-def criar_feriado(payload: SLAHolidayCreate, db: Session = Depends(get_db)):
+@router.post("/feriados", response_model=SLAFeriadoOut)
+def criar_feriado(payload: SLAFeriadoCreate, db: Session = Depends(get_db)):
     """Cria um novo feriado"""
     try:
         try:
-            SLAHoliday.__table__.create(bind=engine, checkfirst=True)
+            SLAFeriado.__table__.create(bind=engine, checkfirst=True)
         except Exception:
             pass
 
-        existente = db.query(SLAHoliday).filter(
-            SLAHoliday.data == payload.data
+        existente = db.query(SLAFeriado).filter(
+            SLAFeriado.data == payload.data
         ).first()
         if existente:
             raise HTTPException(
@@ -695,7 +695,7 @@ def criar_feriado(payload: SLAHolidayCreate, db: Session = Depends(get_db)):
                 detail=f"Feriado na data {payload.data} já existe"
             )
 
-        feriado = SLAHoliday(
+        feriado = SLAFeriado(
             data=payload.data,
             nome=payload.nome,
             descricao=payload.descricao,
@@ -713,20 +713,20 @@ def criar_feriado(payload: SLAHolidayCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=f"Erro ao criar feriado: {e}")
 
 
-@router.patch("/holidays/{feriado_id}", response_model=SLAHolidayOut)
+@router.patch("/feriados/{feriado_id}", response_model=SLAFeriadoOut)
 def atualizar_feriado(
     feriado_id: int,
-    payload: SLAHolidayUpdate,
+    payload: SLAFeriadoUpdate,
     db: Session = Depends(get_db)
 ):
     """Atualiza um feriado existente"""
     try:
         try:
-            SLAHoliday.__table__.create(bind=engine, checkfirst=True)
+            SLAFeriado.__table__.create(bind=engine, checkfirst=True)
         except Exception:
             pass
 
-        feriado = db.query(SLAHoliday).filter(SLAHoliday.id == feriado_id).first()
+        feriado = db.query(SLAFeriado).filter(SLAFeriado.id == feriado_id).first()
         if not feriado:
             raise HTTPException(status_code=404, detail="Feriado não encontrado")
 
@@ -748,16 +748,16 @@ def atualizar_feriado(
         raise HTTPException(status_code=500, detail=f"Erro ao atualizar feriado: {e}")
 
 
-@router.delete("/holidays/{feriado_id}")
+@router.delete("/feriados/{feriado_id}")
 def deletar_feriado(feriado_id: int, db: Session = Depends(get_db)):
     """Deleta um feriado"""
     try:
         try:
-            SLAHoliday.__table__.create(bind=engine, checkfirst=True)
+            SLAFeriado.__table__.create(bind=engine, checkfirst=True)
         except Exception:
             pass
 
-        feriado = db.query(SLAHoliday).filter(SLAHoliday.id == feriado_id).first()
+        feriado = db.query(SLAFeriado).filter(SLAFeriado.id == feriado_id).first()
         if not feriado:
             raise HTTPException(status_code=404, detail="Feriado não encontrado")
 
