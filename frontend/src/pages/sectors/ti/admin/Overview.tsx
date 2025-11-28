@@ -536,56 +536,75 @@ export default function Overview() {
         <div className="relative group lg:col-span-2">
           <div className="absolute -inset-1 bg-gradient-to-r from-primary/10 to-primary/5 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity" />
           <div className="relative card-surface rounded-2xl p-6 border border-border/60">
-            <h3 className="font-semibold text-lg mb-4">P90 Recomendado vs SLA Atual</h3>
+            <h3 className="font-semibold text-lg mb-4">
+              P90 Recomendado vs SLA Atual
+            </h3>
             <div className="space-y-3">
               {p90Loading ? (
                 <div className="text-muted-foreground text-center py-4">
                   <Loader className="w-4 h-4 animate-spin mx-auto" />
                 </div>
-              ) : !p90AnalysisData?.prioridades || Object.keys(p90AnalysisData.prioridades).length === 0 ? (
+              ) : !p90AnalysisData?.prioridades ||
+                Object.keys(p90AnalysisData.prioridades).length === 0 ? (
                 <div className="text-muted-foreground text-center py-4 text-sm">
                   Dados insuficientes para análise
                 </div>
               ) : (
-                Object.entries(p90AnalysisData.prioridades).map(([prioridade, data]: [string, any]) => (
-                  <div
-                    key={prioridade}
-                    className="p-3 bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors"
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-semibold">{prioridade}</span>
-                      <span
-                        className={`text-xs font-bold px-2 py-1 rounded-full ${
-                          data.melhoria > 0
-                            ? "bg-green-500/20 text-green-700 dark:text-green-400"
-                            : "bg-gray-500/20 text-gray-700 dark:text-gray-400"
-                        }`}
-                      >
-                        +{data.melhoria}%
-                      </span>
-                    </div>
-                    <div className="text-xs text-muted-foreground mb-2">
-                      {data.chamados_analisados} chamados • Min: {data.tempo_minimo}h • Médio: {data.tempo_medio}h • Máx: {data.tempo_maximo}h
-                    </div>
-                    <div className="grid grid-cols-3 gap-2 text-xs">
-                      <div>
-                        <div className="text-muted-foreground">SLA Atual</div>
-                        <div className="font-semibold">{data.sla_atual}h</div>
-                        <div className="text-xs text-muted-foreground">{data.conformidade_atual}% ok</div>
+                Object.entries(p90AnalysisData.prioridades).map(
+                  ([prioridade, data]: [string, any]) => (
+                    <div
+                      key={prioridade}
+                      className="p-3 bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors"
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-semibold">
+                          {prioridade}
+                        </span>
+                        <span
+                          className={`text-xs font-bold px-2 py-1 rounded-full ${
+                            data.melhoria > 0
+                              ? "bg-green-500/20 text-green-700 dark:text-green-400"
+                              : "bg-gray-500/20 text-gray-700 dark:text-gray-400"
+                          }`}
+                        >
+                          +{data.melhoria}%
+                        </span>
                       </div>
-                      <div>
-                        <div className="text-muted-foreground">P90</div>
-                        <div className="font-semibold">{data.p90.toFixed(1)}h</div>
-                        <div className="text-xs text-muted-foreground">-</div>
+                      <div className="text-xs text-muted-foreground mb-2">
+                        {data.chamados_analisados} chamados • Min:{" "}
+                        {data.tempo_minimo}h • Médio: {data.tempo_medio}h • Máx:{" "}
+                        {data.tempo_maximo}h
                       </div>
-                      <div>
-                        <div className="text-muted-foreground">Recomendado</div>
-                        <div className="font-semibold">{data.p90_recomendado}h</div>
-                        <div className="text-xs text-muted-foreground">{data.conformidade_com_p90}% ok</div>
+                      <div className="grid grid-cols-3 gap-2 text-xs">
+                        <div>
+                          <div className="text-muted-foreground">SLA Atual</div>
+                          <div className="font-semibold">{data.sla_atual}h</div>
+                          <div className="text-xs text-muted-foreground">
+                            {data.conformidade_atual}% ok
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-muted-foreground">P90</div>
+                          <div className="font-semibold">
+                            {data.p90.toFixed(1)}h
+                          </div>
+                          <div className="text-xs text-muted-foreground">-</div>
+                        </div>
+                        <div>
+                          <div className="text-muted-foreground">
+                            Recomendado
+                          </div>
+                          <div className="font-semibold">
+                            {data.p90_recomendado}h
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {data.conformidade_com_p90}% ok
+                          </div>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))
+                  ),
+                )
               )}
             </div>
           </div>

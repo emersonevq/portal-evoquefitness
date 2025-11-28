@@ -406,9 +406,7 @@ export function SLA() {
       );
     },
     onError: (error: any) => {
-      toast.error(
-        error.response?.data?.detail || "Erro ao zerar SLA",
-      );
+      toast.error(error.response?.data?.detail || "Erro ao zerar SLA");
     },
   });
 
