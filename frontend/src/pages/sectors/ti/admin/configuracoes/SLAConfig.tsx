@@ -310,6 +310,60 @@ export function SLA() {
     },
   });
 
+  const createHolidayMutation = useMutation({
+    mutationFn: async (data: typeof holidayData) => {
+      const response = await api.post("/sla/holidays", data);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["sla-holidays"] });
+      setShowHolidayDialog(false);
+      setHolidayData({
+        data: new Date().toISOString().split("T")[0],
+        nome: "",
+        descricao: "",
+      });
+      toast.success("Feriado adicionado com sucesso");
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.detail || "Erro ao adicionar feriado");
+    },
+  });
+
+  const updateHolidayMutation = useMutation({
+    mutationFn: async (data: { id: number; updates: Omit<typeof holidayData, 'data'> }) => {
+      const response = await api.patch(`/sla/holidays/${data.id}`, data.updates);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["sla-holidays"] });
+      setShowHolidayDialog(false);
+      setEditingHoliday(null);
+      setHolidayData({
+        data: new Date().toISOString().split("T")[0],
+        nome: "",
+        descricao: "",
+      });
+      toast.success("Feriado atualizado com sucesso");
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.detail || "Erro ao atualizar feriado");
+    },
+  });
+
+  const deleteHolidayMutation = useMutation({
+    mutationFn: async (id: number) => {
+      await api.delete(`/sla/holidays/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["sla-holidays"] });
+      toast.success("Feriado removido com sucesso");
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.detail || "Erro ao remover feriado");
+    },
+  });
+
   const sincronizarProblemasMutation = useMutation({
     mutationFn: async () => {
       const response = await api.post("/problemas/sincronizar/sla");
