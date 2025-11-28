@@ -95,9 +95,16 @@ export default function AlertDisplay() {
 
     try {
       const usuarioId = user?.email || user?.name || "anonymous";
+      const usuarioEmail = user?.email || "anonymous";
+      const usuarioNome = user?.name || "anonymous";
+
       await apiFetch(`/alerts/${alertId}/visualizar`, {
         method: "POST",
-        body: JSON.stringify({ usuario_id: usuarioId }),
+        body: JSON.stringify({
+          usuario_id: usuarioId,
+          usuario_email: usuarioEmail,
+          usuario_nome: usuarioNome
+        }),
       });
       markedAsViewedRef.current.add(alertId);
     } catch (error) {
