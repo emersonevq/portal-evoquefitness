@@ -111,6 +111,13 @@ export default function AlertDisplay() {
     return shouldShowAlertOnPage(alertPages, location.pathname);
   });
 
+  // Marcar alertas como visualizados quando aparecerem
+  useEffect(() => {
+    visibleAlerts.forEach((alert) => {
+      markAlertAsViewed(alert.id);
+    });
+  }, [visibleAlerts.map((a) => a.id).join(",")]); // Dependência: IDs dos alertas visíveis
+
   if (loading) return null;
   if (visibleAlerts.length === 0) return null;
 
