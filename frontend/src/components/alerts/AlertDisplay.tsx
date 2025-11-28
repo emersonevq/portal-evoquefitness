@@ -1,40 +1,60 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useLocation } from "react-router-dom";
-import { AlertCircle, AlertTriangle, Info, Flame, X } from "lucide-react";
+import { X } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import { shouldShowAlertOnPage } from "@/config/alert-pages";
 import { useAuthContext } from "@/lib/auth-context";
 
 const severityConfig = {
   low: {
-    icon: Info,
-    bgColor: "bg-blue-50 dark:bg-blue-950/30",
-    borderColor: "border-blue-200 dark:border-blue-800",
-    textColor: "text-blue-800 dark:text-blue-200",
-    iconColor: "text-blue-500",
+    gradient: "from-blue-500/20 via-blue-600/10 to-transparent",
+    accentColor: "bg-blue-500",
+    buttonHover: "hover:bg-blue-600",
   },
   medium: {
-    icon: AlertCircle,
-    bgColor: "bg-yellow-50 dark:bg-yellow-950/30",
-    borderColor: "border-yellow-200 dark:border-yellow-800",
-    textColor: "text-yellow-800 dark:text-yellow-200",
-    iconColor: "text-yellow-500",
+    gradient: "from-yellow-500/20 via-yellow-600/10 to-transparent",
+    accentColor: "bg-yellow-500",
+    buttonHover: "hover:bg-yellow-600",
   },
   high: {
-    icon: AlertTriangle,
-    bgColor: "bg-orange-50 dark:bg-orange-950/30",
-    borderColor: "border-orange-200 dark:border-orange-800",
-    textColor: "text-orange-800 dark:text-orange-200",
-    iconColor: "text-orange-500",
+    gradient: "from-orange-500/20 via-orange-600/10 to-transparent",
+    accentColor: "bg-orange-500",
+    buttonHover: "hover:bg-orange-600",
   },
   critical: {
-    icon: Flame,
-    bgColor: "bg-red-50 dark:bg-red-950/30",
-    borderColor: "border-red-200 dark:border-red-800",
-    textColor: "text-red-800 dark:text-red-200",
-    iconColor: "text-red-500",
+    gradient: "from-red-500/20 via-red-600/10 to-transparent",
+    accentColor: "bg-red-500",
+    buttonHover: "hover:bg-red-600",
   },
 };
+
+function EvoqueLogo() {
+  return (
+    <div className="relative">
+      <div className="absolute inset-0 bg-orange-500/30 blur-3xl rounded-full animate-pulse scale-150" />
+
+      <div className="relative w-24 h-24 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 p-1 shadow-2xl">
+        <div className="w-full h-full rounded-full bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center">
+          <svg
+            className="w-14 h-14 text-white"
+            viewBox="0 0 24 24"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M20.57 14.86L22 13.43L20.57 12L17 15.57L8.43 7L12 3.43L10.57 2L9.14 3.43L7.71 2L5.57 4.14L4.14 2.71L2.71 4.14L4.14 5.57L2 7.71L3.43 9.14L2 10.57L3.43 12L7 8.43L15.57 17L12 20.57L13.43 22L14.86 20.57L16.29 22L18.43 19.86L19.86 21.29L21.29 19.86L19.86 18.43L22 16.29L20.57 14.86Z"
+              fill="currentColor"
+            />
+          </svg>
+        </div>
+      </div>
+
+      <div className="absolute inset-0 rounded-full animate-ping">
+        <div className="w-full h-full rounded-full border-2 border-orange-400/50" />
+      </div>
+    </div>
+  );
+}
 
 export default function AlertDisplay() {
   const location = useLocation();
@@ -42,11 +62,10 @@ export default function AlertDisplay() {
   const [alerts, setAlerts] = useState<any[]>([]);
   const [dismissedAlerts, setDismissedAlerts] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
-  const [markedAsViewedRef] = useState(() => new Set<number>());
+  const markedAsViewedRef = useRef<Set<number>>(new Set());
 
   useEffect(() => {
     loadAlerts();
-    // Carregar alertas dismissados do localStorage
     const dismissed = localStorage.getItem("dismissedAlerts");
     if (dismissed) {
       try {
@@ -72,10 +91,7 @@ export default function AlertDisplay() {
   };
 
   const markAlertAsViewed = async (alertId: number) => {
-    // Só marca uma vez por sessão
-    if (markedAsViewedRef.current.has(alertId)) {
-      return;
-    }
+    if (markedAsViewedRef.current.has(alertId)) return;
 
     try {
       const usuarioId = user?.email || user?.name || "anonymous";
@@ -93,124 +109,134 @@ export default function AlertDisplay() {
     const newDismissed = [...dismissedAlerts, alertId];
     setDismissedAlerts(newDismissed);
     localStorage.setItem("dismissedAlerts", JSON.stringify(newDismissed));
-    // Marcar como visualizado ao dismissar
     markAlertAsViewed(alertId);
   };
 
-  // Filtrar alertas:
-  // 1. Não dismissados
-  // 2. Que devem ser exibidos nesta página
   const visibleAlerts = alerts.filter((alert) => {
     if (dismissedAlerts.includes(alert.id)) return false;
 
-    // Parsear páginas se for string JSON
     let alertPages: string[] | null = null;
     if (alert.pages) {
       try {
-        alertPages = JSON.parse(alert.pages);
+        alertPages = Array.isArray(alert.pages)
+          ? alert.pages
+          : JSON.parse(alert.pages);
       } catch (e) {
-        console.error("Erro ao parsear páginas do alerta:", e);
         alertPages = null;
       }
     }
 
-    // Verificar se o alerta deve ser exibido nesta página
     return shouldShowAlertOnPage(alertPages, location.pathname);
   });
 
-  if (loading) return null;
-  if (visibleAlerts.length === 0) return null;
+  const currentAlert = visibleAlerts[0];
+
+  useEffect(() => {
+    if (currentAlert?.id) {
+      markAlertAsViewed(currentAlert.id);
+    }
+  }, [currentAlert?.id]);
+
+  useEffect(() => {
+    if (!currentAlert) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") dismissAlert(currentAlert.id);
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [currentAlert?.id, dismissedAlerts]);
+
+  if (loading || !currentAlert) return null;
+
+  const severity = (currentAlert.severity as keyof typeof severityConfig) || "low";
+  const config = severityConfig[severity];
 
   return (
-    <div className="fixed inset-x-0 top-4 z-50 flex flex-col items-center gap-4 pointer-events-none px-4">
-      {visibleAlerts.map((alert) => {
-        const config =
-          severityConfig[alert.severity as keyof typeof severityConfig] ||
-          severityConfig.low;
-        const Icon = config.icon;
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
+      onClick={() => dismissAlert(currentAlert.id)}
+    >
+      <div
+        className="relative w-full max-w-[400px] aspect-[9/16] animate-in zoom-in-95 fade-in duration-300"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="relative w-full h-full rounded-3xl overflow-hidden shadow-2xl">
+          {currentAlert.imagem_blob ? (
+            <div className="absolute inset-0">
+              <img
+                src={`data:${currentAlert.imagem_mime_type || "image/jpeg"};base64,${currentAlert.imagem_blob}`}
+                alt="Alerta"
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/50 to-black/90" />
+            </div>
+          ) : (
+            <>
+              <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-gray-800 to-black" />
+              <div className={`absolute inset-0 bg-gradient-to-t ${config.gradient}`} />
+            </>
+          )}
 
-        return (
-          <div
-            key={alert.id}
-            className="pointer-events-auto w-full max-w-md animate-in slide-in-from-top duration-500"
-          >
-            <div
-              className={`
-                relative rounded-lg border overflow-hidden shadow-lg
-                ${config.bgColor} ${config.borderColor}
-              `}
-            >
-              {/* Container com imagem e conteúdo */}
-              <div className="flex flex-col gap-3 p-4">
-                {/* Imagem se existir - pequena e centralizada */}
-                {alert.imagem_blob && (
-                  <div className="relative w-32 h-32 mx-auto rounded-lg overflow-hidden border border-border/50 shadow-md flex-shrink-0">
-                    <img
-                      src={`data:${alert.imagem_mime_type || "image/jpeg"};base64,${alert.imagem_blob}`}
-                      alt="Alerta"
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                )}
-
-                {/* Conteúdo do Alerta */}
-                <div className="flex-1 text-center">
-                  <div className="flex items-center justify-center gap-2 mb-2">
-                    <Icon
-                      className={`h-5 w-5 ${config.iconColor} flex-shrink-0`}
-                    />
-                    <h3 className={`font-bold text-base ${config.textColor}`}>
-                      {alert.title}
-                    </h3>
-                  </div>
-
-                  {alert.message && (
-                    <p
-                      className={`text-sm ${config.textColor} opacity-90 leading-relaxed`}
-                    >
-                      {alert.message}
-                    </p>
-                  )}
-
-                  {alert.description && (
-                    <p
-                      className={`text-xs ${config.textColor} opacity-75 mt-2 italic`}
-                    >
-                      {alert.description}
-                    </p>
-                  )}
-                </div>
-
-                {/* Botão de fechar */}
-                <button
-                  onClick={() => dismissAlert(alert.id)}
-                  className={`
-                    self-center mt-2 px-6 py-2 rounded-md text-sm font-medium
-                    bg-background/90 hover:bg-background text-foreground
-                    transition-colors duration-200
-                  `}
-                  aria-label="Fechar alerta"
-                >
-                  Fechar
-                </button>
+          <div className="relative h-full flex flex-col p-6">
+            <div className="space-y-3">
+              <div className="h-1 bg-white/20 rounded-full overflow-hidden">
+                <div className="h-full w-full bg-white/80 rounded-full" />
               </div>
 
-              {/* Botão X no canto superior direito */}
+              <div className="flex justify-end">
+                <button
+                  onClick={() => dismissAlert(currentAlert.id)}
+                  className="p-2 rounded-full bg-black/30 hover:bg-black/50 backdrop-blur-sm transition-colors"
+                  aria-label="Fechar"
+                >
+                  <X className="h-5 w-5 text-white" />
+                </button>
+              </div>
+            </div>
+
+            <div className="flex-1 flex flex-col items-center justify-center">
+              <EvoqueLogo />
+
+              <div className="mt-8 space-y-4 text-center">
+                <h2 className="text-2xl font-bold text-white leading-tight">
+                  {currentAlert.title}
+                </h2>
+
+                {currentAlert.message && (
+                  <p className="text-sm text-white/90 leading-relaxed px-4">
+                    {currentAlert.message}
+                  </p>
+                )}
+
+                {currentAlert.description && (
+                  <p className="text-xs text-white/70 leading-relaxed px-4">
+                    {currentAlert.description}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="space-y-3">
               <button
-                onClick={() => dismissAlert(alert.id)}
+                onClick={() => dismissAlert(currentAlert.id)}
                 className={`
-                  absolute top-2 right-2 p-1.5 rounded-full
-                  bg-background/80 hover:bg-background
-                  transition-colors duration-200
+                  w-full py-3 rounded-full
+                  ${config.accentColor} ${config.buttonHover}
+                  text-white font-semibold
+                  transition-all duration-200 transform hover:scale-105
+                  shadow-lg
                 `}
-                aria-label="Fechar alerta"
               >
-                <X className={`h-4 w-4 ${config.textColor}`} />
+                Entendido
               </button>
+
+              <p className="text-center text-white/40 text-xs">
+                Toque fora para fechar
+              </p>
             </div>
           </div>
-        );
-      })}
+        </div>
+      </div>
     </div>
   );
 }
