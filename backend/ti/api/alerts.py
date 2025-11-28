@@ -7,7 +7,52 @@ from core.db import get_db, engine
 from ..models.alert import Alert
 from ..schemas.alert import AlertOut, AlertCreate
 
-router = APIRouter(prefix="/alerts", tags=["TI - Alerts"]) 
+router = APIRouter(prefix="/alerts", tags=["TI - Alerts"])
+
+# Auto-migration on startup
+def _ensure_alert_schema():
+    """Adiciona colunas de imagem à tabela alert se não existirem."""
+    try:
+        from sqlalchemy import inspect, text
+
+        with engine.connect() as conn:
+            inspector = inspect(engine)
+            tables = inspector.get_table_names()
+
+            if 'alert' not in tables:
+                print("[ALERTS] Tabela 'alert' não existe ainda")
+                return
+
+            columns = {col['name'] for col in inspector.get_columns('alert')}
+
+            if 'imagem_blob' not in columns:
+                print("[ALERTS] Adicionando coluna 'imagem_blob' à tabela alert")
+                try:
+                    conn.execute(text(
+                        "ALTER TABLE alert ADD COLUMN imagem_blob LONGBLOB NULL"
+                    ))
+                    conn.commit()
+                    print("[ALERTS] Coluna 'imagem_blob' adicionada")
+                except Exception as e:
+                    print(f"[ALERTS] Erro ao adicionar 'imagem_blob': {e}")
+                    conn.rollback()
+
+            if 'imagem_mime_type' not in columns:
+                print("[ALERTS] Adicionando coluna 'imagem_mime_type' à tabela alert")
+                try:
+                    conn.execute(text(
+                        "ALTER TABLE alert ADD COLUMN imagem_mime_type VARCHAR(100) NULL"
+                    ))
+                    conn.commit()
+                    print("[ALERTS] Coluna 'imagem_mime_type' adicionada")
+                except Exception as e:
+                    print(f"[ALERTS] Erro ao adicionar 'imagem_mime_type': {e}")
+                    conn.rollback()
+    except Exception as e:
+        print(f"[ALERTS] Erro ao fazer auto-migration: {e}")
+
+# Executar migration na primeira importação
+_ensure_alert_schema() 
 
 @router.get("", response_model=List[AlertOut])
 def list_alerts(db: Session = Depends(get_db)):
