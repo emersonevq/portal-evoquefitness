@@ -1,6 +1,5 @@
 import { useEffect, useState, useRef } from "react";
 import { useLocation } from "react-router-dom";
-import { X } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import { shouldShowAlertOnPage } from "@/config/alert-pages";
 import { useAuthContext } from "@/lib/auth-context";
