@@ -105,7 +105,7 @@ export default function AlertDisplay() {
           usuario_id: usuarioId,
           usuario_email: usuarioEmail,
           usuario_nome: usuarioNome,
-          usuario_sobrenome: usuarioSobrenome
+          usuario_sobrenome: usuarioSobrenome,
         }),
       });
       markedAsViewedRef.current.add(alertId);
@@ -149,7 +149,6 @@ export default function AlertDisplay() {
       markAlertAsViewed(currentAlert.id);
     }
   }, [currentAlert?.id, user]);
-
 
   if (loading || !currentAlert) return null;
 
