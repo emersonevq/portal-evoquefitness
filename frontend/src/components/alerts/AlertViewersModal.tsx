@@ -15,6 +15,7 @@ interface AlertViewer {
   id: string;
   email: string;
   nome: string;
+  sobrenome?: string;
   visualizado_em?: string;
 }
 
