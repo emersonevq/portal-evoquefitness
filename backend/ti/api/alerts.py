@@ -7,19 +7,12 @@ from datetime import datetime
 import base64
 import json
 from core.db import get_db, engine
-from ti.models.alert import Alert, AlertView
-from ti.models.user import User
-from ti.schemas.alert import AlertOut, AlertCreate, AlertUpdate
-from core.utils import get_current_user_id
 
 try:
     from ti.models.alert import Alert, AlertView
-except ImportError:
-    from ..models.alert import Alert, AlertView
-
-try:
     from ti.schemas.alert import AlertOut, AlertCreate, AlertUpdate
 except ImportError:
+    from ..models.alert import Alert, AlertView
     from ..schemas.alert import AlertOut, AlertCreate, AlertUpdate
 
 router = APIRouter(prefix="/alerts", tags=["TI - Alerts"])
