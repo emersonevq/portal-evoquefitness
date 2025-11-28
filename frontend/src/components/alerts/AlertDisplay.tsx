@@ -148,7 +148,8 @@ export default function AlertDisplay() {
 
   if (loading || !currentAlert) return null;
 
-  const severity = (currentAlert.severity as keyof typeof severityConfig) || "low";
+  const severity =
+    (currentAlert.severity as keyof typeof severityConfig) || "low";
   const config = severityConfig[severity];
 
   return (
@@ -173,7 +174,9 @@ export default function AlertDisplay() {
           ) : (
             <>
               <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-gray-800 to-black" />
-              <div className={`absolute inset-0 bg-gradient-to-t ${config.gradient}`} />
+              <div
+                className={`absolute inset-0 bg-gradient-to-t ${config.gradient}`}
+              />
             </>
           )}
 
