@@ -2,18 +2,69 @@ import { useEffect, useState, useRef } from "react";
 import { apiFetch } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { X } from "lucide-react";
+import {
+  X,
+  AlertCircle,
+  AlertTriangle,
+  Info,
+  Flame,
+  Image as ImageIcon,
+  Calendar,
+  Trash2,
+  Plus,
+  Sparkles,
+} from "lucide-react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 
 type MediaItem = { id: number | string; url?: string; type?: string };
+
+const severityConfig = {
+  low: {
+    icon: Info,
+    label: "Baixa",
+    color: "text-blue-500",
+    bg: "bg-blue-500/10",
+    border: "border-blue-500/20",
+    badge: "bg-blue-500/10 text-blue-500 border-blue-500/20",
+  },
+  medium: {
+    icon: AlertCircle,
+    label: "Média",
+    color: "text-yellow-500",
+    bg: "bg-yellow-500/10",
+    border: "border-yellow-500/20",
+    badge: "bg-yellow-500/10 text-yellow-500 border-yellow-500/20",
+  },
+  high: {
+    icon: AlertTriangle,
+    label: "Alta",
+    color: "text-orange-500",
+    bg: "bg-orange-500/10",
+    border: "border-orange-500/20",
+    badge: "bg-orange-500/10 text-orange-500 border-orange-500/20",
+  },
+  critical: {
+    icon: Flame,
+    label: "Crítica",
+    color: "text-red-500",
+    bg: "bg-red-500/10",
+    border: "border-red-500/20",
+    badge: "bg-red-500/10 text-red-500 border-red-500/20",
+  },
+};
 
 export default function AlertsConfig() {
   const [title, setTitle] = useState("");
   const [message, setMessage] = useState("");
-  const [severity, setSeverity] = useState("info");
-  const [link, setLink] = useState("");
-  const [startAt, setStartAt] = useState<string | null>(null);
-  const [endAt, setEndAt] = useState<string | null>(null);
-  const [mediaId, setMediaId] = useState<number | null>(null);
+  const [description, setDescription] = useState("");
+  const [severity, setSeverity] = useState<keyof typeof severityConfig>("low");
   const [mediaList, setMediaList] = useState<MediaItem[]>([]);
   const [alerts, setAlerts] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -27,6 +78,7 @@ export default function AlertsConfig() {
     const data = await res.json();
     setMediaList(Array.isArray(data) ? data : []);
   };
+
   const loadAlerts = async () => {
     const res = await apiFetch("/alerts");
     if (!res.ok) return;
@@ -66,11 +118,6 @@ export default function AlertsConfig() {
       formData.append("title", title);
       formData.append("message", message);
       formData.append("severity", severity);
-      if (link) formData.append("link", link);
-      if (mediaId) formData.append("media_id", String(mediaId));
-      if (startAt) formData.append("start_at", startAt);
-      if (endAt) formData.append("end_at", endAt);
-      formData.append("ativo", "true");
 
       if (imagemFile) {
         formData.append("imagem", imagemFile);
@@ -80,23 +127,29 @@ export default function AlertsConfig() {
         method: "POST",
         body: formData,
       });
+
       if (!res.ok) {
-        alert("Falha ao criar alerta");
+        const error = await res.text();
+        console.error("Erro ao criar alerta:", error);
+        alert("Falha ao criar alerta: " + error);
       } else {
         setTitle("");
         setMessage("");
-        setLink("");
-        setMediaId(null);
+        setDescription("");
+        setSeverity("low");
         limparImagem();
         await loadAlerts();
       }
+    } catch (error) {
+      console.error("Erro:", error);
+      alert("Erro ao criar alerta");
     } finally {
       setLoading(false);
     }
   };
 
   const remove = async (id: number) => {
-    if (!confirm("Remover alerta?")) return;
+    if (!confirm("Tem certeza que deseja remover este alerta?")) return;
     const res = await apiFetch(`/alerts/${id}`, { method: "DELETE" });
     if (!res.ok) {
       alert("Falha ao remover");
@@ -106,80 +159,116 @@ export default function AlertsConfig() {
   };
 
   return (
-    <div className="card-surface rounded-xl p-4 space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <div className="font-semibold">Alertas do Sistema</div>
-          <p className="text-sm text-muted-foreground">
-            Crie mensagens que serão exibidas na página inicial para todos os
-            usuários.
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-start gap-4">
+        <div className="p-3 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/10">
+          <Sparkles className="w-6 h-6 text-primary" />
+        </div>
+        <div className="flex-1">
+          <h2 className="text-2xl font-bold tracking-tight">
+            Alertas do Sistema
+          </h2>
+          <p className="text-muted-foreground mt-1">
+            Crie e gerencie mensagens que serão exibidas na página inicial para
+            todos os usuários
           </p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-3">
-        <Input
-          placeholder="Título"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-        />
-        <Input
-          placeholder="Mensagem"
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-        />
-        <div className="flex gap-2">
-          <select
-            className="rounded-md bg-background border px-3 py-2"
-            value={severity}
-            onChange={(e) => setSeverity(e.target.value)}
-          >
-            <option value="info">Info</option>
-            <option value="warning">Aviso</option>
-            <option value="danger">Crítico</option>
-          </select>
-          <Input
-            placeholder="Link (opcional)"
-            value={link}
-            onChange={(e) => setLink(e.target.value)}
-          />
-        </div>
-        <div className="flex gap-2">
-          <Input
-            type="datetime-local"
-            value={startAt || ""}
-            onChange={(e) => setStartAt(e.target.value)}
-          />
-          <Input
-            type="datetime-local"
-            value={endAt || ""}
-            onChange={(e) => setEndAt(e.target.value)}
-          />
-        </div>
-        <div>
-          <div className="text-sm text-muted-foreground mb-1">
-            Mídia associada (opcional)
+      {/* Formulário de Criação */}
+      <Card className="border-2">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Plus className="w-5 h-5" />
+            Criar Novo Alerta
+          </CardTitle>
+          <CardDescription>
+            Preencha as informações abaixo para criar um novo alerta
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Título */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium flex items-center gap-2">
+              Título
+              <span className="text-destructive">*</span>
+            </label>
+            <Input
+              placeholder="Ex: Manutenção programada"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="text-base"
+            />
           </div>
-          <select
-            className="rounded-md bg-background border px-3 py-2 w-full"
-            value={mediaId ?? ""}
-            onChange={(e) =>
-              setMediaId(e.target.value ? Number(e.target.value) : null)
-            }
-          >
-            <option value="">Nenhuma</option>
-            {mediaList.map((m) => (
-              <option key={m.id} value={m.id}>
-                {m.id} — {m.type}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <div className="text-sm text-muted-foreground mb-2">
-            Imagem do alerta (opcional)
+
+          {/* Mensagem */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium flex items-center gap-2">
+              Mensagem
+              <span className="text-destructive">*</span>
+            </label>
+            <textarea
+              placeholder="Ex: O sistema estará em manutenção das 22h às 23h..."
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              className="w-full min-h-[100px] px-3 py-2 rounded-md border bg-background text-base resize-none focus:outline-none focus:ring-2 focus:ring-ring"
+            />
           </div>
-          <div className="flex items-center gap-2">
+
+          {/* Severidade */}
+          <div className="space-y-3">
+            <label className="text-sm font-medium">Nível de Severidade</label>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {(
+                Object.keys(severityConfig) as Array<
+                  keyof typeof severityConfig
+                >
+              ).map((sev) => {
+                const config = severityConfig[sev];
+                const Icon = config.icon;
+                const isActive = severity === sev;
+
+                return (
+                  <button
+                    key={sev}
+                    type="button"
+                    onClick={() => setSeverity(sev)}
+                    className={`
+                      relative p-4 rounded-lg border-2 transition-all
+                      ${
+                        isActive
+                          ? `${config.bg} ${config.border} shadow-lg scale-105`
+                          : "border-border hover:border-muted-foreground/30"
+                      }
+                    `}
+                  >
+                    <div className="flex flex-col items-center gap-2">
+                      <Icon
+                        className={`w-6 h-6 ${isActive ? config.color : "text-muted-foreground"}`}
+                      />
+                      <span
+                        className={`text-sm font-medium ${isActive ? config.color : "text-muted-foreground"}`}
+                      >
+                        {config.label}
+                      </span>
+                    </div>
+                    {isActive && (
+                      <div className="absolute top-2 right-2 w-2 h-2 rounded-full bg-current animate-pulse" />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Upload de Imagem */}
+          <div className="space-y-3">
+            <label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+              <ImageIcon className="w-4 h-4" />
+              Imagem do alerta (opcional)
+            </label>
+
             <input
               ref={fileInputRef}
               type="file"
@@ -187,80 +276,188 @@ export default function AlertsConfig() {
               onChange={handleImagemChange}
               className="hidden"
             />
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => fileInputRef.current?.click()}
-            >
-              Escolher imagem
-            </Button>
-            {imagemFile && (
-              <span className="text-sm text-muted-foreground">
-                {imagemFile.name}
-              </span>
-            )}
-          </div>
-          {imagemPreview && (
-            <div className="mt-3 relative inline-block">
-              <img
-                src={imagemPreview}
-                alt="Preview"
-                className="max-w-xs max-h-40 rounded-md border"
-              />
-              <button
-                onClick={limparImagem}
-                className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1 hover:opacity-80"
-              >
-                <X size={16} />
-              </button>
-            </div>
-          )}
-        </div>
-        <div className="flex items-center gap-2">
-          <Button onClick={create} disabled={loading}>
-            {loading ? "Salvando..." : "Criar alerta"}
-          </Button>
-        </div>
-      </div>
 
-      <div>
-        <h3 className="font-semibold mt-4 mb-2">Alertas existentes</h3>
-        <div className="grid gap-4">
-          {alerts.map((a) => (
-            <div
-              key={a.id}
-              className="border rounded-md p-3 flex items-start justify-between gap-3"
-            >
-              <div className="flex-1">
-                <div className="font-semibold">{a.title || "(sem título)"}</div>
-                <div className="text-sm text-muted-foreground">{a.message}</div>
-                <div className="text-xs text-muted-foreground mt-1">
-                  {a.severity} — {a.start_at || ""} → {a.end_at || ""}
+            {!imagemPreview ? (
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="w-full p-8 rounded-lg border-2 border-dashed border-border hover:border-primary/50 transition-colors group"
+              >
+                <div className="flex flex-col items-center gap-2 text-muted-foreground group-hover:text-primary transition-colors">
+                  <ImageIcon className="w-8 h-8" />
+                  <span className="text-sm font-medium">
+                    Clique para escolher uma imagem
+                  </span>
+                  <span className="text-xs">PNG, JPG ou WEBP até 5MB</span>
                 </div>
-                {a.imagem_blob && (
-                  <div className="mt-2">
-                    <img
-                      src={`data:${a.imagem_mime_type || "image/jpeg"};base64,${a.imagem_blob}`}
-                      alt="Alerta"
-                      className="max-w-xs max-h-32 rounded-md border"
-                    />
+              </button>
+            ) : (
+              <div className="relative group rounded-lg overflow-hidden border-2 border-border">
+                <img
+                  src={imagemPreview}
+                  alt="Preview"
+                  className="w-full h-64 object-cover"
+                />
+                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <ImageIcon className="w-4 h-4 mr-2" />
+                    Alterar
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="destructive"
+                    onClick={limparImagem}
+                  >
+                    <X className="w-4 h-4 mr-2" />
+                    Remover
+                  </Button>
+                </div>
+                {imagemFile && (
+                  <div className="absolute bottom-0 left-0 right-0 bg-black/80 backdrop-blur-sm p-2 text-xs text-white">
+                    {imagemFile.name} • {(imagemFile.size / 1024).toFixed(0)} KB
                   </div>
                 )}
               </div>
-              <div>
-                <button
-                  onClick={() => remove(a.id)}
-                  className="text-xs px-2 py-1 rounded-md bg-destructive text-destructive-foreground whitespace-nowrap"
-                >
-                  Remover
-                </button>
-              </div>
-            </div>
-          ))}
-          {alerts.length === 0 && (
-            <div className="text-sm text-muted-foreground">Nenhum alerta</div>
-          )}
+            )}
+          </div>
+
+          {/* Botão de Criar */}
+          <Button
+            onClick={create}
+            disabled={loading || !title || !message}
+            className="w-full h-12 text-base font-medium"
+            size="lg"
+          >
+            {loading ? (
+              <>
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
+                Criando alerta...
+              </>
+            ) : (
+              <>
+                <Plus className="w-5 h-5 mr-2" />
+                Criar Alerta
+              </>
+            )}
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* Lista de Alertas */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-xl font-semibold">Alertas Ativos</h3>
+          <Badge variant="secondary" className="text-sm">
+            {alerts.length} {alerts.length === 1 ? "alerta" : "alertas"}
+          </Badge>
         </div>
+
+        {alerts.length === 0 ? (
+          <Card className="border-dashed">
+            <CardContent className="py-12">
+              <div className="flex flex-col items-center gap-3 text-muted-foreground">
+                <AlertCircle className="w-12 h-12 opacity-20" />
+                <p className="text-sm font-medium">
+                  Nenhum alerta criado ainda
+                </p>
+                <p className="text-xs">Crie seu primeiro alerta acima</p>
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid gap-4">
+            {alerts.map((alert) => {
+              const config =
+                severityConfig[alert.severity as keyof typeof severityConfig] ||
+                severityConfig.low;
+              const Icon = config.icon;
+
+              return (
+                <Card
+                  key={alert.id}
+                  className={`border-l-4 ${config.border} hover:shadow-lg transition-shadow`}
+                >
+                  <CardContent className="p-6">
+                    <div className="flex gap-4">
+                      {/* Ícone de Severidade */}
+                      <div
+                        className={`flex-shrink-0 w-12 h-12 rounded-lg ${config.bg} flex items-center justify-center`}
+                      >
+                        <Icon className={`w-6 h-6 ${config.color}`} />
+                      </div>
+
+                      {/* Conteúdo */}
+                      <div className="flex-1 min-w-0 space-y-3">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1">
+                            <h4 className="font-semibold text-lg">
+                              {alert.title}
+                            </h4>
+                            <p className="text-muted-foreground mt-1">
+                              {alert.message}
+                            </p>
+                            {alert.description && (
+                              <p className="text-sm text-muted-foreground/70 mt-2 italic">
+                                {alert.description}
+                              </p>
+                            )}
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => remove(alert.id)}
+                            className="hover:bg-destructive/10 hover:text-destructive flex-shrink-0"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+
+                        {/* Imagem */}
+                        {alert.imagem_blob && (
+                          <div className="rounded-lg overflow-hidden border max-w-md">
+                            <img
+                              src={`data:${alert.imagem_mime_type || "image/jpeg"};base64,${alert.imagem_blob}`}
+                              alt="Alerta"
+                              className="w-full h-48 object-cover"
+                            />
+                          </div>
+                        )}
+
+                        {/* Footer */}
+                        <div className="flex items-center gap-3 pt-2 border-t">
+                          <Badge variant="outline" className={config.badge}>
+                            {config.label}
+                          </Badge>
+                          {alert.criado_em && (
+                            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                              <Calendar className="w-3 h-3" />
+                              {new Date(alert.criado_em).toLocaleDateString(
+                                "pt-BR",
+                                {
+                                  day: "2-digit",
+                                  month: "short",
+                                  year: "numeric",
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                },
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );
