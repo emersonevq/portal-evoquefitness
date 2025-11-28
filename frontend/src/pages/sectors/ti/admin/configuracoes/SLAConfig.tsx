@@ -463,9 +463,9 @@ export function SLA() {
     }
   };
 
-  const handleAddHoliday = () => {
-    setEditingHoliday(null);
-    setHolidayData({
+  const handleAddFeriado = () => {
+    setEditingFeriado(null);
+    setFeriadoData({
       data: new Date().toISOString().split("T")[0],
       nome: "",
       descricao: "",
@@ -473,39 +473,39 @@ export function SLA() {
     setShowHolidayDialog(true);
   };
 
-  const handleEditHoliday = (holiday: Holiday) => {
-    setEditingHoliday(holiday);
-    setHolidayData({
-      data: holiday.data,
-      nome: holiday.nome,
-      descricao: holiday.descricao || "",
+  const handleEditFeriado = (feriado: Feriado) => {
+    setEditingFeriado(feriado);
+    setFeriadoData({
+      data: feriado.data,
+      nome: feriado.nome,
+      descricao: feriado.descricao || "",
     });
     setShowHolidayDialog(true);
   };
 
-  const handleSaveHoliday = () => {
-    if (!holidayData.nome) {
+  const handleSaveFeriado = () => {
+    if (!feriadoData.nome) {
       toast.error("Preencha o nome do feriado");
       return;
     }
 
-    if (editingHoliday) {
-      updateHolidayMutation.mutate({
-        id: editingHoliday.id,
+    if (editingFeriado) {
+      updateFeriadoMutation.mutate({
+        id: editingFeriado.id,
         updates: {
-          nome: holidayData.nome,
-          descricao: holidayData.descricao,
+          nome: feriadoData.nome,
+          descricao: feriadoData.descricao,
         },
       });
     } else {
-      const dateExists = holidays.some(
-        (h: Holiday) => h.data === holidayData.data,
+      const dateExists = feriados.some(
+        (f: Feriado) => f.data === feriadoData.data,
       );
       if (dateExists) {
         toast.error("Feriado nesta data já existe");
         return;
       }
-      createHolidayMutation.mutate(holidayData);
+      createFeriadoMutation.mutate(feriadoData);
     }
   };
 
