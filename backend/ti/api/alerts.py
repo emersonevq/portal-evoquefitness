@@ -20,20 +20,61 @@ def list_alerts(db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=f"Erro ao listar alertas: {e}")
 
 @router.post("", response_model=AlertOut)
-def create_alert(payload: AlertCreate, db: Session = Depends(get_db)):
+async def create_alert(
+    title: Optional[str] = Form(None),
+    message: Optional[str] = Form(None),
+    severity: str = Form("info"),
+    link: Optional[str] = Form(None),
+    media_id: Optional[int] = Form(None),
+    start_at: Optional[str] = Form(None),
+    end_at: Optional[str] = Form(None),
+    ativo: bool = Form(True),
+    imagem: Optional[UploadFile] = File(None),
+    db: Session = Depends(get_db)
+):
     try:
         import traceback
-        print(f"[ALERTS] Criando alerta com payload: {payload}")
+        from datetime import datetime as dt
+
+        print(f"[ALERTS] Criando alerta: title={title}, severity={severity}")
+
+        imagem_blob = None
+        imagem_mime_type = None
+
+        if imagem:
+            try:
+                imagem_blob = await imagem.read()
+                imagem_mime_type = imagem.content_type
+                print(f"[ALERTS] Imagem recebida: {imagem.filename}, tamanho={len(imagem_blob)} bytes, mime={imagem_mime_type}")
+            except Exception as e:
+                print(f"[ALERTS] Erro ao processar imagem: {e}")
+
+        start_at_dt = None
+        end_at_dt = None
+
+        if start_at:
+            try:
+                start_at_dt = dt.fromisoformat(start_at.replace('Z', '+00:00'))
+            except:
+                pass
+
+        if end_at:
+            try:
+                end_at_dt = dt.fromisoformat(end_at.replace('Z', '+00:00'))
+            except:
+                pass
 
         a = Alert(
-            title=payload.title,
-            message=payload.message,
-            severity=payload.severity,
-            start_at=payload.start_at,
-            end_at=payload.end_at,
-            link=payload.link,
-            media_id=payload.media_id,
-            ativo=payload.ativo if payload.ativo is not None else True,
+            title=title,
+            message=message,
+            severity=severity,
+            start_at=start_at_dt,
+            end_at=end_at_dt,
+            link=link,
+            media_id=media_id,
+            imagem_blob=imagem_blob,
+            imagem_mime_type=imagem_mime_type,
+            ativo=ativo if ativo is not None else True,
         )
         print(f"[ALERTS] Objeto Alert criado")
         db.add(a)
