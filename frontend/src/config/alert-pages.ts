@@ -197,12 +197,9 @@ export const shouldShowAlertOnPage = (
     // Comparação exata de caminho
     if (currentPath === page.path) return true;
 
-    // Verificar se a página atual começa com o caminho configurado
+    // Verificar se a página atual começa com o caminho configurado seguido de /
     // Ex: /setor/ti/admin/chamados contém /setor/ti
-    if (
-      currentPath.startsWith(page.path + "/") ||
-      currentPath.startsWith(page.path)
-    ) {
+    if (currentPath.startsWith(page.path + "/")) {
       return true;
     }
 
