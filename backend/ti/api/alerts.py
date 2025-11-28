@@ -49,8 +49,7 @@ def list_alerts(db: Session = Depends(get_db)) -> List[Dict[str, Any]]:
                 "created_at": alert.created_at.isoformat() if alert.created_at else None,
                 "updated_at": alert.updated_at.isoformat() if alert.updated_at else None,
                 "imagem_mime_type": alert.imagem_mime_type,
-                "imagem_blob": None,
-                "pages": alert.pages
+                "imagem_blob": None
             }
             
             # Converter blob para base64 se existir
@@ -85,7 +84,6 @@ async def create_alert(
     description: Optional[str] = Form(None),
     severity: str = Form("low"),
     imagem: Optional[UploadFile] = File(None),
-    pages: Optional[str] = Form(None),
     db: Session = Depends(get_db)
 ) -> Dict[str, Any]:
     """
@@ -128,8 +126,7 @@ async def create_alert(
                 description=description,
                 severity=severity,
                 imagem_blob=imagem_blob,
-                imagem_mime_type=imagem_mime_type,
-                pages=pages
+                imagem_mime_type=imagem_mime_type
             )
         except TypeError as e:
             # Se falhar, tentar sem description
@@ -139,8 +136,7 @@ async def create_alert(
                 message=message,
                 severity=severity,
                 imagem_blob=imagem_blob,
-                imagem_mime_type=imagem_mime_type,
-                pages=pages
+                imagem_mime_type=imagem_mime_type
             )
             # Tentar adicionar description depois se o campo existir
             if hasattr(new_alert, 'description'):
@@ -159,10 +155,9 @@ async def create_alert(
             "title": new_alert.title,
             "message": new_alert.message,
             "severity": new_alert.severity,
-            "imagem_mime_type": new_alert.imagem_mime_type,
-            "pages": pages
+            "imagem_mime_type": new_alert.imagem_mime_type
         }
-
+        
         # Adicionar campos opcionais se existirem
         if hasattr(new_alert, 'description'):
             response["description"] = new_alert.description
