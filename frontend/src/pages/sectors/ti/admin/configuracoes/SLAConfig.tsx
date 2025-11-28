@@ -145,7 +145,7 @@ export function SLA() {
   const [showHolidayDialog, setShowHolidayDialog] = useState(false);
   const [editingConfig, setEditingConfig] = useState<SLAConfig | null>(null);
   const [editingHours, setEditingHours] = useState<BusinessHours | null>(null);
-  const [editingHoliday, setEditingHoliday] = useState<Holiday | null>(null);
+  const [editingFeriado, setEditingFeriado] = useState<Feriado | null>(null);
   const [configViewMode, setConfigViewMode] = useState<"grid" | "list">("grid");
 
   const [formData, setFormData] = useState({
