@@ -42,7 +42,7 @@ ON DUPLICATE KEY UPDATE
 -- 3. ADICIONAR ALGUNS FERIADOS BRASILEIROS PADRÃO (EXEMPLO)
 -- =====================================================================
 -- Nota: Ajuste os anos conforme necessário
-INSERT IGNORE INTO `sla_holidays` (
+INSERT IGNORE INTO `sla_feriados` (
     `data`,
     `nome`,
     `descricao`,
