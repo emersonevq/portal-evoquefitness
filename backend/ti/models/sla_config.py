@@ -30,8 +30,8 @@ class SLABusinessHours(Base):
     atualizado_em: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
 
-class SLAHoliday(Base):
-    __tablename__ = "sla_holidays"
+class SLAFeriado(Base):
+    __tablename__ = "sla_feriados"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     data: Mapped[str] = mapped_column(String(10), nullable=False, unique=True)
