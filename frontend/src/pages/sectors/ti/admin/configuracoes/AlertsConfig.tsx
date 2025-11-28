@@ -76,6 +76,8 @@ export default function AlertsConfig() {
   const [imagemFile, setImagemFile] = useState<File | null>(null);
   const [imagemPreview, setImagemPreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [viewersModalOpen, setViewersModalOpen] = useState(false);
+  const [selectedAlertForViewers, setSelectedAlertForViewers] = useState<any | null>(null);
 
   const loadMedia = async () => {
     const res = await apiFetch("/login-media");
