@@ -4,7 +4,7 @@ from core.db import Base
 
 class Alert(Base):
     __tablename__ = "alert"
-    
+
     id = Column(Integer, primary_key=True, autoincrement=True)
     title = Column(String(255), nullable=False)
     message = Column(Text, nullable=True)
@@ -14,6 +14,7 @@ class Alert(Base):
     show_on_home = Column(Boolean, nullable=False, default=False)
     created_by = Column(String(255), nullable=True)
     ativo = Column(Boolean, nullable=False, default=True)
+    usuarios_visualizaram = Column(JSON, nullable=True, default=None, comment='Array de IDs de usuários que visualizaram o alerta')
     created_at = Column(DateTime, server_default=func.now(), nullable=False)
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False)
     imagem_blob = Column(LargeBinary, nullable=True)
