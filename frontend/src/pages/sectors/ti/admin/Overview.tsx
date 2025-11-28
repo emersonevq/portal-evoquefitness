@@ -174,6 +174,16 @@ export default function Overview() {
       gcTime: 60 * 60 * 1000,
     });
 
+  const { data: p90AnalysisData, isLoading: p90Loading } = useQuery({
+    queryKey: ["sla-p90-analysis"],
+    queryFn: async () => {
+      const response = await api.get("/sla/recommendations/p90-analysis");
+      return response.data;
+    },
+    staleTime: 30 * 60 * 1000,
+    gcTime: 120 * 60 * 1000,
+  });
+
   // Atualiza estado local quando dados do React Query chegam
   useEffect(() => {
     if (basicMetricsData) {
