@@ -59,6 +59,13 @@ EXPECTED: Dict[str, Dict[str, str]] = {
         "created_at": "DATETIME NULL",
         "updated_at": "DATETIME NULL",
     },
+    "metrics_cache_db": {
+        "id": "INT PRIMARY KEY AUTO_INCREMENT",
+        "cache_key": "VARCHAR(100) NOT NULL UNIQUE KEY",
+        "cache_value": "TEXT NOT NULL",
+        "calculated_at": "DATETIME NULL",
+        "expires_at": "DATETIME NULL",
+    },
 }
 
 
