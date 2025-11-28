@@ -572,13 +572,24 @@ export default function AlertsConfig() {
                         {alert.usuarios_visualizaram &&
                           alert.usuarios_visualizaram.length > 0 && (
                             <div className="pt-2 border-t">
-                              <p className="text-xs font-medium text-muted-foreground">
-                                Visualizado por{" "}
-                                {alert.usuarios_visualizaram.length}{" "}
-                                {alert.usuarios_visualizaram.length === 1
-                                  ? "usuário"
-                                  : "usuários"}
-                              </p>
+                              <div className="flex items-center justify-between">
+                                <p className="text-xs font-medium text-muted-foreground">
+                                  Visualizado por{" "}
+                                  {alert.usuarios_visualizaram.length}{" "}
+                                  {alert.usuarios_visualizaram.length === 1
+                                    ? "usuário"
+                                    : "usuários"}
+                                </p>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => openViewersModal(alert)}
+                                  className="h-7 text-xs"
+                                >
+                                  <Eye className="w-3 h-3 mr-1" />
+                                  Ver lista
+                                </Button>
+                              </div>
                             </div>
                           )}
 
