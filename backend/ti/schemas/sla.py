@@ -206,7 +206,7 @@ class SLAStatusResponse(BaseModel):
         from_attributes = True
 
 
-class SLAHolidayCreate(BaseModel):
+class SLAFeriadoCreate(BaseModel):
     """Schema para criar feriado"""
     data: str = Field(..., description="Data do feriado (YYYY-MM-DD)")
     nome: str = Field(..., description="Nome do feriado")
@@ -231,7 +231,7 @@ class SLAHolidayCreate(BaseModel):
         return v.strip()
 
 
-class SLAHolidayUpdate(BaseModel):
+class SLAFeriadoUpdate(BaseModel):
     """Schema para atualizar feriado"""
     nome: str | None = Field(None, description="Nome do feriado")
     descricao: str | None = Field(None, description="Descrição do feriado")
@@ -247,7 +247,7 @@ class SLAHolidayUpdate(BaseModel):
         return v
 
 
-class SLAHolidayOut(BaseModel):
+class SLAFeriadoOut(BaseModel):
     """Schema de saída para feriado"""
     id: int
     data: str
