@@ -1006,3 +1006,102 @@ def recalcular_sla_agora(db: Session = Depends(get_db)):
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Erro ao recalcular SLA: {e}")
+
+
+@router.get("/recommendations/p90-analysis")
+def analisar_p90_recomendado(db: Session = Depends(get_db)):
+    """
+    Analisa o P90 recomendado para cada prioridade.
+    Mostra quanto a conformidade melhoraria se usar P90 + 15% ao invés do SLA fixo.
+    """
+    try:
+        from ti.services.sla_p90_calculator import SLAP90Calculator
+        from datetime import datetime, timedelta
+
+        agora = now_brazil_naive()
+        data_inicio = agora - timedelta(days=30)
+
+        configs = db.query(SLAConfiguration).filter(
+            SLAConfiguration.ativo == True
+        ).all()
+
+        analise = {
+            "data_analise": agora.isoformat(),
+            "periodo": f"{data_inicio.isoformat()} a {agora.isoformat()}",
+            "prioridades": {}
+        }
+
+        for config in configs:
+            prioridade = config.prioridade
+
+            # Busca chamados da prioridade nos últimos 30 dias
+            chamados = db.query(Chamado).filter(
+                and_(
+                    Chamado.prioridade == prioridade,
+                    Chamado.data_abertura >= data_inicio,
+                    Chamado.data_abertura <= agora,
+                    Chamado.deletado_em.is_(None),
+                    Chamado.status.in_(["Concluído", "Cancelado"])
+                )
+            ).all()
+
+            if len(chamados) < 2:
+                continue
+
+            # Calcula tempos de resolução
+            tempos = []
+            for chamado in chamados:
+                try:
+                    if chamado.data_abertura:
+                        data_fim = chamado.data_conclusao or chamado.cancelado_em
+                        if data_fim:
+                            from ti.services.sla import SLACalculator
+                            tempo = SLACalculator.calculate_business_hours_excluding_paused(
+                                chamado.id,
+                                chamado.data_abertura,
+                                data_fim,
+                                db
+                            )
+                            if 0 < tempo < 720:  # Sanidade: 0-30 dias
+                                tempos.append(tempo)
+                except:
+                    pass
+
+            if len(tempos) < 2:
+                continue
+
+            # Calcula P90
+            tempos_sorted = sorted(tempos)
+            p90_index = int(0.9 * (len(tempos_sorted) - 1))
+            if p90_index >= len(tempos_sorted):
+                p90_index = len(tempos_sorted) - 1
+
+            p90 = tempos_sorted[p90_index]
+            margem = 1.15
+            p90_com_margem = p90 * margem
+            media = sum(tempos) / len(tempos)
+
+            # Calcula conformidade com SLA atual
+            dentro_atual = sum(1 for t in tempos if t <= config.tempo_resolucao_horas)
+            conformidade_atual = int((dentro_atual / len(tempos)) * 100)
+
+            # Calcula conformidade com P90
+            dentro_p90 = sum(1 for t in tempos if t <= p90_com_margem)
+            conformidade_p90 = int((dentro_p90 / len(tempos)) * 100)
+
+            analise["prioridades"][prioridade] = {
+                "sla_atual": int(config.tempo_resolucao_horas),
+                "conformidade_atual": conformidade_atual,
+                "chamados_analisados": len(tempos),
+                "tempo_medio": round(media, 2),
+                "p90": round(p90, 2),
+                "p90_recomendado": int(p90_com_margem),
+                "conformidade_com_p90": conformidade_p90,
+                "melhoria": conformidade_p90 - conformidade_atual
+            }
+
+        return analise
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Erro ao analisar P90: {e}")
