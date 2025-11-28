@@ -155,8 +155,6 @@ class SLAP90Incremental:
     ) -> bool:
         """Salva dados no cache para uma prioridade."""
         try:
-            from sqlalchemy import insert
-            
             agora = now_brazil_naive()
             ttl_segundos = 30 * 24 * 60 * 60
             expira_em = agora + timedelta(seconds=ttl_segundos)
@@ -165,41 +163,59 @@ class SLAP90Incremental:
             cache_key_resolucao = f"{SLAP90Incremental.CACHE_KEY_TEMPOS_RESOLUCAO}:{prioridade}"
             cache_key_ultimo_id = f"{SLAP90Incremental.CACHE_KEY_ULTIMO_ID}:{prioridade}"
 
-            stmt_resposta = insert(MetricsCacheDB).values(
-                cache_key=cache_key_resposta,
-                cache_value=json.dumps(tempos_resposta),
-                calculated_at=agora,
-                expires_at=expira_em,
-            ).on_duplicate_key_update(
-                cache_value=json.dumps(tempos_resposta),
-                calculated_at=agora,
-                expires_at=expira_em,
-            )
-            db.execute(stmt_resposta)
+            # Resposta
+            cache_resposta = db.query(MetricsCacheDB).filter(
+                MetricsCacheDB.cache_key == cache_key_resposta
+            ).first()
 
-            stmt_resolucao = insert(MetricsCacheDB).values(
-                cache_key=cache_key_resolucao,
-                cache_value=json.dumps(tempos_resolucao),
-                calculated_at=agora,
-                expires_at=expira_em,
-            ).on_duplicate_key_update(
-                cache_value=json.dumps(tempos_resolucao),
-                calculated_at=agora,
-                expires_at=expira_em,
-            )
-            db.execute(stmt_resolucao)
+            if cache_resposta:
+                cache_resposta.cache_value = json.dumps(tempos_resposta)
+                cache_resposta.calculated_at = agora
+                cache_resposta.expires_at = expira_em
+            else:
+                cache_resposta = MetricsCacheDB(
+                    cache_key=cache_key_resposta,
+                    cache_value=json.dumps(tempos_resposta),
+                    calculated_at=agora,
+                    expires_at=expira_em,
+                )
+            db.add(cache_resposta)
 
-            stmt_ultimo_id = insert(MetricsCacheDB).values(
-                cache_key=cache_key_ultimo_id,
-                cache_value=str(ultimo_id),
-                calculated_at=agora,
-                expires_at=expira_em,
-            ).on_duplicate_key_update(
-                cache_value=str(ultimo_id),
-                calculated_at=agora,
-                expires_at=expira_em,
-            )
-            db.execute(stmt_ultimo_id)
+            # Resolução
+            cache_resolucao = db.query(MetricsCacheDB).filter(
+                MetricsCacheDB.cache_key == cache_key_resolucao
+            ).first()
+
+            if cache_resolucao:
+                cache_resolucao.cache_value = json.dumps(tempos_resolucao)
+                cache_resolucao.calculated_at = agora
+                cache_resolucao.expires_at = expira_em
+            else:
+                cache_resolucao = MetricsCacheDB(
+                    cache_key=cache_key_resolucao,
+                    cache_value=json.dumps(tempos_resolucao),
+                    calculated_at=agora,
+                    expires_at=expira_em,
+                )
+            db.add(cache_resolucao)
+
+            # Último ID
+            cache_ultimo_id = db.query(MetricsCacheDB).filter(
+                MetricsCacheDB.cache_key == cache_key_ultimo_id
+            ).first()
+
+            if cache_ultimo_id:
+                cache_ultimo_id.cache_value = str(ultimo_id)
+                cache_ultimo_id.calculated_at = agora
+                cache_ultimo_id.expires_at = expira_em
+            else:
+                cache_ultimo_id = MetricsCacheDB(
+                    cache_key=cache_key_ultimo_id,
+                    cache_value=str(ultimo_id),
+                    calculated_at=agora,
+                    expires_at=expira_em,
+                )
+            db.add(cache_ultimo_id)
 
             db.commit()
             return True
