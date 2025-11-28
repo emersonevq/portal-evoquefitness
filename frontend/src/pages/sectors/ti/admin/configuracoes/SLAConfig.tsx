@@ -311,15 +311,15 @@ export function SLA() {
     },
   });
 
-  const createHolidayMutation = useMutation({
-    mutationFn: async (data: typeof holidayData) => {
-      const response = await api.post("/sla/holidays", data);
+  const createFeriadoMutation = useMutation({
+    mutationFn: async (data: typeof feriadoData) => {
+      const response = await api.post("/sla/feriados", data);
       return response.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["sla-holidays"] });
+      queryClient.invalidateQueries({ queryKey: ["sla-feriados"] });
       setShowHolidayDialog(false);
-      setHolidayData({
+      setFeriadoData({
         data: new Date().toISOString().split("T")[0],
         nome: "",
         descricao: "",
@@ -331,16 +331,16 @@ export function SLA() {
     },
   });
 
-  const updateHolidayMutation = useMutation({
-    mutationFn: async (data: { id: number; updates: Omit<typeof holidayData, 'data'> }) => {
-      const response = await api.patch(`/sla/holidays/${data.id}`, data.updates);
+  const updateFeriadoMutation = useMutation({
+    mutationFn: async (data: { id: number; updates: Omit<typeof feriadoData, 'data'> }) => {
+      const response = await api.patch(`/sla/feriados/${data.id}`, data.updates);
       return response.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["sla-holidays"] });
+      queryClient.invalidateQueries({ queryKey: ["sla-feriados"] });
       setShowHolidayDialog(false);
-      setEditingHoliday(null);
-      setHolidayData({
+      setEditingFeriado(null);
+      setFeriadoData({
         data: new Date().toISOString().split("T")[0],
         nome: "",
         descricao: "",
@@ -352,12 +352,12 @@ export function SLA() {
     },
   });
 
-  const deleteHolidayMutation = useMutation({
+  const deleteFeriadoMutation = useMutation({
     mutationFn: async (id: number) => {
-      await api.delete(`/sla/holidays/${id}`);
+      await api.delete(`/sla/feriados/${id}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["sla-holidays"] });
+      queryClient.invalidateQueries({ queryKey: ["sla-feriados"] });
       toast.success("Feriado removido com sucesso");
     },
     onError: (error: any) => {
