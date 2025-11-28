@@ -30,6 +30,18 @@ class SLABusinessHours(Base):
     atualizado_em: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
 
+class SLAFeriado(Base):
+    __tablename__ = "sla_feriados"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    data: Mapped[str] = mapped_column(String(10), nullable=False, unique=True)
+    nome: Mapped[str] = mapped_column(String(150), nullable=False)
+    descricao: Mapped[str | None] = mapped_column(Text, nullable=True)
+    ativo: Mapped[bool] = mapped_column(Boolean, default=True)
+    criado_em: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    atualizado_em: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+
 class HistoricoSLA(Base):
     __tablename__ = "historico_sla"
 

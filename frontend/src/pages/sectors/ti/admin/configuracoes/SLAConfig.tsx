@@ -25,6 +25,7 @@ import {
   Grid3x3,
   List,
   Clock,
+  Calendar,
   Package,
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -52,12 +53,24 @@ interface BusinessHours {
   atualizado_em: string | null;
 }
 
+interface Feriado {
+  id: number;
+  data: string;
+  nome: string;
+  descricao: string | null;
+  ativo: boolean;
+  criado_em: string | null;
+  atualizado_em: string | null;
+}
+
 const DIAS_SEMANA = [
   { id: 0, label: "Segunda-feira" },
   { id: 1, label: "Terça-feira" },
   { id: 2, label: "Quarta-feira" },
   { id: 3, label: "Quinta-feira" },
   { id: 4, label: "Sexta-feira" },
+  { id: 5, label: "Sábado" },
+  { id: 6, label: "Domingo" },
 ];
 
 function SLAConfigCard({
@@ -129,8 +142,10 @@ export function SLA() {
   const queryClient = useQueryClient();
   const [showConfigDialog, setShowConfigDialog] = useState(false);
   const [showHoursDialog, setShowHoursDialog] = useState(false);
+  const [showHolidayDialog, setShowHolidayDialog] = useState(false);
   const [editingConfig, setEditingConfig] = useState<SLAConfig | null>(null);
   const [editingHours, setEditingHours] = useState<BusinessHours | null>(null);
+  const [editingFeriado, setEditingFeriado] = useState<Feriado | null>(null);
   const [configViewMode, setConfigViewMode] = useState<"grid" | "list">("grid");
 
   const [formData, setFormData] = useState({
@@ -146,6 +161,12 @@ export function SLA() {
     hora_fim: "18:00",
   });
 
+  const [feriadoData, setFeriadoData] = useState({
+    data: new Date().toISOString().split("T")[0],
+    nome: "",
+    descricao: "",
+  });
+
   const { data: configs = [], isLoading: configsLoading } = useQuery({
     queryKey: ["sla-config"],
     queryFn: async () => {
@@ -158,6 +179,14 @@ export function SLA() {
     queryKey: ["sla-business-hours"],
     queryFn: async () => {
       const response = await api.get("/sla/business-hours");
+      return response.data;
+    },
+  });
+
+  const { data: feriados = [], isLoading: feriadosLoading } = useQuery({
+    queryKey: ["sla-feriados"],
+    queryFn: async () => {
+      const response = await api.get("/sla/feriados");
       return response.data;
     },
   });
@@ -282,6 +311,66 @@ export function SLA() {
     },
   });
 
+  const createFeriadoMutation = useMutation({
+    mutationFn: async (data: typeof feriadoData) => {
+      const response = await api.post("/sla/feriados", data);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["sla-feriados"] });
+      setShowHolidayDialog(false);
+      setFeriadoData({
+        data: new Date().toISOString().split("T")[0],
+        nome: "",
+        descricao: "",
+      });
+      toast.success("Feriado adicionado com sucesso");
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.detail || "Erro ao adicionar feriado");
+    },
+  });
+
+  const updateFeriadoMutation = useMutation({
+    mutationFn: async (data: {
+      id: number;
+      updates: Omit<typeof feriadoData, "data">;
+    }) => {
+      const response = await api.patch(
+        `/sla/feriados/${data.id}`,
+        data.updates,
+      );
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["sla-feriados"] });
+      setShowHolidayDialog(false);
+      setEditingFeriado(null);
+      setFeriadoData({
+        data: new Date().toISOString().split("T")[0],
+        nome: "",
+        descricao: "",
+      });
+      toast.success("Feriado atualizado com sucesso");
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.detail || "Erro ao atualizar feriado");
+    },
+  });
+
+  const deleteFeriadoMutation = useMutation({
+    mutationFn: async (id: number) => {
+      await api.delete(`/sla/feriados/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["sla-feriados"] });
+      toast.success("Feriado removido com sucesso");
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.detail || "Erro ao remover feriado");
+    },
+  });
+
   const sincronizarProblemasMutation = useMutation({
     mutationFn: async () => {
       const response = await api.post("/problemas/sincronizar/sla");
@@ -377,6 +466,52 @@ export function SLA() {
         return;
       }
       createHoursMutation.mutate(hoursData);
+    }
+  };
+
+  const handleAddFeriado = () => {
+    setEditingFeriado(null);
+    setFeriadoData({
+      data: new Date().toISOString().split("T")[0],
+      nome: "",
+      descricao: "",
+    });
+    setShowHolidayDialog(true);
+  };
+
+  const handleEditFeriado = (feriado: Feriado) => {
+    setEditingFeriado(feriado);
+    setFeriadoData({
+      data: feriado.data,
+      nome: feriado.nome,
+      descricao: feriado.descricao || "",
+    });
+    setShowHolidayDialog(true);
+  };
+
+  const handleSaveFeriado = () => {
+    if (!feriadoData.nome) {
+      toast.error("Preencha o nome do feriado");
+      return;
+    }
+
+    if (editingFeriado) {
+      updateFeriadoMutation.mutate({
+        id: editingFeriado.id,
+        updates: {
+          nome: feriadoData.nome,
+          descricao: feriadoData.descricao,
+        },
+      });
+    } else {
+      const dateExists = feriados.some(
+        (f: Feriado) => f.data === feriadoData.data,
+      );
+      if (dateExists) {
+        toast.error("Feriado nesta data já existe");
+        return;
+      }
+      createFeriadoMutation.mutate(feriadoData);
     }
   };
 
@@ -734,6 +869,142 @@ export function SLA() {
         ) : (
           <div className="text-center py-8 text-muted-foreground">
             Nenhum horário comercial configurado
+          </div>
+        )}
+      </div>
+
+      <div className="border-t pt-8 space-y-4">
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <h2 className="text-lg font-semibold">Feriados</h2>
+          <Dialog open={showHolidayDialog} onOpenChange={setShowHolidayDialog}>
+            <DialogTrigger asChild>
+              <Button
+                onClick={handleAddFeriado}
+                size="sm"
+                className="gap-2 h-8"
+              >
+                <Plus className="w-4 h-4" />
+                Adicionar Feriado
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>
+                  {editingFeriado ? "Editar Feriado" : "Adicionar Feriado"}
+                </DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div>
+                  <Label>Data</Label>
+                  <Input
+                    type="date"
+                    value={feriadoData.data}
+                    onChange={(e) =>
+                      setFeriadoData({
+                        ...feriadoData,
+                        data: e.target.value,
+                      })
+                    }
+                    disabled={!!editingFeriado}
+                  />
+                </div>
+                <div>
+                  <Label>Nome</Label>
+                  <Input
+                    placeholder="Ex: Natal, Ano Novo"
+                    value={feriadoData.nome}
+                    onChange={(e) =>
+                      setFeriadoData({
+                        ...feriadoData,
+                        nome: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+                <div>
+                  <Label>Descrição</Label>
+                  <Input
+                    placeholder="Descrição do feriado (opcional)"
+                    value={feriadoData.descricao}
+                    onChange={(e) =>
+                      setFeriadoData({
+                        ...feriadoData,
+                        descricao: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+                <div className="flex gap-2 justify-end">
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowHolidayDialog(false)}
+                  >
+                    Cancelar
+                  </Button>
+                  <Button onClick={handleSaveFeriado}>
+                    {editingFeriado ? "Atualizar" : "Adicionar"}
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
+
+        {feriadosLoading ? (
+          <div className="text-muted-foreground">Carregando...</div>
+        ) : feriados.length > 0 ? (
+          <div className="rounded-lg border border-border/60 bg-card overflow-hidden">
+            <div className="divide-y divide-border/60">
+              {feriados
+                .sort((a: Feriado, b: Feriado) => a.data.localeCompare(b.data))
+                .map((feriado: Feriado) => (
+                  <div
+                    key={feriado.id}
+                    className="p-4 hover:bg-muted/30 transition-colors flex items-center justify-between"
+                  >
+                    <div className="flex items-start gap-3 flex-1">
+                      <Calendar className="w-4 h-4 text-primary flex-shrink-0 mt-1" />
+                      <div className="flex-1">
+                        <h3 className="font-medium text-sm">{feriado.nome}</h3>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-xs text-muted-foreground">
+                            {new Date(
+                              feriado.data + "T00:00:00",
+                            ).toLocaleDateString("pt-BR")}
+                          </span>
+                          {feriado.descricao && (
+                            <span className="text-xs text-muted-foreground">
+                              • {feriado.descricao}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleEditFeriado(feriado)}
+                        className="h-8 px-3"
+                      >
+                        <Edit2 className="w-3.5 h-3.5" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => deleteFeriadoMutation.mutate(feriado.id)}
+                        className="h-8 px-3"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+            </div>
+          </div>
+        ) : (
+          <div className="text-center py-8 text-muted-foreground">
+            Nenhum feriado configurado
           </div>
         )}
       </div>

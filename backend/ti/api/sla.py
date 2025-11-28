@@ -9,10 +9,13 @@ from ti.schemas.sla import (
     SLAConfigurationOut,
     SLABusinessHoursCreate,
     SLABusinessHoursOut,
+    SLAFeriadoCreate,
+    SLAFeriadoUpdate,
+    SLAFeriadoOut,
     HistoricoSLAOut,
     SLAStatusResponse,
 )
-from ti.models.sla_config import SLAConfiguration, SLABusinessHours, HistoricoSLA
+from ti.models.sla_config import SLAConfiguration, SLABusinessHours, SLAFeriado, HistoricoSLA
 from ti.models.chamado import Chamado
 from ti.services.sla import SLACalculator
 from ti.services.sla_cache import SLACacheManager
@@ -659,3 +662,109 @@ def validar_dados_chamado(chamado_id: int, db: Session = Depends(get_db)):
         return validacao
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/feriados", response_model=list[SLAFeriadoOut])
+def listar_feriados(db: Session = Depends(get_db)):
+    """Lista todos os feriados cadastrados"""
+    try:
+        try:
+            SLAFeriado.__table__.create(bind=engine, checkfirst=True)
+        except Exception:
+            pass
+        return db.query(SLAFeriado).order_by(SLAFeriado.data.asc()).all()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao listar feriados: {e}")
+
+
+@router.post("/feriados", response_model=SLAFeriadoOut)
+def criar_feriado(payload: SLAFeriadoCreate, db: Session = Depends(get_db)):
+    """Cria um novo feriado"""
+    try:
+        try:
+            SLAFeriado.__table__.create(bind=engine, checkfirst=True)
+        except Exception:
+            pass
+
+        existente = db.query(SLAFeriado).filter(
+            SLAFeriado.data == payload.data
+        ).first()
+        if existente:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Feriado na data {payload.data} já existe"
+            )
+
+        feriado = SLAFeriado(
+            data=payload.data,
+            nome=payload.nome,
+            descricao=payload.descricao,
+            ativo=payload.ativo,
+            criado_em=now_brazil_naive(),
+            atualizado_em=now_brazil_naive(),
+        )
+        db.add(feriado)
+        db.commit()
+        db.refresh(feriado)
+        return feriado
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao criar feriado: {e}")
+
+
+@router.patch("/feriados/{feriado_id}", response_model=SLAFeriadoOut)
+def atualizar_feriado(
+    feriado_id: int,
+    payload: SLAFeriadoUpdate,
+    db: Session = Depends(get_db)
+):
+    """Atualiza um feriado existente"""
+    try:
+        try:
+            SLAFeriado.__table__.create(bind=engine, checkfirst=True)
+        except Exception:
+            pass
+
+        feriado = db.query(SLAFeriado).filter(SLAFeriado.id == feriado_id).first()
+        if not feriado:
+            raise HTTPException(status_code=404, detail="Feriado não encontrado")
+
+        if payload.nome is not None:
+            feriado.nome = payload.nome
+        if payload.descricao is not None:
+            feriado.descricao = payload.descricao
+        if payload.ativo is not None:
+            feriado.ativo = payload.ativo
+
+        feriado.atualizado_em = now_brazil_naive()
+        db.add(feriado)
+        db.commit()
+        db.refresh(feriado)
+        return feriado
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao atualizar feriado: {e}")
+
+
+@router.delete("/feriados/{feriado_id}")
+def deletar_feriado(feriado_id: int, db: Session = Depends(get_db)):
+    """Deleta um feriado"""
+    try:
+        try:
+            SLAFeriado.__table__.create(bind=engine, checkfirst=True)
+        except Exception:
+            pass
+
+        feriado = db.query(SLAFeriado).filter(SLAFeriado.id == feriado_id).first()
+        if not feriado:
+            raise HTTPException(status_code=404, detail="Feriado não encontrado")
+
+        db.delete(feriado)
+        db.commit()
+        return {"ok": True}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao deletar feriado: {e}")
