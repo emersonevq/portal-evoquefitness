@@ -120,7 +120,9 @@ export default function AlertsConfig() {
       const formData = new FormData();
       formData.append("title", title);
       formData.append("message", message);
+      formData.append("description", description);
       formData.append("severity", severity);
+      formData.append("show_on_home", String(selectedPages.includes("home")));
 
       // Enviar páginas como JSON string
       if (selectedPages.length > 0) {
