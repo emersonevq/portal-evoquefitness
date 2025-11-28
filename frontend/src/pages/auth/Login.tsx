@@ -20,7 +20,7 @@ import {
 
 export default function Login() {
   const navigate = useNavigate();
-  const { login, loginWithAuth0 } = useAuthContext();
+  const { login, loginWithMicrosoft } = useAuthContext();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [remember, setRemember] = useState(true);
@@ -54,12 +54,15 @@ export default function Login() {
     }
   };
 
-  const handleAuth0Login = async () => {
+  const handleMicrosoftLogin = async () => {
     setIsAuth0Loading(true);
     try {
-      await loginWithAuth0();
+      await loginWithMicrosoft();
+      const redirect =
+        new URLSearchParams(window.location.search).get("redirect") || "/";
+      window.location.href = redirect;
     } catch (error) {
-      console.error("Erro ao fazer login com Auth0:", error);
+      console.error("Erro ao fazer login com Microsoft:", error);
       alert("Erro ao conectar com Microsoft. Tente novamente.");
       setIsAuth0Loading(false);
     }
@@ -106,7 +109,7 @@ export default function Login() {
 
             {/* Auth0 Microsoft Login Button */}
             <Button
-              onClick={handleAuth0Login}
+              onClick={handleMicrosoftLogin}
               disabled={isAuth0Loading}
               className="w-full h-11 rounded-md mb-6 bg-blue-600 hover:bg-blue-700 text-white font-medium flex items-center justify-center gap-2 group"
             >
