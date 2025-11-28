@@ -141,6 +141,20 @@ export const ALERT_PAGES = {
     path: "/setor/ti/admin/configuracoes",
     category: "Admin TI",
   },
+  tiAdminAlertas: {
+    id: "tiAdminAlertas",
+    label: "Alertas",
+    path: "/setor/ti/admin/configuracoes/alertas",
+    category: "Admin TI",
+  },
+
+  // Páginas adicionais de setores
+  notFound: {
+    id: "notFound",
+    label: "Página não encontrada",
+    path: "/404",
+    category: "Erros",
+  },
 } as const;
 
 export type AlertPageId = keyof typeof ALERT_PAGES;
