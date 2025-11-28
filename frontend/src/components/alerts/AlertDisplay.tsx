@@ -95,7 +95,8 @@ export default function AlertDisplay() {
     try {
       const usuarioId = user?.email || user?.name || "anonymous";
       const usuarioEmail = user?.email || "anonymous";
-      const usuarioNome = user?.name || "anonymous";
+      const usuarioNome = user?.firstName || user?.name || "anonymous";
+      const usuarioSobrenome = user?.lastName || "";
 
       await apiFetch(`/alerts/${alertId}/visualizar`, {
         method: "POST",
