@@ -84,6 +84,7 @@ async def create_alert(
     description: Optional[str] = Form(None),
     severity: str = Form("low"),
     imagem: Optional[UploadFile] = File(None),
+    pages: Optional[str] = Form(None),
     db: Session = Depends(get_db)
 ) -> Dict[str, Any]:
     """
