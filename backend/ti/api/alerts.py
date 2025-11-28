@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from typing import List, Optional, Dict, Any
 from io import BytesIO
 from datetime import datetime
+from pydantic import BaseModel
 import base64
 import json
 from core.db import get_db, engine
