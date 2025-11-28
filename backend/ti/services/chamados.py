@@ -5,6 +5,7 @@ from datetime import date
 from sqlalchemy.orm import Session
 from core.utils import now_brazil_naive
 from ti.models import Chamado
+from ti.models.historico_status import HistoricoStatus
 from core.db import engine
 from ti.schemas.chamado import ChamadoCreate
 
