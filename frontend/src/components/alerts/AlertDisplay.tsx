@@ -72,12 +72,18 @@ export default function AlertDisplay() {
   };
 
   const markAlertAsViewed = async (alertId: number) => {
+    // Só marca uma vez por sessão
+    if (markedAsViewedRef.current.has(alertId)) {
+      return;
+    }
+
     try {
       const usuarioId = user?.email || user?.name || "anonymous";
       await apiFetch(`/alerts/${alertId}/visualizar`, {
         method: "POST",
         body: JSON.stringify({ usuario_id: usuarioId }),
       });
+      markedAsViewedRef.current.add(alertId);
     } catch (error) {
       console.error("Erro ao marcar alerta como visualizado:", error);
     }
