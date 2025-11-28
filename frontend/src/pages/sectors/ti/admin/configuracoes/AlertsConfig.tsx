@@ -14,6 +14,8 @@ import {
   Plus,
   Sparkles,
   Monitor,
+  Home,
+  ChevronDown,
 } from "lucide-react";
 import {
   Card,
@@ -68,6 +70,10 @@ export default function AlertsConfig() {
   const [description, setDescription] = useState("");
   const [severity, setSeverity] = useState<keyof typeof severityConfig>("low");
   const [selectedPages, setSelectedPages] = useState<string[]>([]);
+  const [showOnHome, setShowOnHome] = useState(false);
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(
+    new Set(["Setores"])
+  );
   const [mediaList, setMediaList] = useState<MediaItem[]>([]);
   const [alerts, setAlerts] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -109,25 +115,46 @@ export default function AlertsConfig() {
     }
   };
 
+  const toggleCategory = (category: string) => {
+    const newExpanded = new Set(expandedCategories);
+    if (newExpanded.has(category)) {
+      newExpanded.delete(category);
+    } else {
+      newExpanded.add(category);
+    }
+    setExpandedCategories(newExpanded);
+  };
+
+  const togglePage = (pageId: string) => {
+    setSelectedPages((prev) =>
+      prev.includes(pageId) ? prev.filter((p) => p !== pageId) : [...prev, pageId]
+    );
+  };
+
   useEffect(() => {
     loadMedia();
     loadAlerts();
   }, []);
 
   const create = async () => {
+    if (!title.trim()) {
+      alert("Título é obrigatório");
+      return;
+    }
+    if (!message.trim()) {
+      alert("Mensagem é obrigatória");
+      return;
+    }
+
     setLoading(true);
     try {
       const formData = new FormData();
       formData.append("title", title);
       formData.append("message", message);
+      formData.append("description", description || "");
       formData.append("severity", severity);
-
-      // Enviar páginas como JSON string
-      if (selectedPages.length > 0) {
-        formData.append("pages", JSON.stringify(selectedPages));
-      } else {
-        formData.append("pages", JSON.stringify([]));
-      }
+      formData.append("pages_json", JSON.stringify(selectedPages));
+      formData.append("show_on_home", showOnHome ? "true" : "false");
 
       if (imagemFile) {
         formData.append("imagem", imagemFile);
@@ -148,6 +175,7 @@ export default function AlertsConfig() {
         setDescription("");
         setSeverity("low");
         setSelectedPages([]);
+        setShowOnHome(false);
         limparImagem();
         await loadAlerts();
       }
@@ -169,6 +197,15 @@ export default function AlertsConfig() {
     await loadAlerts();
   };
 
+  const groupedPages = groupPagesByCategory();
+  const pagesMap = Object.values(ALERT_PAGES).reduce(
+    (acc, page) => {
+      acc[page.id] = page.label;
+      return acc;
+    },
+    {} as Record<string, string>
+  );
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -181,8 +218,7 @@ export default function AlertsConfig() {
             Alertas do Sistema
           </h2>
           <p className="text-muted-foreground mt-1">
-            Crie e gerencie mensagens que serão exibidas na página inicial para
-            todos os usuários
+            Crie e gerencie alertas que serão exibidos nos setores e módulos específicos
           </p>
         </div>
       </div>
@@ -224,6 +260,19 @@ export default function AlertsConfig() {
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               className="w-full min-h-[100px] px-3 py-2 rounded-md border bg-background text-base resize-none focus:outline-none focus:ring-2 focus:ring-ring"
+            />
+          </div>
+
+          {/* Descrição */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-muted-foreground">
+              Descrição (opcional)
+            </label>
+            <textarea
+              placeholder="Informações adicionais sobre o alerta..."
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              className="w-full min-h-[80px] px-3 py-2 rounded-md border bg-background text-base resize-none focus:outline-none focus:ring-2 focus:ring-ring"
             />
           </div>
 
@@ -271,6 +320,78 @@ export default function AlertsConfig() {
                 );
               })}
             </div>
+          </div>
+
+          {/* Seleção de Páginas/Módulos */}
+          <div className="space-y-3">
+            <label className="text-sm font-medium flex items-center gap-2">
+              <Monitor className="w-4 h-4" />
+              Onde este alerta deve aparecer?
+            </label>
+            <div className="border rounded-lg overflow-hidden divide-y bg-muted/30">
+              {Object.entries(groupedPages).map(([category, pages]) => (
+                <div key={category} className="divide-y">
+                  <button
+                    type="button"
+                    onClick={() => toggleCategory(category)}
+                    className="w-full flex items-center justify-between px-4 py-3 hover:bg-muted/50 transition-colors"
+                  >
+                    <span className="font-medium text-sm">{category}</span>
+                    <ChevronDown
+                      className={`w-4 h-4 transition-transform ${
+                        expandedCategories.has(category) ? "rotate-180" : ""
+                      }`}
+                    />
+                  </button>
+                  {expandedCategories.has(category) && (
+                    <div className="px-4 py-2 space-y-2 bg-background">
+                      {pages.map((page) => (
+                        <label
+                          key={page.id}
+                          className="flex items-center gap-3 cursor-pointer p-2 rounded hover:bg-muted/50 transition-colors"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedPages.includes(page.id)}
+                            onChange={() => togglePage(page.id)}
+                            className="w-4 h-4 rounded border-border cursor-pointer"
+                          />
+                          <span className="text-sm">{page.label}</span>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">
+              {selectedPages.length === 0
+                ? "Se nenhuma página for selecionada, o alerta será exibido em todas"
+                : `Alerta será exibido em ${selectedPages.length} página(s)/módulo(s)`}
+            </p>
+          </div>
+
+          {/* Mostrar na página inicial */}
+          <div className="space-y-3">
+            <label className="flex items-center gap-3 cursor-pointer p-3 rounded-lg border-2 border-muted bg-muted/30 hover:border-primary/50 transition-colors">
+              <input
+                type="checkbox"
+                checked={showOnHome}
+                onChange={(e) => setShowOnHome(e.target.checked)}
+                className="w-5 h-5 rounded border-border cursor-pointer"
+              />
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <Home className="w-4 h-4" />
+                  <span className="font-medium text-sm">
+                    Exibir na página inicial
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  O alerta aparecerá na tela inicial para todos os usuários
+                </p>
+              </div>
+            </label>
           </div>
 
           {/* Upload de Imagem */}
@@ -388,6 +509,9 @@ export default function AlertsConfig() {
                 severityConfig[alert.severity as keyof typeof severityConfig] ||
                 severityConfig.low;
               const Icon = config.icon;
+              const displayPages = (alert.pages && alert.pages.length > 0)
+                ? alert.pages.map(p => pagesMap[p] || p).join(", ")
+                : "Todas as páginas";
 
               return (
                 <Card
@@ -441,14 +565,26 @@ export default function AlertsConfig() {
                         )}
 
                         {/* Footer */}
-                        <div className="flex items-center gap-3 pt-2 border-t">
-                          <Badge variant="outline" className={config.badge}>
-                            {config.label}
-                          </Badge>
-                          {alert.criado_em && (
+                        <div className="space-y-2 pt-2 border-t">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <Badge variant="outline" className={config.badge}>
+                              {config.label}
+                            </Badge>
+                            {alert.show_on_home && (
+                              <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-500/20">
+                                <Home className="w-3 h-3 mr-1" />
+                                Página Inicial
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="flex items-start gap-2 text-xs text-muted-foreground">
+                            <Monitor className="w-3 h-3 mt-0.5 flex-shrink-0" />
+                            <span className="line-clamp-2">{displayPages}</span>
+                          </div>
+                          {alert.created_at && (
                             <div className="flex items-center gap-1 text-xs text-muted-foreground">
                               <Calendar className="w-3 h-3" />
-                              {new Date(alert.criado_em).toLocaleDateString(
+                              {new Date(alert.created_at).toLocaleDateString(
                                 "pt-BR",
                                 {
                                   day: "2-digit",
