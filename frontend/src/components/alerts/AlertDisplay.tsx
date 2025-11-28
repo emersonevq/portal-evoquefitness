@@ -118,6 +118,17 @@ export default function AlertDisplay() {
     return shouldShowAlertOnPage(alertPages, location.pathname);
   });
 
+  // Marcar alertas como visualizados quando aparecem pela primeira vez
+  useEffect(() => {
+    visibleAlerts.forEach((alert) => {
+      // Pequeno delay para evitar race conditions
+      const timer = setTimeout(() => {
+        markAlertAsViewed(alert.id);
+      }, 500);
+      return () => clearTimeout(timer);
+    });
+  }, [visibleAlerts.length]); // Dependência simples: apenas conta de alertas visíveis
+
   if (loading) return null;
   if (visibleAlerts.length === 0) return null;
 
