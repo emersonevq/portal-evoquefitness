@@ -32,7 +32,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const initMsal = async () => {
       try {
         await msalInstance.initialize();
-        
+
         // Check if there's an existing session
         const accounts = msalInstance.getAllAccounts();
         if (accounts.length > 0) {
@@ -128,7 +128,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             ? data.bi_subcategories
             : null,
           loginTime: now,
-        })
+        }),
       );
     } catch (error) {
       console.error("Erro ao sincronizar usuário:", error);
@@ -178,7 +178,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       return {
         ...data,
-        alterar_senha_primeiro_acesso: data.alterar_senha_primeiro_acesso || false,
+        alterar_senha_primeiro_acesso:
+          data.alterar_senha_primeiro_acesso || false,
       };
     } catch (error: any) {
       throw new Error(error?.message || "Falha ao autenticar");
@@ -250,7 +251,7 @@ function decodeJwt(token: string): Record<string, any> {
       atob(base64)
         .split("")
         .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
-        .join("")
+        .join(""),
     );
     return JSON.parse(jsonPayload);
   } catch (error) {

@@ -68,164 +68,155 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/login" element={<Login />} />
-              <Route
-                path="/auth/forgot-password"
-                element={<ForgotPassword />}
-              />
-              <Route
-                path="/auth/change-password"
-                element={<ChangePassword />}
-              />
-              <Route path="/access-denied" element={<AccessDenied />} />
-              <Route
-                path="/auth/reset-password-success"
-                element={<ResetPasswordSuccess />}
-              />
-              <Route
-                path="/setor/ti"
-                element={
-                  <RequireLogin>
-                    <TiPage />
-                  </RequireLogin>
-                }
-              />
-              <Route
-                path="/setor/ti/admin"
-                element={
-                  <RequireLogin>
-                    <AdminLayout />
-                  </RequireLogin>
-                }
-              >
-                <Route index element={<Overview />} />
-                <Route path="overview" element={<Overview />} />
-                <Route path="chamados">
-                  <Route index element={<ChamadosPage />} />
-                  <Route path=":filtro" element={<ChamadosPage />} />
-                </Route>
-                <Route path="usuarios" element={<UsuariosLayout />}>
-                  <Route index element={<CriarUsuario />} />
-                  <Route path="criar" element={<CriarUsuario />} />
-                  <Route path="bloqueios" element={<Bloqueios />} />
-                  <Route path="permissoes" element={<Permissoes />} />
-                  <Route path="agentes" element={<Agentes />} />
-                  <Route path="grupos" element={<Grupos />} />
-                </Route>
-                <Route path="monitoramento" element={<AdminMonitoramento />} />
-                <Route path="integracoes" element={<IntegracoesLayout />}>
-                  <Route index element={<AdicionarUnidade />} />
-                  <Route
-                    path="adicionar-unidade"
-                    element={<AdicionarUnidade />}
-                  />
-                  <Route path="listar-unidades" element={<ListarUnidades />} />
-                  <Route
-                    path="adicionar-ao-banco"
-                    element={<AdicionarBanco />}
-                  />
-                </Route>
-                <Route path="historico" element={<AdminHistorico />} />
-                <Route path="configuracoes" element={<ConfiguracoesLayout />}>
-                  <Route index element={<ConfSLA />} />
-                  <Route path="sla" element={<ConfSLA />} />
-                  <Route path="prioridades" element={<ConfPrioridades />} />
-                  <Route path="notificacoes" element={<ConfNotificacoes />} />
-                  <Route path="sistema" element={<ConfSistema />} />
-                  <Route path="seguranca" element={<ConfSeguranca />} />
-                  <Route path="chamados" element={<ConfChamados />} />
-                  <Route path="email" element={<ConfEmail />} />
-                  <Route path="integracoes" element={<ConfIntegracoes />} />
-                  <Route path="midia-login" element={<LoginMediaConfig />} />
-                  <Route path="alertas" element={<AlertsConfig />} />
-                  <Route path="acoes" element={<ConfAcoes />} />
-                </Route>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/auth/forgot-password" element={<ForgotPassword />} />
+            <Route path="/auth/change-password" element={<ChangePassword />} />
+            <Route path="/access-denied" element={<AccessDenied />} />
+            <Route
+              path="/auth/reset-password-success"
+              element={<ResetPasswordSuccess />}
+            />
+            <Route
+              path="/setor/ti"
+              element={
+                <RequireLogin>
+                  <TiPage />
+                </RequireLogin>
+              }
+            />
+            <Route
+              path="/setor/ti/admin"
+              element={
+                <RequireLogin>
+                  <AdminLayout />
+                </RequireLogin>
+              }
+            >
+              <Route index element={<Overview />} />
+              <Route path="overview" element={<Overview />} />
+              <Route path="chamados">
+                <Route index element={<ChamadosPage />} />
+                <Route path=":filtro" element={<ChamadosPage />} />
               </Route>
-              <Route
-                path="/setor/compras"
-                element={
-                  <RequireLogin>
-                    <ComprasPage />
-                  </RequireLogin>
-                }
-              />
-              <Route
-                path="/setor/manutencao"
-                element={
-                  <RequireLogin>
-                    <ManutencaoPage />
-                  </RequireLogin>
-                }
-              />
-              <Route
-                path="/setor/financeiro"
-                element={
-                  <RequireLogin>
-                    <FinanceiroPage />
-                  </RequireLogin>
-                }
-              />
-              <Route
-                path="/setor/marketing"
-                element={
-                  <RequireLogin>
-                    <MarketingPage />
-                  </RequireLogin>
-                }
-              />
-              <Route
-                path="/setor/produtos"
-                element={
-                  <RequireLogin>
-                    <ProdutosPage />
-                  </RequireLogin>
-                }
-              />
-              <Route
-                path="/setor/comercial"
-                element={
-                  <RequireLogin>
-                    <ComercialPage />
-                  </RequireLogin>
-                }
-              />
-              <Route
-                path="/setor/outros-servicos"
-                element={
-                  <RequireLogin>
-                    <OutrosServicosPage />
-                  </RequireLogin>
-                }
-              />
-              <Route
-                path="/setor/bi"
-                element={
-                  <RequireLogin>
-                    <BiPage />
-                  </RequireLogin>
-                }
-              />
-              <Route
-                path="/setor/:slug"
-                element={
-                  <RequireLogin>
-                    <SectorPage />
-                  </RequireLogin>
-                }
-              />
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-        </TooltipProvider>
-      </AuthProvider>
-    </QueryClientProvider>
+              <Route path="usuarios" element={<UsuariosLayout />}>
+                <Route index element={<CriarUsuario />} />
+                <Route path="criar" element={<CriarUsuario />} />
+                <Route path="bloqueios" element={<Bloqueios />} />
+                <Route path="permissoes" element={<Permissoes />} />
+                <Route path="agentes" element={<Agentes />} />
+                <Route path="grupos" element={<Grupos />} />
+              </Route>
+              <Route path="monitoramento" element={<AdminMonitoramento />} />
+              <Route path="integracoes" element={<IntegracoesLayout />}>
+                <Route index element={<AdicionarUnidade />} />
+                <Route
+                  path="adicionar-unidade"
+                  element={<AdicionarUnidade />}
+                />
+                <Route path="listar-unidades" element={<ListarUnidades />} />
+                <Route path="adicionar-ao-banco" element={<AdicionarBanco />} />
+              </Route>
+              <Route path="historico" element={<AdminHistorico />} />
+              <Route path="configuracoes" element={<ConfiguracoesLayout />}>
+                <Route index element={<ConfSLA />} />
+                <Route path="sla" element={<ConfSLA />} />
+                <Route path="prioridades" element={<ConfPrioridades />} />
+                <Route path="notificacoes" element={<ConfNotificacoes />} />
+                <Route path="sistema" element={<ConfSistema />} />
+                <Route path="seguranca" element={<ConfSeguranca />} />
+                <Route path="chamados" element={<ConfChamados />} />
+                <Route path="email" element={<ConfEmail />} />
+                <Route path="integracoes" element={<ConfIntegracoes />} />
+                <Route path="midia-login" element={<LoginMediaConfig />} />
+                <Route path="alertas" element={<AlertsConfig />} />
+                <Route path="acoes" element={<ConfAcoes />} />
+              </Route>
+            </Route>
+            <Route
+              path="/setor/compras"
+              element={
+                <RequireLogin>
+                  <ComprasPage />
+                </RequireLogin>
+              }
+            />
+            <Route
+              path="/setor/manutencao"
+              element={
+                <RequireLogin>
+                  <ManutencaoPage />
+                </RequireLogin>
+              }
+            />
+            <Route
+              path="/setor/financeiro"
+              element={
+                <RequireLogin>
+                  <FinanceiroPage />
+                </RequireLogin>
+              }
+            />
+            <Route
+              path="/setor/marketing"
+              element={
+                <RequireLogin>
+                  <MarketingPage />
+                </RequireLogin>
+              }
+            />
+            <Route
+              path="/setor/produtos"
+              element={
+                <RequireLogin>
+                  <ProdutosPage />
+                </RequireLogin>
+              }
+            />
+            <Route
+              path="/setor/comercial"
+              element={
+                <RequireLogin>
+                  <ComercialPage />
+                </RequireLogin>
+              }
+            />
+            <Route
+              path="/setor/outros-servicos"
+              element={
+                <RequireLogin>
+                  <OutrosServicosPage />
+                </RequireLogin>
+              }
+            />
+            <Route
+              path="/setor/bi"
+              element={
+                <RequireLogin>
+                  <BiPage />
+                </RequireLogin>
+              }
+            />
+            <Route
+              path="/setor/:slug"
+              element={
+                <RequireLogin>
+                  <SectorPage />
+                </RequireLogin>
+              }
+            />
+            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </AuthProvider>
+  </QueryClientProvider>
 );
 
 // Global handler: when server forces logout, redirect user to login preserving current path

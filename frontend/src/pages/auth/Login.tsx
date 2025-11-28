@@ -58,7 +58,8 @@ export default function Login() {
     setIsAuth0Loading(true);
     try {
       await loginWithMicrosoft();
-      const redirect = new URLSearchParams(window.location.search).get("redirect") || "/";
+      const redirect =
+        new URLSearchParams(window.location.search).get("redirect") || "/";
       window.location.href = redirect;
     } catch (error) {
       console.error("Erro ao fazer login com Microsoft:", error);
