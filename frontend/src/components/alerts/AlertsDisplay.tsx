@@ -16,7 +16,7 @@ interface AlertsDisplayProps {
   onDismiss: (id: number) => void;
   dismissed: number[];
 }
-     
+
 export function AlertsDisplay({
   alerts,
   onDismiss,
