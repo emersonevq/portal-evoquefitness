@@ -120,7 +120,7 @@ export default function AlertViewersModal({
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <p className="font-medium truncate">
-                        {extractNameAndSurname(viewer.nome)}
+                        {extractNameAndSurname(viewer)}
                       </p>
                       <Badge variant="outline" className="text-xs">
                         {viewer.email}
