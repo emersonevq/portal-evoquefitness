@@ -267,7 +267,13 @@ def delete_alert(alert_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/{alert_id}/visualizar")
-def mark_alert_viewed(alert_id: int, usuario_id: Optional[str] = None, usuario_email: Optional[str] = None, usuario_nome: Optional[str] = None, db: Session = Depends(get_db)):
+def mark_alert_viewed(
+    alert_id: int,
+    db: Session = Depends(get_db),
+    usuario_id: Optional[str] = None,
+    usuario_email: Optional[str] = None,
+    usuario_nome: Optional[str] = None
+):
     """
     Marca um alerta como visualizado por um usuário
     """
