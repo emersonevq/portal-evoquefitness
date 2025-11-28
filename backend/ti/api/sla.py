@@ -363,6 +363,8 @@ def recalcular_sla_painel(db: Session = Depends(get_db)):
         for chamado in chamados:
             try:
                 sla_status = SLACalculator.get_sla_status(db, chamado)
+                if not isinstance(sla_status, dict):
+                    sla_status = {}
 
                 # Atualiza ou cria histórico com cálculo atual
                 existing = db.query(HistoricoSLA).filter(
