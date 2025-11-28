@@ -295,6 +295,7 @@ export default function AlertsConfig() {
               Exibir em que páginas?
             </label>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-96 overflow-y-auto p-3 border rounded-lg bg-muted/20">
+              {console.log("Categorized pages:", groupPagesByCategory())}
               {Object.entries(groupPagesByCategory()).map(([category, pages]) => (
                 <div key={category} className="space-y-2">
                   <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
