@@ -99,6 +99,7 @@ export default function AlertDisplay() {
 
       await apiFetch(`/alerts/${alertId}/visualizar`, {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           usuario_id: usuarioId,
           usuario_email: usuarioEmail,
