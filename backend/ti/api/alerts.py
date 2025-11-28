@@ -291,6 +291,7 @@ def mark_alert_viewed(
         usuario_id = request_data.usuario_id or "anonymous"
         usuario_email = request_data.usuario_email or usuario_id
         usuario_nome = request_data.usuario_nome or usuario_id
+        usuario_sobrenome = request_data.usuario_sobrenome or ""
 
         # Carregar array de usuários que visualizaram
         usuarios_visualizaram = alert.usuarios_visualizaram
@@ -309,6 +310,7 @@ def mark_alert_viewed(
             "id": usuario_id,
             "email": usuario_email,
             "nome": usuario_nome,
+            "sobrenome": usuario_sobrenome,
             "visualizado_em": datetime.now().isoformat()
         }
 
