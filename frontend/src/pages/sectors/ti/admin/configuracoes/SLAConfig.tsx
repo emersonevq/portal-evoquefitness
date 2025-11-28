@@ -954,19 +954,22 @@ export function SLA() {
                     key={holiday.id}
                     className="p-4 hover:bg-muted/30 transition-colors flex items-center justify-between"
                   >
-                    <div className="flex-1">
-                      <h3 className="font-medium text-sm">{holiday.nome}</h3>
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className="text-xs text-muted-foreground">
-                          {new Date(holiday.data + "T00:00:00").toLocaleDateString(
-                            "pt-BR"
-                          )}
-                        </span>
-                        {holiday.descricao && (
+                    <div className="flex items-start gap-3 flex-1">
+                      <Calendar className="w-4 h-4 text-primary flex-shrink-0 mt-1" />
+                      <div className="flex-1">
+                        <h3 className="font-medium text-sm">{holiday.nome}</h3>
+                        <div className="flex items-center gap-2 mt-1">
                           <span className="text-xs text-muted-foreground">
-                            • {holiday.descricao}
+                            {new Date(holiday.data + "T00:00:00").toLocaleDateString(
+                              "pt-BR"
+                            )}
                           </span>
-                        )}
+                          {holiday.descricao && (
+                            <span className="text-xs text-muted-foreground">
+                              • {holiday.descricao}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
                     <div className="flex gap-2">
