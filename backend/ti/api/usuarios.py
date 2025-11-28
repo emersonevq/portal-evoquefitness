@@ -504,6 +504,71 @@ def auth0_login(payload: dict, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=f"Erro ao autenticar com Auth0: {str(e)}")
 
 
+@router.post("/msal-login")
+def msal_login(payload: dict, db: Session = Depends(get_db)):
+    """
+    Valida token JWT do MSAL (Microsoft Office 365) e faz login do usuário
+    Requer Authorization header com Bearer token
+    """
+    try:
+        import json
+
+        email = payload.get("email")
+        name = payload.get("name", "")
+
+        if not email:
+            raise HTTPException(status_code=400, detail="Email não fornecido")
+
+        # Buscar usuário no banco pelo email
+        from ti.models import User
+        user = db.query(User).filter(User.email == email).first()
+
+        if not user:
+            raise HTTPException(
+                status_code=403,
+                detail=f"Usuário com email '{email}' não encontrado no sistema. Contate o administrador."
+            )
+
+        if user.bloqueado:
+            raise HTTPException(
+                status_code=403,
+                detail="Usuário bloqueado. Contate o administrador."
+            )
+
+        # Preparar resposta com dados do usuário
+        setores_list = []
+        if getattr(user, "_setores", None):
+            try:
+                setores_list = json.loads(getattr(user, "_setores", "[]"))
+            except:
+                setores_list = []
+
+        bi_subcategories_list = None
+        if getattr(user, "_bi_subcategories", None):
+            try:
+                bi_subcategories_list = json.loads(getattr(user, "_bi_subcategories", "null"))
+            except:
+                bi_subcategories_list = None
+
+        return {
+            "id": user.id,
+            "nome": user.nome,
+            "sobrenome": user.sobrenome,
+            "usuario": user.usuario,
+            "email": user.email,
+            "nivel_acesso": user.nivel_acesso,
+            "setores": setores_list,
+            "bi_subcategories": bi_subcategories_list,
+            "alterar_senha_primeiro_acesso": False,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Erro ao autenticar com MSAL: {str(e)}")
+
+
 @router.post("/login")
 def login(payload: dict, db: Session = Depends(get_db)):
     try:
