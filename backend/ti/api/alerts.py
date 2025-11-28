@@ -159,9 +159,10 @@ async def create_alert(
             "title": new_alert.title,
             "message": new_alert.message,
             "severity": new_alert.severity,
-            "imagem_mime_type": new_alert.imagem_mime_type
+            "imagem_mime_type": new_alert.imagem_mime_type,
+            "pages": pages
         }
-        
+
         # Adicionar campos opcionais se existirem
         if hasattr(new_alert, 'description'):
             response["description"] = new_alert.description
