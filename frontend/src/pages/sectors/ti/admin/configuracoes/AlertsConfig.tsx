@@ -62,19 +62,23 @@ export default function AlertsConfig() {
   const create = async () => {
     setLoading(true);
     try {
-      const payload: any = {
-        title,
-        message,
-        severity,
-        link: link || null,
-        media_id: mediaId || null,
-        start_at: startAt || null,
-        end_at: endAt || null,
-      };
+      const formData = new FormData();
+      formData.append("title", title);
+      formData.append("message", message);
+      formData.append("severity", severity);
+      if (link) formData.append("link", link);
+      if (mediaId) formData.append("media_id", String(mediaId));
+      if (startAt) formData.append("start_at", startAt);
+      if (endAt) formData.append("end_at", endAt);
+      formData.append("ativo", "true");
+
+      if (imagemFile) {
+        formData.append("imagem", imagemFile);
+      }
+
       const res = await apiFetch("/alerts", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: formData,
       });
       if (!res.ok) {
         alert("Falha ao criar alerta");
@@ -83,6 +87,7 @@ export default function AlertsConfig() {
         setMessage("");
         setLink("");
         setMediaId(null);
+        limparImagem();
         await loadAlerts();
       }
     } finally {
