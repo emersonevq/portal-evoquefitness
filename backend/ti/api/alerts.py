@@ -26,6 +26,7 @@ class AlertViewRequest(BaseModel):
     usuario_id: Optional[str] = None
     usuario_email: Optional[str] = None
     usuario_nome: Optional[str] = None
+    usuario_sobrenome: Optional[str] = None
 
 router = APIRouter(prefix="/alerts", tags=["TI - Alerts"]) 
 
