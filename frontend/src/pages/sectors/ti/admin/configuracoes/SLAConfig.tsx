@@ -52,12 +52,24 @@ interface BusinessHours {
   atualizado_em: string | null;
 }
 
+interface Holiday {
+  id: number;
+  data: string;
+  nome: string;
+  descricao: string | null;
+  ativo: boolean;
+  criado_em: string | null;
+  atualizado_em: string | null;
+}
+
 const DIAS_SEMANA = [
   { id: 0, label: "Segunda-feira" },
   { id: 1, label: "Terça-feira" },
   { id: 2, label: "Quarta-feira" },
   { id: 3, label: "Quinta-feira" },
   { id: 4, label: "Sexta-feira" },
+  { id: 5, label: "Sábado" },
+  { id: 6, label: "Domingo" },
 ];
 
 function SLAConfigCard({
