@@ -204,3 +204,58 @@ class SLAStatusResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class SLAHolidayCreate(BaseModel):
+    """Schema para criar feriado"""
+    data: str = Field(..., description="Data do feriado (YYYY-MM-DD)")
+    nome: str = Field(..., description="Nome do feriado")
+    descricao: str | None = Field(None, description="Descrição do feriado")
+    ativo: bool = Field(True, description="Se o feriado está ativo")
+
+    @validator("data")
+    def validate_data_format(cls, v):
+        """Valida formato de data YYYY-MM-DD"""
+        from datetime import datetime
+        try:
+            datetime.strptime(v, "%Y-%m-%d")
+        except ValueError:
+            raise ValueError("Data deve estar no formato YYYY-MM-DD")
+        return v
+
+    @validator("nome")
+    def validate_nome_length(cls, v):
+        """Valida comprimento do nome"""
+        if not v or len(v.strip()) < 3:
+            raise ValueError("Nome deve ter pelo menos 3 caracteres")
+        return v.strip()
+
+
+class SLAHolidayUpdate(BaseModel):
+    """Schema para atualizar feriado"""
+    nome: str | None = Field(None, description="Nome do feriado")
+    descricao: str | None = Field(None, description="Descrição do feriado")
+    ativo: bool | None = Field(None, description="Se o feriado está ativo")
+
+    @validator("nome")
+    def validate_nome_length(cls, v):
+        """Valida comprimento do nome quando fornecido"""
+        if v is not None:
+            if not v or len(v.strip()) < 3:
+                raise ValueError("Nome deve ter pelo menos 3 caracteres")
+            return v.strip()
+        return v
+
+
+class SLAHolidayOut(BaseModel):
+    """Schema de saída para feriado"""
+    id: int
+    data: str
+    nome: str
+    descricao: str | None
+    ativo: bool
+    criado_em: datetime | None
+    atualizado_em: datetime | None
+
+    class Config:
+        from_attributes = True
