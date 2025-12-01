@@ -18,10 +18,9 @@ export default function Login() {
   const handleMicrosoftLogin = async () => {
     setIsAuth0Loading(true);
     try {
+      // loginWithMicrosoft now uses loginRedirect which handles navigation
       await loginWithMicrosoft();
-      const redirect =
-        new URLSearchParams(window.location.search).get("redirect") || "/";
-      window.location.href = redirect;
+      // loginRedirect will navigate away, so we don't need to do anything here
     } catch (error) {
       console.error("Erro ao fazer login com Microsoft:", error);
       alert("Erro ao conectar com Microsoft. Tente novamente.");
