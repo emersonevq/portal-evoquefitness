@@ -197,19 +197,51 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Login with Microsoft Office 365
   const loginWithMicrosoft = async () => {
     try {
-      const result: AuthenticationResult = await msalInstance.loginPopup({
+      // Use redirect instead of popup to avoid COOP (Cross-Origin-Opener-Policy) issues
+      // Store the intended redirect destination before navigating
+      const redirect =
+        new URLSearchParams(window.location.search).get("redirect") || "/";
+      sessionStorage.setItem("msal-redirect-after-login", redirect);
+
+      await msalInstance.loginPopup({
         scopes,
       });
 
-      if (!result || !result.accessToken) {
-        throw new Error("Falha ao obter token de autenticação. Verifique se as configurações de MSAL estão corretas.");
+      // If popup succeeds, get the token and validate
+      const accounts = msalInstance.getAllAccounts();
+      if (accounts.length > 0) {
+        const account = accounts[0];
+        try {
+          const result = await msalInstance.acquireTokenSilent({
+            scopes,
+            account,
+          });
+          await validateAndSyncUser(result.accessToken);
+        } catch (error) {
+          console.error("Erro ao obter token silenciosamente após login popup:", error);
+          throw error;
+        }
       }
-
-      // Validate with backend
-      await validateAndSyncUser(result.accessToken);
     } catch (error) {
-      console.error("Erro ao fazer login com Microsoft:", error);
-      throw error;
+      console.error("Erro ao fazer login com Microsoft popup:", error);
+      // Fallback to redirect if popup fails
+      try {
+        const redirect =
+          new URLSearchParams(window.location.search).get("redirect") || "/";
+        sessionStorage.setItem("msal-redirect-after-login", redirect);
+        await msalInstance.loginPopup({
+          scopes,
+        }).catch(async () => {
+          // If popup fails, use redirect
+          console.log("Popup login falhou, tentando redirect...");
+          await msalInstance.loginRedirect({
+            scopes,
+          });
+        });
+      } catch (fallbackError) {
+        console.error("Erro no fallback redirect:", fallbackError);
+        throw error;
+      }
     }
   };
 
