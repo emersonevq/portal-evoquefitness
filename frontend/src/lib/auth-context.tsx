@@ -35,6 +35,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         await msalInstance.initialize();
 
+        // Handle redirect result from loginRedirect
+        const result = await msalInstance.handleRedirectPromise();
+        if (result && result.accessToken) {
+          // User just logged in via redirect
+          await validateAndSyncUser(result.accessToken);
+          // Navigate to intended destination
+          const redirectUrl =
+            sessionStorage.getItem("msal-redirect-after-login") || "/";
+          sessionStorage.removeItem("msal-redirect-after-login");
+          window.location.href = redirectUrl;
+          return;
+        }
+
         // Check if there's an existing session
         const accounts = msalInstance.getAllAccounts();
         if (accounts.length > 0) {
@@ -197,12 +210,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Login with Microsoft Office 365
   const loginWithMicrosoft = async () => {
     try {
-      const result: AuthenticationResult = await msalInstance.loginPopup({
+      // Use loginRedirect instead of loginPopup to avoid COOP issues
+      // This is more reliable in production environments
+      const redirect =
+        new URLSearchParams(window.location.search).get("redirect") || "/";
+      sessionStorage.setItem("msal-redirect-after-login", redirect);
+
+      await msalInstance.loginRedirect({
         scopes,
       });
-
-      // Validate with backend
-      await validateAndSyncUser(result.accessToken);
     } catch (error) {
       console.error("Erro ao fazer login com Microsoft:", error);
       throw error;
@@ -253,7 +269,18 @@ export function useAuthContext() {
 // Helper function to decode JWT without verification
 function decodeJwt(token: string): Record<string, any> {
   try {
-    const base64Url = token.split(".")[1];
+    if (!token || typeof token !== "string") {
+      console.error("Token inválido:", token);
+      return {};
+    }
+
+    const parts = token.split(".");
+    if (parts.length !== 3) {
+      console.error("Token não é um JWT válido (deve ter 3 partes)");
+      return {};
+    }
+
+    const base64Url = parts[1];
     const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
     const jsonPayload = decodeURIComponent(
       atob(base64)

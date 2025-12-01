@@ -1,10 +1,23 @@
 import { PublicClientApplication, LogLevel } from "@azure/msal-browser";
 
+const clientId = import.meta.env.VITE_MSAL_CLIENT_ID;
+const tenantId = import.meta.env.VITE_MSAL_TENANT_ID;
+const redirectUri = import.meta.env.VITE_MSAL_REDIRECT_URI;
+
+if (!clientId || !tenantId || !redirectUri) {
+  console.error(
+    "MSAL configuration is missing. Check your environment variables:",
+  );
+  console.error("VITE_MSAL_CLIENT_ID:", clientId ? "✓" : "✗ MISSING");
+  console.error("VITE_MSAL_TENANT_ID:", tenantId ? "✓" : "✗ MISSING");
+  console.error("VITE_MSAL_REDIRECT_URI:", redirectUri ? "✓" : "✗ MISSING");
+}
+
 const msalConfig = {
   auth: {
-    clientId: import.meta.env.VITE_MSAL_CLIENT_ID,
-    authority: `https://login.microsoftonline.com/${import.meta.env.VITE_MSAL_TENANT_ID}`,
-    redirectUri: import.meta.env.VITE_MSAL_REDIRECT_URI,
+    clientId: clientId || "",
+    authority: `https://login.microsoftonline.com/${tenantId || ""}`,
+    redirectUri: redirectUri || window.location.origin,
   },
   cache: {
     cacheLocation: "localStorage",
