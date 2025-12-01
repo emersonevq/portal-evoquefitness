@@ -503,7 +503,6 @@ def recalcular_sla_painel(db: Session = Depends(get_db)):
 
             # EMITE ATUALIZAÇÃO PARA O FRONTEND
             try:
-                from core.realtime import sio
                 import anyio
                 stats = result.data
                 anyio.from_thread.run(sio.emit, "metrics:updated", {
