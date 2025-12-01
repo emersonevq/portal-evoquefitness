@@ -250,25 +250,35 @@ class IncrementalMetricsCache:
     
     @staticmethod
     def get_metrics(db: Session) -> Dict[str, Any]:
-        """Obtém métricas mensais do cache"""
+        """Obtém métricas mensais do cache com fallback robusto"""
         try:
             cache_key = IncrementalMetricsCache.get_cache_key_month()
-            
-            cached = db.query(MetricsCacheDB).filter(
-                MetricsCacheDB.cache_key == cache_key
-            ).first()
-            
-            if cached and cached.expires_at and cached.expires_at > now_brazil_naive():
-                try:
-                    return json.loads(cached.cache_value)
-                except:
-                    return IncrementalMetricsCache._calculate_month(db)
-            
-            # Cache expirou ou não existe, recalcula
+
+            # Tenta obter do cache
+            try:
+                cached = db.query(MetricsCacheDB).filter(
+                    MetricsCacheDB.cache_key == cache_key
+                ).first()
+
+                if cached and cached.expires_at and cached.expires_at > now_brazil_naive():
+                    try:
+                        metrics = json.loads(cached.cache_value)
+                        # Validação básica
+                        if all(k in metrics for k in ["total", "dentro_sla", "fora_sla"]):
+                            return metrics
+                    except (json.JSONDecodeError, ValueError):
+                        print(f"[CACHE] Cache corrompido para {cache_key}, recalculando...")
+                        pass
+            except Exception as cache_error:
+                print(f"[CACHE] Erro ao buscar cache do banco: {cache_error}")
+                pass
+
+            # Cache não existe ou expirou, recalcula (de forma otimizada)
             return IncrementalMetricsCache._calculate_month(db)
-        
+
         except Exception as e:
             print(f"[CACHE] Erro ao obter métricas mensais: {e}")
+            # Retorna valores seguros
             return {
                 "total": 0,
                 "dentro_sla": 0,
