@@ -55,12 +55,11 @@ export default function Login() {
               <div className="flex items-center gap-4 mb-4">
                 <div className="relative">
                   <div className="absolute inset-0 bg-primary/20 rounded-2xl blur-lg animate-pulse" />
-                  <div className="relative rounded-2xl shadow-lg overflow-hidden">
-                    <img
-                      src="https://cdn.builder.io/api/v1/image/assets%2Faa9e931ad59b462c9cf6adb1ab6191c2%2F3403c2d4318f49d29f5d270b18089327?format=webp&width=800"
-                      alt="Microsoft 365"
-                      className="w-14 h-14 object-contain"
-                    />
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-primary/20 rounded-2xl blur-lg animate-pulse" />
+                    <div className="relative p-3.5 brand-gradient rounded-2xl shadow-lg">
+                      <Headphones className="w-7 h-7 text-primary-foreground" />
+                    </div>
                   </div>
                 </div>
                 <div>
@@ -92,13 +91,11 @@ export default function Login() {
                 </div>
               ) : (
                 <>
-                  <svg
-                    className="w-4 h-4"
-                    viewBox="0 0 24 24"
-                    fill="currentColor"
-                  >
-                    <path d="M11.4 24H0V12.6h11.4V24zM24 24H12.6V12.6H24V24zM11.4 11.4H0V0h11.4v11.4zm12.6 0H12.6V0H24v11.4z" />
-                  </svg>
+                  <img
+                    src="https://cdn.builder.io/api/v1/image/assets%2Faa9e931ad59b462c9cf6adb1ab6191c2%2F3403c2d4318f49d29f5d270b18089327?format=webp&width=800"
+                    alt="Microsoft 365"
+                    className="w-4 h-4 object-contain"
+                  />
                   <span>Entrar com Microsoft Office 365</span>
                   <LogIn className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </>
