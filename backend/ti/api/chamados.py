@@ -422,6 +422,7 @@ def criar_chamado_com_anexos(
                 send_async(send_chamado_abertura, ch)
             except Exception:
                 pass
+        db.expunge(ch)
         return ch
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro ao criar chamado com anexos: {e}")
