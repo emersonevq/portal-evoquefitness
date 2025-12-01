@@ -1,7 +1,7 @@
 from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException, Body
 from sqlalchemy.orm import Session
-from sqlalchemy import and_
+from sqlalchemy import and_, or_
 from core.db import get_db, engine
 from ti.schemas.sla import (
     SLAConfigurationCreate,
