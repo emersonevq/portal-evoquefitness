@@ -1,21 +1,15 @@
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useAuthContext } from "@/lib/auth-context";
 import LoginMediaPanel from "./components/LoginMediaPanel";
 import {
-  Eye,
-  EyeOff,
-  Lock,
-  Mail,
-  ArrowRight,
   Headphones,
   Shield,
   Zap,
   Clock,
   LogIn,
+  AlertCircle,
 } from "lucide-react";
 
 export default function Login() {
