@@ -3,13 +3,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthContext } from "@/lib/auth-context";
 import LoginMediaPanel from "./components/LoginMediaPanel";
-import {
-  Shield,
-  Zap,
-  Clock,
-  LogIn,
-  AlertCircle,
-} from "lucide-react";
+import { Shield, Zap, Clock, LogIn, AlertCircle } from "lucide-react";
 
 export default function Login() {
   const navigate = useNavigate();
