@@ -255,14 +255,18 @@ class UnifiedSLAMetricsCalculator:
                     "timestamp": now_brazil_naive().isoformat()
                 }
             
-            # Busca chamados ATIVOS das últimas 24h
-            chamados_ativos = db.query(Chamado).filter(
+            # Busca chamados ATIVOS (apenas que foram abertos nos últimos 30 dias para limite razoável)
+            data_limite_30d = agora - timedelta(days=30)
+            query_ativos = db.query(Chamado).filter(
                 and_(
-                    Chamado.status.notin_(["Concluido", "Cancelado"])
+                    Chamado.status.notin_(["Concluido", "Cancelado"]),
+                    Chamado.data_abertura >= data_limite_30d
                 )
-            ).all()
-            
-            if not chamados_ativos:
+            ).order_by(Chamado.id)
+
+            total_ativos = query_ativos.count()
+
+            if total_ativos == 0:
                 return {
                     "percentual": 0,
                     "total": 0,
@@ -271,45 +275,50 @@ class UnifiedSLAMetricsCalculator:
                     "periodo": "24h",
                     "timestamp": now_brazil_naive().isoformat()
                 }
-            
-            # PRÉ-CARREGA históricos
-            chamado_ids = [c.id for c in chamados_ativos]
-            historicos_bulk = db.query(HistoricoStatus).filter(
-                HistoricoStatus.chamado_id.in_(chamado_ids)
-            ).all()
-            
-            historicos_cache = {}
-            for hist in historicos_bulk:
-                if hist.chamado_id not in historicos_cache:
-                    historicos_cache[hist.chamado_id] = []
-                historicos_cache[hist.chamado_id].append(hist)
-            
+
             dentro_sla = 0
             fora_sla = 0
-            
-            for chamado in chamados_ativos:
-                try:
-                    sla_config = sla_configs.get(chamado.prioridade)
-                    if not sla_config:
-                        continue
-                    
-                    # Usa data atual como final (chamados ainda abertos)
-                    data_abertura = chamado.data_abertura or agora
-                    tempo_resolucao = SLACalculator.calculate_business_hours_excluding_paused(
-                        chamado.id,
-                        data_abertura,
-                        agora,
-                        db,
-                        historicos_cache
-                    )
-                    
-                    if tempo_resolucao <= sla_config.tempo_resolucao_horas:
-                        dentro_sla += 1
-                    else:
-                        fora_sla += 1
-                
-                except Exception as e:
-                    print(f"Erro ao processar chamado {chamado.id}: {e}")
+            chunk_size = 500
+
+            # Processa em chunks
+            for offset in range(0, total_ativos, chunk_size):
+                chamados_chunk = query_ativos.offset(offset).limit(chunk_size).all()
+
+                # PRÉ-CARREGA históricos para este chunk
+                chamado_ids = [c.id for c in chamados_chunk]
+                historicos_bulk = db.query(HistoricoStatus).filter(
+                    HistoricoStatus.chamado_id.in_(chamado_ids)
+                ).all()
+
+                historicos_cache = {}
+                for hist in historicos_bulk:
+                    if hist.chamado_id not in historicos_cache:
+                        historicos_cache[hist.chamado_id] = []
+                    historicos_cache[hist.chamado_id].append(hist)
+
+                for chamado in chamados_chunk:
+                    try:
+                        sla_config = sla_configs.get(chamado.prioridade)
+                        if not sla_config:
+                            continue
+
+                        # Usa data atual como final (chamados ainda abertos)
+                        data_abertura = chamado.data_abertura or agora
+                        tempo_resolucao = SLACalculator.calculate_business_hours_excluding_paused(
+                            chamado.id,
+                            data_abertura,
+                            agora,
+                            db,
+                            historicos_cache
+                        )
+
+                        if tempo_resolucao <= sla_config.tempo_resolucao_horas:
+                            dentro_sla += 1
+                        else:
+                            fora_sla += 1
+
+                    except Exception as e:
+                        print(f"Erro ao processar chamado {chamado.id}: {e}")
                     continue
             
             total = dentro_sla + fora_sla
