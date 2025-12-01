@@ -64,7 +64,7 @@ export default function Login() {
                 </div>
                 <div>
                   <h1 className="text-2xl font-bold tracking-tight">
-                    Central de Suporte
+                    Central de suporte
                   </h1>
                   <p className="text-sm text-primary font-medium">
                     Sistema de Atendimento TI
@@ -139,7 +139,7 @@ export default function Login() {
             {/* Footer */}
             <div className="mt-6 pt-6 border-t">
               <p className="text-xs text-muted-foreground text-center">
-                © {new Date().getFullYear()} Central de Suporte TI — Sistema
+                © {new Date().getFullYear()} Central de suporte TI — Sistema
                 interno
               </p>
             </div>
