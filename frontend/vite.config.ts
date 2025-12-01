@@ -2,7 +2,7 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 
-const target = process.env.VITE_PROXY_TARGET || "http://127.0.0.1:8000";
+const target = process.env.VITE_PROXY_TARGET || "http://127.0.0.1:8005";
 
 export default defineConfig({
   plugins: [react()],
@@ -12,7 +12,7 @@ export default defineConfig({
     },
   },
   server: {
-    port: 3000,
+    port: 3005,
     proxy: {
       "/api": {
         target,
