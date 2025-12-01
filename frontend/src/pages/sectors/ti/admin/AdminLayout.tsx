@@ -24,7 +24,6 @@ const iconMap = {
   Monitoramento: Activity,
   Histórico: Clock,
   Integrações: Puzzle,
-  Sistema: Cog,
   Configurações: Settings,
 };
 
