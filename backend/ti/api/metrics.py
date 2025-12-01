@@ -424,8 +424,11 @@ def metrics_health_check(db: Session = Depends(get_db)):
 
         # Check 1: Cache accessibility
         try:
+            from ti.models.metrics_cache import MetricsCacheDB
             cache_key = IncrementalMetricsCache.get_cache_key_month()
-            cached = db.query(db.query(IncrementalMetricsCache.__module__).first()
+            cached = db.query(MetricsCacheDB).filter(
+                MetricsCacheDB.cache_key == cache_key
+            ).first()
             health["checks"]["cache"] = {
                 "status": "ok",
                 "message": "Cache accessible"
