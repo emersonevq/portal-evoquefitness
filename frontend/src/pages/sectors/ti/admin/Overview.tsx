@@ -267,6 +267,43 @@ export default function Overview() {
     preWarmCache();
   }, [warmupCache]);
 
+  // Listener WebSocket para atualizações em tempo real de métricas
+  useEffect(() => {
+    try {
+      const socket = (window as any).__APP_SOCK__;
+
+      if (!socket) {
+        console.debug(
+          "[Overview] WebSocket não disponível ainda para listener de métricas",
+        );
+        return;
+      }
+
+      const handleMetricsUpdated = () => {
+        console.debug(
+          "[Overview] Recebido evento metrics:updated, invalidando cache",
+        );
+        // Invalida todas as queries de métricas para forçar refetch imediato
+        queryClient.invalidateQueries({ queryKey: ["metrics-basic"] });
+        queryClient.invalidateQueries({ queryKey: ["metrics-daily"] });
+        queryClient.invalidateQueries({ queryKey: ["metrics-weekly"] });
+        queryClient.invalidateQueries({ queryKey: ["metrics-sla"] });
+        queryClient.invalidateQueries({ queryKey: ["metrics-performance"] });
+      };
+
+      socket.on("metrics:updated", handleMetricsUpdated);
+
+      return () => {
+        socket.off("metrics:updated", handleMetricsUpdated);
+      };
+    } catch (error) {
+      console.debug(
+        "[Overview] Erro ao configurar listener WebSocket:",
+        error,
+      );
+    }
+  }, [queryClient]);
+
   // Determina se está carregando
   useEffect(() => {
     const allLoading =
