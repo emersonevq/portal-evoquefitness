@@ -233,7 +233,7 @@ export default function Overview() {
 
   const atualizarMetricasMutation = useMutation({
     mutationFn: async () => {
-      const response = await api.post("/sla/recalcular/p90-incremental");
+      const response = await api.post("/sla/recalcular/painel");
       return response.data;
     },
     onSuccess: (data: any) => {
@@ -242,10 +242,14 @@ export default function Overview() {
       queryClient.invalidateQueries({ queryKey: ["metrics-daily"] });
       queryClient.invalidateQueries({ queryKey: ["metrics-weekly"] });
       queryClient.invalidateQueries({ queryKey: ["metrics-performance"] });
+      queryClient.invalidateQueries({ queryKey: ["sla-p90-analysis"] });
 
-      const prioridades = Object.keys(data.prioridades || {});
+      const totalRecalculados = data.total_recalculados || 0;
+      const emDia = data.em_dia || 0;
+      const vencidos = data.vencidos || 0;
+
       toast.success(
-        `Métricas atualizadas! ${prioridades.length} prioridades recalculadas.`,
+        `Métricas atualizadas! ${totalRecalculados} chamados recalculados (${emDia} em dia, ${vencidos} vencidos).`,
       );
     },
     onError: (error: any) => {
