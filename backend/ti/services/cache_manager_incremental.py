@@ -377,32 +377,58 @@ class IncrementalMetricsCache:
     
     @staticmethod
     def _calculate_month(db: Session) -> Dict[str, Any]:
-        """Calcula métricas mensais do zero"""
+        """Calcula métricas mensais do zero com debouncing"""
         try:
             from ti.services.sla_metrics_unified import UnifiedSLAMetricsCalculator
-            
-            agora = now_brazil_naive()
-            mes_inicio = agora.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-            
-            # Usa calculador unificado para mês
-            dist = UnifiedSLAMetricsCalculator.calculate_sla_distribution_period(
-                db, mes_inicio, agora
+            from ti.services.cache_debouncer import get_debouncer
+
+            debouncer = get_debouncer()
+            cache_key = IncrementalMetricsCache.get_cache_key_month()
+
+            # Usa debouncer para evitar múltiplos recálculos simultâneos
+            def calculate_metrics():
+                agora = now_brazil_naive()
+                mes_inicio = agora.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+
+                # Usa calculador unificado para mês
+                dist = UnifiedSLAMetricsCalculator.calculate_sla_distribution_period(
+                    db, mes_inicio, agora
+                )
+
+                metricas = {
+                    "total": dist["total"],
+                    "dentro_sla": dist["dentro_sla"],
+                    "fora_sla": dist["fora_sla"],
+                    "percentual_dentro": dist["percentual_dentro"],
+                    "percentual_fora": dist["percentual_fora"],
+                    "updated_at": agora.isoformat(),
+                }
+
+                # Salva no cache
+                IncrementalMetricsCache._save_metrics(db, metricas)
+
+                return metricas
+
+            # Debounce o cálculo por 300 segundos (5 minutos)
+            result = debouncer.debounce(
+                key=cache_key,
+                func=calculate_metrics,
+                ttl=300,  # Cache resultado por 5 minutos
+                timeout=120  # Espera até 2 minutos por cálculo anterior
             )
-            
-            metricas = {
-                "total": dist["total"],
-                "dentro_sla": dist["dentro_sla"],
-                "fora_sla": dist["fora_sla"],
-                "percentual_dentro": dist["percentual_dentro"],
-                "percentual_fora": dist["percentual_fora"],
-                "updated_at": agora.isoformat(),
-            }
-            
-            # Salva no cache
-            IncrementalMetricsCache._save_metrics(db, metricas)
-            
-            return metricas
-        
+
+            if result is None:
+                # Fallback se debounce falhar
+                return {
+                    "total": 0,
+                    "dentro_sla": 0,
+                    "fora_sla": 0,
+                    "percentual_dentro": 0,
+                    "percentual_fora": 0,
+                }
+
+            return result
+
         except Exception as e:
             print(f"[CACHE] Erro ao calcular métricas mensais: {e}")
             return {
