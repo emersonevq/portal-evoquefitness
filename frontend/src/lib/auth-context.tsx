@@ -201,6 +201,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         scopes,
       });
 
+      if (!result || !result.accessToken) {
+        throw new Error("Falha ao obter token de autenticação. Verifique se as configurações de MSAL estão corretas.");
+      }
+
       // Validate with backend
       await validateAndSyncUser(result.accessToken);
     } catch (error) {
