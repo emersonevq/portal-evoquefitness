@@ -1,6 +1,6 @@
 from sqlalchemy import inspect
-from ...core.db import engine
-from ..models.metrics_cache import MetricsCacheDB
+from core.db import engine
+from ti.models.metrics_cache import MetricsCacheDB
 
 
 def create_metrics_cache_table():

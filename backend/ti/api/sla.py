@@ -21,6 +21,7 @@ from ti.services.sla import SLACalculator
 from ti.services.sla_cache import SLACacheManager
 from ti.services.sla_validator import SLAValidator
 from core.utils import now_brazil_naive
+from core.realtime import sio
 from datetime import timedelta
 
 router = APIRouter(prefix="/sla", tags=["TI - SLA"])
@@ -492,6 +493,31 @@ def recalcular_sla_painel(db: Session = Depends(get_db)):
         )
 
         if result.success:
+            # LIMPA CACHE DE MÉTRICAS PARA FORÇAR RECALCULAR
+            print(f"[PAINEL RECALC] Invalidando cache de métricas...")
+            try:
+                from ti.services.cache_manager_incremental import IncrementalMetricsCache
+                IncrementalMetricsCache.invalidate_all()
+            except Exception as e:
+                print(f"[PAINEL RECALC] Aviso ao invalidar cache: {e}")
+
+            # EMITE ATUALIZAÇÃO PARA O FRONTEND
+            try:
+                import anyio
+                stats = result.data
+                anyio.from_thread.run(sio.emit, "metrics:updated", {
+                    "total_recalculados": stats.get("total_recalculados"),
+                    "em_dia": stats.get("em_dia"),
+                    "vencidos": stats.get("vencidos"),
+                    "em_andamento": stats.get("em_andamento"),
+                    "congelados": stats.get("congelados"),
+                    "timestamp": now_brazil_naive().isoformat(),
+                })
+                print(f"[PAINEL RECALC] ✅ Evento WebSocket emitido para frontend")
+            except Exception as e:
+                print(f"[PAINEL RECALC] ⚠️  Erro ao emitir evento WebSocket: {e}")
+                pass
+
             return result.data
         else:
             raise HTTPException(status_code=500, detail=result.error)
@@ -664,6 +690,19 @@ def resetar_sla_completo(db: Session = Depends(get_db)):
         db.commit()
 
         print(f"[SLA RESET] ✅ Reset concluído com sucesso!")
+
+        # EMITE ATUALIZAÇÃO PARA O FRONTEND
+        try:
+            import anyio
+            anyio.from_thread.run(sio.emit, "sla:reset", {
+                "reset_em": agora.isoformat(),
+                "configuracoes_atualizadas": len(configs),
+                "timestamp": agora.isoformat(),
+            })
+            print(f"[SLA RESET] ✅ Evento WebSocket emitido para frontend")
+        except Exception as e:
+            print(f"[SLA RESET] ⚠️  Erro ao emitir evento WebSocket: {e}")
+            pass
 
         return {
             "ok": True,

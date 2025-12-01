@@ -233,6 +233,8 @@ def criar_chamado(payload: ChamadoCreate, db: Session = Depends(get_db)):
             send_async(send_chamado_abertura, ch)
         except Exception:
             pass
+        db.refresh(ch)
+        db.expunge(ch)
         return ch
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -422,6 +424,23 @@ def criar_chamado_com_anexos(
                 send_async(send_chamado_abertura, ch)
             except Exception:
                 pass
+
+        # EMITE ATUALIZAÇÃO DE MÉTRICAS EM TEMPO REAL
+        try:
+            from ti.services.cache_manager_incremental import IncrementalMetricsCache
+            metricas = IncrementalMetricsCache.get_metrics(db)
+            import anyio
+            anyio.from_thread.run(sio.emit, "metrics:updated", {
+                "chamados_hoje": 1,
+                "sla_metrics": metricas,
+                "timestamp": now_brazil_naive().isoformat(),
+            })
+        except Exception as e:
+            print(f"[WebSocket] Erro ao emitir eventos de métricas: {e}")
+            pass
+
+        db.refresh(ch)
+        db.expunge(ch)
         return ch
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro ao criar chamado com anexos: {e}")
@@ -761,6 +780,8 @@ def atualizar_status(chamado_id: int, payload: ChamadoStatusUpdate, db: Session 
             send_async(send_chamado_status, ch, prev)
         except Exception:
             pass
+        db.refresh(ch)
+        db.expunge(ch)
         return ch
     except HTTPException:
         raise

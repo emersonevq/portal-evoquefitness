@@ -233,7 +233,7 @@ export default function Overview() {
 
   const atualizarMetricasMutation = useMutation({
     mutationFn: async () => {
-      const response = await api.post("/sla/recalcular/p90-incremental");
+      const response = await api.post("/sla/recalcular/painel");
       return response.data;
     },
     onSuccess: (data: any) => {
@@ -242,10 +242,14 @@ export default function Overview() {
       queryClient.invalidateQueries({ queryKey: ["metrics-daily"] });
       queryClient.invalidateQueries({ queryKey: ["metrics-weekly"] });
       queryClient.invalidateQueries({ queryKey: ["metrics-performance"] });
+      queryClient.invalidateQueries({ queryKey: ["sla-p90-analysis"] });
 
-      const prioridades = Object.keys(data.prioridades || {});
+      const totalRecalculados = data.total_recalculados || 0;
+      const emDia = data.em_dia || 0;
+      const vencidos = data.vencidos || 0;
+
       toast.success(
-        `Métricas atualizadas! ${prioridades.length} prioridades recalculadas.`,
+        `Métricas atualizadas! ${totalRecalculados} chamados recalculados (${emDia} em dia, ${vencidos} vencidos).`,
       );
     },
     onError: (error: any) => {
@@ -266,6 +270,56 @@ export default function Overview() {
     };
     preWarmCache();
   }, [warmupCache]);
+
+  // Listener WebSocket para atualizações em tempo real de métricas
+  useEffect(() => {
+    try {
+      const socket = (window as any).__APP_SOCK__;
+
+      if (!socket) {
+        console.debug(
+          "[Overview] WebSocket não disponível ainda para listener de métricas",
+        );
+        return;
+      }
+
+      const handleMetricsUpdated = () => {
+        console.debug(
+          "[Overview] Recebido evento metrics:updated, invalidando cache",
+        );
+        // Invalida todas as queries de métricas para forçar refetch imediato
+        queryClient.invalidateQueries({ queryKey: ["metrics-basic"] });
+        queryClient.invalidateQueries({ queryKey: ["metrics-daily"] });
+        queryClient.invalidateQueries({ queryKey: ["metrics-weekly"] });
+        queryClient.invalidateQueries({ queryKey: ["metrics-sla"] });
+        queryClient.invalidateQueries({ queryKey: ["metrics-performance"] });
+      };
+
+      const handleSLAReset = (data: any) => {
+        console.debug(
+          "[Overview] Recebido evento sla:reset, invalidando cache de SLA",
+          data,
+        );
+        // Invalida todas as queries quando SLA é resetado
+        queryClient.invalidateQueries({ queryKey: ["metrics-basic"] });
+        queryClient.invalidateQueries({ queryKey: ["metrics-daily"] });
+        queryClient.invalidateQueries({ queryKey: ["metrics-weekly"] });
+        queryClient.invalidateQueries({ queryKey: ["metrics-sla"] });
+        queryClient.invalidateQueries({ queryKey: ["metrics-performance"] });
+        queryClient.invalidateQueries({ queryKey: ["sla-p90-analysis"] });
+      };
+
+      socket.on("metrics:updated", handleMetricsUpdated);
+      socket.on("sla:reset", handleSLAReset);
+
+      return () => {
+        socket.off("metrics:updated", handleMetricsUpdated);
+        socket.off("sla:reset", handleSLAReset);
+      };
+    } catch (error) {
+      console.debug("[Overview] Erro ao configurar listener WebSocket:", error);
+    }
+  }, [queryClient]);
 
   // Determina se está carregando
   useEffect(() => {

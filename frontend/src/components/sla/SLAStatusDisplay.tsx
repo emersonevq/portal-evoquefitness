@@ -26,7 +26,10 @@ export function SLAStatusDisplay({ chamadoId }: SLAStatusDisplayProps) {
     );
   }
 
-  const formatHours = (hours: number) => {
+  const formatHours = (hours: number | null | undefined) => {
+    if (hours === null || hours === undefined) {
+      return "—";
+    }
     if (hours < 1) {
       return `${Math.round(hours * 60)}m`;
     }
