@@ -35,6 +35,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         await msalInstance.initialize();
 
+        // Handle redirect result from loginRedirect
+        const result = await msalInstance.handleRedirectPromise();
+        if (result && result.accessToken) {
+          // User just logged in via redirect
+          await validateAndSyncUser(result.accessToken);
+          // Navigate to intended destination
+          const redirectUrl = sessionStorage.getItem("msal-redirect-after-login") || "/";
+          sessionStorage.removeItem("msal-redirect-after-login");
+          window.location.href = redirectUrl;
+          return;
+        }
+
         // Check if there's an existing session
         const accounts = msalInstance.getAllAccounts();
         if (accounts.length > 0) {
