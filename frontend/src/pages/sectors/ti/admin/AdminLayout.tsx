@@ -47,7 +47,6 @@ const groups = [
     title: "Administração",
     items: [
       { to: "/setor/ti/admin/integracoes", label: "Integrações" },
-      { to: "/setor/ti/admin/sistema", label: "Sistema" },
       { to: "/setor/ti/admin/configuracoes", label: "Configurações" },
     ],
   },
