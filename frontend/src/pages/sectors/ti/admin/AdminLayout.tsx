@@ -11,7 +11,6 @@ import {
   Clock,
   Puzzle,
   Settings,
-  Cog,
   ChevronRight,
 } from "lucide-react";
 import NotificationBell from "./components/NotificationBell";
