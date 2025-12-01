@@ -177,7 +177,7 @@ export default function SectorPage() {
           <div className="rounded-xl border border-border/60 bg-card p-6 sm:p-8 text-center">
             <h2 className="text-lg font-semibold mb-2">Acesso negado</h2>
             <p className="text-muted-foreground mb-4">
-              Você não tem permissão para acessar o setor de TI.
+              Você não tem permissão para acessar o setor de ti.
             </p>
             <div className="mt-6 flex items-center gap-3 justify-center">
               <Button asChild>

@@ -14,25 +14,25 @@ export interface Sector {
 const baseSectors: Sector[] = [
   {
     slug: "ti",
-    title: "Setor de TI",
+    title: "Setor de ti",
     description: "Gerencie chamados e otimize serviços de tecnologia.",
     icon: Server,
   },
   {
     slug: "compras",
-    title: "Setor de Compras",
+    title: "Setor de compras",
     description: "Registre e acompanhe solicitações de compras.",
     icon: ShoppingCart,
   },
   {
     slug: "manutencao",
-    title: "Setor de Manutenção",
+    title: "Setor de manutenção",
     description: "Gerencie solicitações e acompanhe reparos.",
     icon: Wrench,
   },
   {
     slug: "bi",
-    title: "Portal de BI",
+    title: "Portal de bi",
     description: "Analise dados e visualize insights em dashboards.",
     icon: BarChart3,
   },

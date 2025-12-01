@@ -5,6 +5,7 @@ import json
 import threading
 from sqlalchemy.orm import Session
 from sqlalchemy import and_
+from sqlalchemy.exc import IntegrityError
 from core.utils import now_brazil_naive
 import hashlib
 
@@ -168,7 +169,20 @@ class SLACacheManager:
                 )
                 db.add(new_cache)
 
-            db.commit()
+            try:
+                db.commit()
+            except IntegrityError:
+                db.rollback()
+                # Retry: outra transação inseriu, tenta atualizar
+                existing = db.query(MetricsCacheDB).filter(
+                    MetricsCacheDB.cache_key == key
+                ).first()
+                if existing:
+                    existing.cache_value = cache_value
+                    existing.calculated_at = calculated_at
+                    existing.expires_at = expires_at
+                    db.add(existing)
+                    db.commit()
         except Exception as e:
             print(f"[CACHE] Erro ao persistir cache no banco: {e}")
             try:

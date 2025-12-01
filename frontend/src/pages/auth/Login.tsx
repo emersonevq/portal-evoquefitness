@@ -1,58 +1,26 @@
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useAuthContext } from "@/lib/auth-context";
 import LoginMediaPanel from "./components/LoginMediaPanel";
 import {
-  Eye,
-  EyeOff,
-  Lock,
-  Mail,
-  ArrowRight,
   Headphones,
   Shield,
   Zap,
   Clock,
   LogIn,
+  AlertCircle,
 } from "lucide-react";
 
 export default function Login() {
   const navigate = useNavigate();
-  const { login, loginWithMicrosoft } = useAuthContext();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [remember, setRemember] = useState(true);
-  const [isLoading, setIsLoading] = useState(false);
+  const { loginWithMicrosoft } = useAuthContext();
   const [isAuth0Loading, setIsAuth0Loading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
-
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-
-    try {
-      const result: any = await login(email, password, remember);
-      const params = new URLSearchParams(window.location.search);
-      const redirect = params.get("redirect") || "/";
-
-      if (result && result.alterar_senha_primeiro_acesso) {
-        navigate("/auth/change-password", { replace: true });
-      } else {
-        navigate(redirect, { replace: true });
-      }
-    } catch (err: any) {
-      alert(err?.message || "Falha ao autenticar");
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const handleMicrosoftLogin = async () => {
     setIsAuth0Loading(true);
@@ -87,13 +55,16 @@ export default function Login() {
               <div className="flex items-center gap-4 mb-4">
                 <div className="relative">
                   <div className="absolute inset-0 bg-primary/20 rounded-2xl blur-lg animate-pulse" />
-                  <div className="relative p-3.5 brand-gradient rounded-2xl shadow-lg">
-                    <Headphones className="w-7 h-7 text-primary-foreground" />
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-primary/20 rounded-2xl blur-lg animate-pulse" />
+                    <div className="relative p-3.5 brand-gradient rounded-2xl shadow-lg">
+                      <Headphones className="w-7 h-7 text-primary-foreground" />
+                    </div>
                   </div>
                 </div>
                 <div>
                   <h1 className="text-2xl font-bold tracking-tight">
-                    Central de Suporte
+                    Central de suporte
                   </h1>
                   <p className="text-sm text-primary font-medium">
                     Sistema de Atendimento TI
@@ -111,7 +82,7 @@ export default function Login() {
             <Button
               onClick={handleMicrosoftLogin}
               disabled={isAuth0Loading}
-              className="w-full h-11 rounded-md mb-6 bg-blue-600 hover:bg-blue-700 text-white font-medium flex items-center justify-center gap-2 group"
+              className="w-full h-11 rounded-md mb-4 bg-blue-600 hover:bg-blue-700 text-white font-medium flex items-center justify-center gap-2 group"
             >
               {isAuth0Loading ? (
                 <div className="flex items-center gap-2">
@@ -120,120 +91,31 @@ export default function Login() {
                 </div>
               ) : (
                 <>
-                  <svg
-                    className="w-4 h-4"
-                    viewBox="0 0 24 24"
-                    fill="currentColor"
-                  >
-                    <path d="M11.4 24H0V12.6h11.4V24zM24 24H12.6V12.6H24V24zM11.4 11.4H0V0h11.4v11.4zm12.6 0H12.6V0H24v11.4z" />
-                  </svg>
-                  <span>Entrar com Microsoft</span>
+                  <img
+                    src="https://cdn.builder.io/api/v1/image/assets%2Faa9e931ad59b462c9cf6adb1ab6191c2%2F3403c2d4318f49d29f5d270b18089327?format=webp&width=800"
+                    alt="Microsoft 365"
+                    className="w-4 h-4 object-contain"
+                  />
+                  <span>Entrar com Microsoft Office 365</span>
                   <LogIn className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </>
               )}
             </Button>
 
-            {/* Divisor */}
-            <div className="relative mb-6">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-border/60"></div>
-              </div>
-              <div className="relative flex justify-center text-xs">
-                <span className="px-2 bg-card text-muted-foreground">
-                  Ou use sua senha
-                </span>
+            {/* Alerta de mudança */}
+            <div className="flex gap-3 p-4 rounded-lg bg-red-50 border border-red-200">
+              <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <p className="text-sm font-medium text-red-900 mb-1">
+                  Autenticação alterada
+                </p>
+                <p className="text-xs text-red-800 leading-relaxed">
+                  O acesso ao portal agora é realizado exclusivamente via
+                  Microsoft Office 365. Utilize seu e-mail corporativo da
+                  unidade e a senha de e-mail para fazer login.
+                </p>
               </div>
             </div>
-
-            {/* Formulário */}
-            <form onSubmit={submit} className="space-y-4">
-              {/* Email */}
-              <div className="grid gap-2">
-                <Label htmlFor="email">E-mail ou usuário</Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="email"
-                    type="text"
-                    placeholder="seu@email.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    disabled={isLoading}
-                    className="pl-10 h-11"
-                  />
-                </div>
-              </div>
-
-              {/* Senha */}
-              <div className="grid gap-2">
-                <Label htmlFor="password">Senha</Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="password"
-                    type={showPassword ? "text" : "password"}
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    disabled={isLoading}
-                    className="pl-10 pr-10 h-11"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    {showPassword ? (
-                      <EyeOff className="w-4 h-4" />
-                    ) : (
-                      <Eye className="w-4 h-4" />
-                    )}
-                  </button>
-                </div>
-              </div>
-
-              {/* Lembrar & Esqueci senha */}
-              <div className="flex items-center justify-between pt-1">
-                <label className="flex items-center gap-2 cursor-pointer group">
-                  <input
-                    type="checkbox"
-                    checked={remember}
-                    onChange={(e) => setRemember(e.target.checked)}
-                    className="h-4 w-4 rounded border-input accent-primary cursor-pointer"
-                  />
-                  <span className="text-sm text-muted-foreground group-hover:text-foreground transition-colors select-none">
-                    Lembrar-me
-                  </span>
-                </label>
-                <Link
-                  to="/auth/forgot-password"
-                  className="text-sm text-primary hover:underline font-medium"
-                >
-                  Esqueci minha senha
-                </Link>
-              </div>
-
-              {/* Botão de login */}
-              <Button
-                type="submit"
-                disabled={isLoading}
-                className="w-full h-11 rounded-md mt-6 group"
-              >
-                {isLoading ? (
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
-                    <span>Autenticando...</span>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2">
-                    <span>Acessar Portal</span>
-                    <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                  </div>
-                )}
-              </Button>
-            </form>
 
             {/* Features */}
             <div className="mt-6 pt-6 border-t">
@@ -259,7 +141,7 @@ export default function Login() {
             {/* Footer */}
             <div className="mt-6 pt-6 border-t">
               <p className="text-xs text-muted-foreground text-center">
-                © {new Date().getFullYear()} Central de Suporte TI — Sistema
+                © {new Date().getFullYear()} Central de suporte TI — Sistema
                 interno
               </p>
             </div>
