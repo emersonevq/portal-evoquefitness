@@ -14,7 +14,7 @@ export interface Sector {
 const baseSectors: Sector[] = [
   {
     slug: "ti",
-    title: "Setor de ti",
+    title: "Setor de TI",
     description: "Gerencie chamados e otimize serviços de tecnologia.",
     icon: Server,
   },
