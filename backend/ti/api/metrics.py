@@ -397,3 +397,95 @@ def debug_recalculate_sla(db: Session = Depends(get_db)):
             "status": "erro",
             "erro": str(e)
         }
+
+
+@router.get("/metrics/health")
+def metrics_health_check(db: Session = Depends(get_db)):
+    """
+    Endpoint de health check para monitorar saúde do cache e cálculos.
+
+    Retorna:
+    - cache_status: Se cache está funcionando
+    - cache_age: Idade do cache em segundos
+    - debouncer_status: Quantas operações estão em progresso
+    - banco_status: Se conexão com banco está OK
+    - timestamp: Momento do check
+    """
+    try:
+        from ti.services.cache_manager_incremental import IncrementalMetricsCache
+        from ti.services.cache_debouncer import get_debouncer
+        from core.utils import now_brazil_naive
+        import json
+
+        health = {
+            "status": "healthy",
+            "checks": {}
+        }
+
+        # Check 1: Cache accessibility
+        try:
+            cache_key = IncrementalMetricsCache.get_cache_key_month()
+            cached = db.query(db.query(IncrementalMetricsCache.__module__).first()
+            health["checks"]["cache"] = {
+                "status": "ok",
+                "message": "Cache accessible"
+            }
+        except Exception as cache_error:
+            health["checks"]["cache"] = {
+                "status": "warning",
+                "message": str(cache_error)
+            }
+
+        # Check 2: Database connection
+        try:
+            db.execute("SELECT 1")
+            health["checks"]["database"] = {
+                "status": "ok",
+                "message": "Database connected"
+            }
+        except Exception as db_error:
+            health["checks"]["database"] = {
+                "status": "critical",
+                "message": str(db_error)
+            }
+            health["status"] = "unhealthy"
+
+        # Check 3: Debouncer status
+        try:
+            debouncer = get_debouncer()
+            stats = debouncer.get_stats()
+            health["checks"]["debouncer"] = {
+                "status": "ok",
+                "cached_items": stats["cached_keys"],
+                "in_progress": stats["in_progress"]
+            }
+        except Exception as debounce_error:
+            health["checks"]["debouncer"] = {
+                "status": "warning",
+                "message": str(debounce_error)
+            }
+
+        # Check 4: Metrics calculation (lightweight)
+        try:
+            metricas = IncrementalMetricsCache.get_metrics(db)
+            health["checks"]["metrics"] = {
+                "status": "ok",
+                "total_chamados": metricas.get("total", 0),
+                "percentual_sla": metricas.get("percentual_dentro", 0)
+            }
+        except Exception as metrics_error:
+            health["checks"]["metrics"] = {
+                "status": "warning",
+                "message": str(metrics_error)
+            }
+
+        health["timestamp"] = now_brazil_naive().isoformat()
+        return health
+
+    except Exception as e:
+        print(f"Erro ao fazer health check: {e}")
+        return {
+            "status": "unhealthy",
+            "error": str(e),
+            "timestamp": now_brazil_naive().isoformat()
+        }
