@@ -257,7 +257,18 @@ export function useAuthContext() {
 // Helper function to decode JWT without verification
 function decodeJwt(token: string): Record<string, any> {
   try {
-    const base64Url = token.split(".")[1];
+    if (!token || typeof token !== "string") {
+      console.error("Token inválido:", token);
+      return {};
+    }
+
+    const parts = token.split(".");
+    if (parts.length !== 3) {
+      console.error("Token não é um JWT válido (deve ter 3 partes)");
+      return {};
+    }
+
+    const base64Url = parts[1];
     const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
     const jsonPayload = decodeURIComponent(
       atob(base64)
