@@ -7,11 +7,6 @@ export const API_BASE: string = (() => {
   const envUrl = (import.meta as any)?.env?.VITE_API_URL as string | undefined;
   if (envUrl && envUrl.trim()) return envUrl.trim() + "/api";
 
-  if (typeof window !== "undefined") {
-    const h = window.location.hostname;
-    if (h === "localhost" || h === "127.0.0.1")
-      return "http://127.0.0.1:8005/api";
-  }
   return "/api";
 })();
 
