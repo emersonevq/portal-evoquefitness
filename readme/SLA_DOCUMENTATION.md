@@ -1,6 +1,7 @@
 # Documentação Completa do Sistema SLA
 
 ## Sumário
+
 1. [Conceitos Básicos](#conceitos-básicos)
 2. [Configurações do SLA](#configurações-do-sla)
 3. [Como é Calculado o SLA](#como-é-calculado-o-sla)
@@ -15,20 +16,22 @@
 ## Conceitos Básicos
 
 ### O que é SLA?
+
 **SLA (Service Level Agreement)** é um contrato que define o tempo máximo para responder e resolver chamados de suporte.
 
 No sistema TI, temos:
+
 - **Tempo de Resposta**: quanto tempo leva para dar a primeira resposta a um chamado
 - **Tempo de Resolução**: quanto tempo leva para fechar/resolver um chamado
 
 ### Prioridades e SLAs Padrão
 
 | Prioridade | Tempo de Resposta | Tempo de Resolução |
-|------------|-------------------|-------------------|
-| Crítica    | 1 hora            | 4 horas           |
-| Urgente    | 2 horas           | 8 horas           |
-| Alta       | 4 horas           | 24 horas          |
-| Normal     | 8 horas           | 48 horas          |
+| ---------- | ----------------- | ------------------ |
+| Crítica    | 1 hora            | 4 horas            |
+| Urgente    | 2 horas           | 8 horas            |
+| Alta       | 4 horas           | 24 horas           |
+| Normal     | 8 horas           | 48 horas           |
 
 > Esses valores são padrão, mas podem ser ajustados via API.
 
@@ -37,13 +40,17 @@ No sistema TI, temos:
 ## Configurações do SLA
 
 ### 1. Horário de Funcionamento (Business Hours)
+
 Por padrão: **Segunda a Sexta, 08:00 às 18:00**
 
 **Importante**: Apenas as horas de funcionamento contam para cálculos de SLA. Por exemplo:
+
 - Uma chamada aberta à sexta 17:00 e respondida à segunda 09:00 conta apenas 1 hora (sexta: 1h + segunda: 1h)
 
 ### 2. Férias e Dias Não Úteis
+
 O sistema reconhece:
+
 - **Feriados brasileiros** (automaticamente configurados)
 - **Férias personalizadas** (podem ser adicionadas via API)
 - **Dias sem expediente** (sábados, domingos)
@@ -51,7 +58,9 @@ O sistema reconhece:
 Esses dias NÃO contam para o cálculo de SLA.
 
 ### 3. Horas de Negócio por Dia (Configurável)
+
 É possível configurar horários diferentes para cada dia da semana:
+
 - Segunda: 08:00-18:00
 - Terça: 08:00-18:00
 - ... etc ...
@@ -87,11 +96,13 @@ Status: ✅ DENTRO DO SLA (4h = 4h)
 **O que conta**: da abertura do chamado até a primeira mudança de status (resposta).
 
 Fórmula:
+
 ```
 Tempo Resposta = BusinessHours(data_abertura, data_primeira_resposta)
 ```
 
 **O que NÃO conta**:
+
 - Finais de semana
 - Fora do horário comercial
 - Períodos em que o chamado estava "Em Análise" (pausado)
@@ -101,6 +112,7 @@ Tempo Resposta = BusinessHours(data_abertura, data_primeira_resposta)
 **O que conta**: da abertura do chamado até o fechamento (Concluído ou Cancelado).
 
 Fórmula:
+
 ```
 Tempo Resolução = BusinessHours(data_abertura, data_conclusao)
                   - Períodos_Em_Análise
@@ -110,6 +122,7 @@ Tempo Resolução = BusinessHours(data_abertura, data_conclusao)
 Quando um chamado tem status "Em Análise" ou "Aguardando Cliente", o tempo não conta.
 
 Exemplo:
+
 ```
 Abertura: segunda 09:00
 Status Aguardando: segunda 11:00 → terça 09:00 (24h = 1 dia inteiro não conta)
@@ -127,6 +140,7 @@ Tempo Total = 2h (segunda) + 2h (terça) = 4h
 ### 1. Quando um Chamado É Considerado no SLA?
 
 **✅ Incluído nos cálculos:**
+
 - Status: Concluído, Cancelado, Aberto, Em Progresso, Aguardando
 - Tem data de abertura definida
 - Tem primeira resposta ou está ativo
@@ -134,6 +148,7 @@ Tempo Total = 2h (segunda) + 2h (terça) = 4h
 - Data de abertura está dentro do período analisado
 
 **❌ Excluído dos cálculos:**
+
 - Chamados deletados
 - Status: Sem status
 - Sem data de abertura
@@ -143,14 +158,14 @@ Tempo Total = 2h (segunda) + 2h (terça) = 4h
 
 Um chamado pode estar em um desses estados:
 
-| Estado | Condição | Observação |
-|--------|----------|-----------|
-| **DENTRO DO PRAZO** | Tempo decorrido < 80% do SLA | Tempo ok, sem urgência |
-| **PRÓXIMO A VENCER** | 80% ≤ Tempo < 100% do SLA | Atenção necessária |
-| **VENCIDO ATIVO** | Tempo > 100% do SLA | Violação de SLA |
-| **CUMPRIDO** | Ticket fechado E Tempo ≤ SLA | Objetivo alcançado ✅ |
-| **VIOLADO** | Ticket fechado E Tempo > SLA | Não atingiu SLA ❌ |
-| **PAUSADO** | Status = "Em Análise" ou "Aguardando" | Tempo não conta |
+| Estado               | Condição                              | Observação             |
+| -------------------- | ------------------------------------- | ---------------------- |
+| **DENTRO DO PRAZO**  | Tempo decorrido < 80% do SLA          | Tempo ok, sem urgência |
+| **PRÓXIMO A VENCER** | 80% ≤ Tempo < 100% do SLA             | Atenção necessária     |
+| **VENCIDO ATIVO**    | Tempo > 100% do SLA                   | Violação de SLA        |
+| **CUMPRIDO**         | Ticket fechado E Tempo ≤ SLA          | Objetivo alcançado ✅  |
+| **VIOLADO**          | Ticket fechado E Tempo > SLA          | Não atingiu SLA ❌     |
+| **PAUSADO**          | Status = "Em Análise" ou "Aguardando" | Tempo não conta        |
 
 ### 3. Quando é Considerado "Dentro do SLA"?
 
@@ -180,11 +195,13 @@ else:  # chamado aberto
 
 **Exemplo:**
 Se temos 10 chamados com tempos: 2h, 3h, 4h, 5h, 6h, 7h, 8h, 9h, 10h, 20h
+
 - P90 = 9h (90% dos chamados foram resolvidos em até 9 horas)
 
 ### Por que usar P90?
 
 Porque:
+
 - ✅ Não é afetado por outliers (aquele chamado que durou 20h)
 - ✅ Representa realidade melhor que a média
 - ✅ Permite ajustar SLAs com base em dados reais
@@ -198,8 +215,9 @@ SLA Recomendado = round(P90 * 1.15)
 ```
 
 **Exemplo:**
+
 - P90 calculado: 20 horas
-- Com margem: 20 * 1.15 = 23 horas
+- Com margem: 20 \* 1.15 = 23 horas
 - Recomendação: 23 horas
 
 Essa margem protege contra variações e garante que 90% dos chamados reais sejam cumpridos.
@@ -240,11 +258,13 @@ p90_com_margem = round(10 * 1.15) = 12
 O sistema mantém caches em dois lugares:
 
 #### 1. Cache em Memória (Rápido)
+
 - Armazenado na RAM do servidor
 - **TTL** (Time To Live): até 24 horas dependendo da métrica
 - Perdido quando servidor reinicia
 
 #### 2. Cache no Banco de Dados (Persistente)
+
 - Armazenado em `metrics_cache_db`
 - Persiste mesmo após restart
 - Pode ter expiração
@@ -281,11 +301,13 @@ sla_p90_ultimo_chamado_id:{prioridade}
 O reset limpa completamente o sistema e começa do zero:
 
 #### 1. O que é apagado:
+
 - ❌ Todo cache em memória
 - ❌ Todo cache no banco de dados
 - ❌ Histórico de P90 incremental
 
 #### 2. O que é registrado:
+
 - ✅ Data/hora de `ultimo_reset_em` em cada configuração de SLA
 - ✅ Próximos cálculos ignorarão chamados abertos ANTES do reset
 
@@ -330,6 +352,7 @@ Percentual Fora:    32%
 ```
 
 **Como é calculado:**
+
 1. Busca todos os chamados do período
 2. Exclui cancelados
 3. Para cada, calcula tempo de resolução
@@ -341,6 +364,7 @@ Percentual Fora:    32%
 Medida de quanto o sistema está respeitando os SLAs:
 
 **Compliance 24h**: análise em tempo real das últimas 24 horas
+
 ```
 Chamados ativos ou fechados nas últimas 24h: 20
 Dentro SLA: 19
@@ -348,6 +372,7 @@ Compliance: 19/20 = 95%
 ```
 
 **Compliance Mês**: cálculo consolidado do mês
+
 ```
 Mês: Novembro
 Total resolvido: 150
@@ -392,10 +417,12 @@ Recomendação:
 ### Problema: Todas as métricas mostram 0 (zero)
 
 **Causa provável:**
+
 - Sistema foi resetado recentemente
 - Não há chamados fechados APÓS o reset
 
 **Solução:**
+
 ```bash
 # 1. Verifique quando foi o reset:
 SELECT prioridade, ultimo_reset_em FROM sla_configuration;
@@ -410,11 +437,12 @@ POST /api/sla/recalcular/p90
 GET /api/metrics/dashboard/basic
 ```
 
-### Problema: Erro "or_ is not defined"
+### Problema: Erro "or\_ is not defined"
 
 **Causa:** Falta importação no arquivo de API
 
 **Solução:**
+
 ```python
 # Em backend/ti/api/sla.py, adicione:
 from sqlalchemy import and_, or_
@@ -425,6 +453,7 @@ from sqlalchemy import and_, or_
 **Causa:** Dados antigos ainda estão em cache
 
 **Solução:**
+
 ```bash
 # Limpe o cache via API:
 POST /api/sla/cache/reset-all
@@ -436,10 +465,12 @@ DELETE FROM metrics_cache_db;
 ### Problema: P90 retorna "sem dados suficientes"
 
 **Causa:**
+
 - Menos de 2 chamados fechados no período
 - Todos estão em status aberto ou cancelado
 
 **Solução:**
+
 1. Feche alguns chamados com status "Concluído"
 2. Aguarde algumas horas
 3. Tente recalcular P90
@@ -447,10 +478,12 @@ DELETE FROM metrics_cache_db;
 ### Problema: Tempo de SLA está muito alto/baixo
 
 **Causa:**
+
 - Há chamados "problemáticos" que inflam a estatística
 - ou SLA está mal configurado
 
 **Solução:**
+
 1. Analise usando `/api/sla/recommendations/p90-analysis`
 2. Verifique outliers (aquele chamado que durou muito)
 3. Use P90 para sugestão de novo SLA (ignora outliers)
@@ -460,6 +493,7 @@ DELETE FROM metrics_cache_db;
 ## Endpoints Úteis
 
 ### Visualizar SLA
+
 ```bash
 GET /api/sla/config                          # Lista configurações
 GET /api/sla/config/{id}                     # Detalhes de uma prioridade
@@ -468,6 +502,7 @@ GET /api/sla/recommendations/p90-analysis    # Análise P90 recomendado
 ```
 
 ### Atualizar SLA
+
 ```bash
 PUT /api/sla/config/{id}                     # Atualiza tempo de resposta/resolução
 POST /api/sla/business-hours                 # Define horário de funcionamento
@@ -475,12 +510,14 @@ POST /api/sla/feriados                       # Adiciona dias não úteis
 ```
 
 ### Recalcular P90
+
 ```bash
 POST /api/sla/recalcular/p90                 # Recalcula P90 (completo, 30 dias)
 POST /api/sla/recalcular/p90-incremental    # Recalcula P90 (incremental, mais rápido)
 ```
 
 ### Reset e Cache
+
 ```bash
 POST /api/sla/reset-and-recalculate          # Reset completo do SLA
 POST /api/sla/cache/reset-all                # Limpa apenas cache

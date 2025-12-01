@@ -110,7 +110,9 @@ export default function Login() {
                   Autenticação alterada
                 </p>
                 <p className="text-xs text-red-800 leading-relaxed">
-                  O acesso ao portal agora é realizado exclusivamente via Microsoft Office 365. Utilize seu e-mail corporativo da unidade e a senha de e-mail para fazer login.
+                  O acesso ao portal agora é realizado exclusivamente via
+                  Microsoft Office 365. Utilize seu e-mail corporativo da
+                  unidade e a senha de e-mail para fazer login.
                 </p>
               </div>
             </div>
