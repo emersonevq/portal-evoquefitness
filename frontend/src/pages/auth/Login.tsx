@@ -14,39 +14,13 @@ import {
 
 export default function Login() {
   const navigate = useNavigate();
-  const { login, loginWithMicrosoft } = useAuthContext();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [remember, setRemember] = useState(true);
-  const [isLoading, setIsLoading] = useState(false);
+  const { loginWithMicrosoft } = useAuthContext();
   const [isAuth0Loading, setIsAuth0Loading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
-
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-
-    try {
-      const result: any = await login(email, password, remember);
-      const params = new URLSearchParams(window.location.search);
-      const redirect = params.get("redirect") || "/";
-
-      if (result && result.alterar_senha_primeiro_acesso) {
-        navigate("/auth/change-password", { replace: true });
-      } else {
-        navigate(redirect, { replace: true });
-      }
-    } catch (err: any) {
-      alert(err?.message || "Falha ao autenticar");
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const handleMicrosoftLogin = async () => {
     setIsAuth0Loading(true);
