@@ -693,7 +693,6 @@ def resetar_sla_completo(db: Session = Depends(get_db)):
 
         # EMITE ATUALIZAÇÃO PARA O FRONTEND
         try:
-            from core.realtime import sio
             import anyio
             anyio.from_thread.run(sio.emit, "sla:reset", {
                 "reset_em": agora.isoformat(),
