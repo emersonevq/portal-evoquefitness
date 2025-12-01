@@ -765,6 +765,8 @@ def atualizar_status(chamado_id: int, payload: ChamadoStatusUpdate, db: Session 
             send_async(send_chamado_status, ch, prev)
         except Exception:
             pass
+        db.refresh(ch)
+        db.expunge(ch)
         return ch
     except HTTPException:
         raise
