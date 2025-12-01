@@ -32,7 +32,7 @@ const baseSectors: Sector[] = [
   },
   {
     slug: "bi",
-    title: "Portal de bi",
+    title: "Portal de BI",
     description: "Analise dados e visualize insights em dashboards.",
     icon: BarChart3,
   },
