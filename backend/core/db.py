@@ -48,7 +48,12 @@ if DB_SSL_CA:
 engine = create_engine(
     url,
     pool_pre_ping=True,
+    pool_size=20,
+    max_overflow=40,
+    pool_recycle=3600,
+    pool_timeout=30,
     connect_args=connect_args,  # type: ignore[arg-type]
+    echo=False,
 )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
