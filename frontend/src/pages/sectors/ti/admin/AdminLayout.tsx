@@ -11,7 +11,6 @@ import {
   Clock,
   Puzzle,
   Settings,
-  Cog,
   ChevronRight,
 } from "lucide-react";
 import NotificationBell from "./components/NotificationBell";
@@ -24,7 +23,6 @@ const iconMap = {
   Monitoramento: Activity,
   Histórico: Clock,
   Integrações: Puzzle,
-  Sistema: Cog,
   Configurações: Settings,
 };
 
@@ -48,7 +46,6 @@ const groups = [
     title: "Administração",
     items: [
       { to: "/setor/ti/admin/integracoes", label: "Integrações" },
-      { to: "/setor/ti/admin/sistema", label: "Sistema" },
       { to: "/setor/ti/admin/configuracoes", label: "Configurações" },
     ],
   },

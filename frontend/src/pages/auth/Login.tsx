@@ -3,14 +3,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthContext } from "@/lib/auth-context";
 import LoginMediaPanel from "./components/LoginMediaPanel";
-import {
-  Headphones,
-  Shield,
-  Zap,
-  Clock,
-  LogIn,
-  AlertCircle,
-} from "lucide-react";
+import { Shield, Zap, Clock, LogIn, AlertCircle } from "lucide-react";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -57,9 +50,11 @@ export default function Login() {
                   <div className="absolute inset-0 bg-primary/20 rounded-2xl blur-lg animate-pulse" />
                   <div className="relative">
                     <div className="absolute inset-0 bg-primary/20 rounded-2xl blur-lg animate-pulse" />
-                    <div className="relative p-3.5 brand-gradient rounded-2xl shadow-lg">
-                      <Headphones className="w-7 h-7 text-primary-foreground" />
-                    </div>
+                    <img
+                      src="https://cdn.builder.io/api/v1/image/assets%2F9d3cd95728fb42ddb457587cf6bcb599%2F24cd0e1fefd74f0984a9fe08247241f1?format=webp&width=800"
+                      alt="Central de suporte"
+                      className="w-12 h-12 object-contain"
+                    />
                   </div>
                 </div>
                 <div>

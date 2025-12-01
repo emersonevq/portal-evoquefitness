@@ -4,7 +4,7 @@ import { useAuthContext } from "@/lib/auth-context";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Eye, EyeOff, Lock, Headphones, ShieldCheck } from "lucide-react";
+import { Eye, EyeOff, Lock, ShieldCheck } from "lucide-react";
 import LoginMediaPanel from "./components/LoginMediaPanel";
 
 export default function ChangePassword() {
@@ -70,9 +70,11 @@ export default function ChangePassword() {
               <div className="flex items-center gap-4 mb-4">
                 <div className="relative">
                   <div className="absolute inset-0 bg-primary/20 rounded-2xl blur-lg animate-pulse" />
-                  <div className="relative p-3.5 brand-gradient rounded-2xl shadow-lg">
-                    <Headphones className="w-7 h-7 text-primary-foreground" />
-                  </div>
+                  <img
+                    src="https://cdn.builder.io/api/v1/image/assets%2F9d3cd95728fb42ddb457587cf6bcb599%2F24cd0e1fefd74f0984a9fe08247241f1?format=webp&width=800"
+                    alt="Central de suporte"
+                    className="w-12 h-12 object-contain"
+                  />
                 </div>
                 <div>
                   <h1 className="text-2xl font-bold tracking-tight">
