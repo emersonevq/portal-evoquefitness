@@ -64,6 +64,22 @@ try:
 except Exception as e:
     print(f"⚠️  Erro ao pré-carregar cache: {e}")
 
+# Pré-carregar métricas mensais na startup (warmup de métricas)
+try:
+    from ti.services.cache_manager_incremental import IncrementalMetricsCache
+    from core.db import SessionLocal
+
+    db_warmup_metrics = SessionLocal()
+    try:
+        metricas = IncrementalMetricsCache.get_metrics(db_warmup_metrics)
+        print(f"✅ Métricas mensais pré-carregadas: Total={metricas.get('total', 0)}, Dentro_SLA={metricas.get('dentro_sla', 0)}")
+    except Exception as warmup_error:
+        print(f"⚠️  Aviso (não crítico): Warmup de métricas falhou: {warmup_error}")
+    finally:
+        db_warmup_metrics.close()
+except Exception as e:
+    print(f"⚠️  Erro ao pré-carregar métricas: {e}")
+
 # Static uploads mount
 _base_dir = Path(__file__).resolve().parent
 _uploads = _base_dir / "uploads"
