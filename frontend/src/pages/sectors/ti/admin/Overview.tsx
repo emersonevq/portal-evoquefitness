@@ -291,10 +291,26 @@ export default function Overview() {
         queryClient.invalidateQueries({ queryKey: ["metrics-performance"] });
       };
 
+      const handleSLAReset = (data: any) => {
+        console.debug(
+          "[Overview] Recebido evento sla:reset, invalidando cache de SLA",
+          data,
+        );
+        // Invalida todas as queries quando SLA é resetado
+        queryClient.invalidateQueries({ queryKey: ["metrics-basic"] });
+        queryClient.invalidateQueries({ queryKey: ["metrics-daily"] });
+        queryClient.invalidateQueries({ queryKey: ["metrics-weekly"] });
+        queryClient.invalidateQueries({ queryKey: ["metrics-sla"] });
+        queryClient.invalidateQueries({ queryKey: ["metrics-performance"] });
+        queryClient.invalidateQueries({ queryKey: ["sla-p90-analysis"] });
+      };
+
       socket.on("metrics:updated", handleMetricsUpdated);
+      socket.on("sla:reset", handleSLAReset);
 
       return () => {
         socket.off("metrics:updated", handleMetricsUpdated);
+        socket.off("sla:reset", handleSLAReset);
       };
     } catch (error) {
       console.debug(
