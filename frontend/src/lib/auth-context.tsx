@@ -41,7 +41,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // User just logged in via redirect
           await validateAndSyncUser(result.accessToken);
           // Navigate to intended destination
-          const redirectUrl = sessionStorage.getItem("msal-redirect-after-login") || "/";
+          const redirectUrl =
+            sessionStorage.getItem("msal-redirect-after-login") || "/";
           sessionStorage.removeItem("msal-redirect-after-login");
           window.location.href = redirectUrl;
           return;

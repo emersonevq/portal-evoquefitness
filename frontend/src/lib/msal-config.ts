@@ -5,7 +5,9 @@ const tenantId = import.meta.env.VITE_MSAL_TENANT_ID;
 const redirectUri = import.meta.env.VITE_MSAL_REDIRECT_URI;
 
 if (!clientId || !tenantId || !redirectUri) {
-  console.error("MSAL configuration is missing. Check your environment variables:");
+  console.error(
+    "MSAL configuration is missing. Check your environment variables:",
+  );
   console.error("VITE_MSAL_CLIENT_ID:", clientId ? "✓" : "✗ MISSING");
   console.error("VITE_MSAL_TENANT_ID:", tenantId ? "✓" : "✗ MISSING");
   console.error("VITE_MSAL_REDIRECT_URI:", redirectUri ? "✓" : "✗ MISSING");
