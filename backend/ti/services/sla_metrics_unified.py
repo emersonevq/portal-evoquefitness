@@ -319,8 +319,11 @@ class UnifiedSLAMetricsCalculator:
 
                     except Exception as e:
                         print(f"Erro ao processar chamado {chamado.id}: {e}")
-                    continue
-            
+                        continue
+
+                # Limpa sessão entre chunks
+                db.expunge_all()
+
             total = dentro_sla + fora_sla
             percentual = int((dentro_sla / total) * 100) if total > 0 else 0
             
