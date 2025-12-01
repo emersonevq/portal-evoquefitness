@@ -233,6 +233,8 @@ def criar_chamado(payload: ChamadoCreate, db: Session = Depends(get_db)):
             send_async(send_chamado_abertura, ch)
         except Exception:
             pass
+        db.refresh(ch)
+        db.expunge(ch)
         return ch
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
