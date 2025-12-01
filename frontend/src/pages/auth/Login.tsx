@@ -51,7 +51,7 @@ export default function Login() {
                   <div className="relative">
                     <div className="absolute inset-0 bg-primary/20 rounded-2xl blur-lg animate-pulse" />
                     <img
-                      src="https://cdn.builder.io/api/v1/image/assets%2F9d3cd95728fb42ddb457587cf6bcb599%2F24cd0e1fefd74f0984a9fe08247241f1?format=webp&width=800"
+                      src="https://cdn.builder.io/api/v1/image/assets%2Fc058bc7e5321459bb9ba0a18864af86b%2F588314690bed41a1941b42dd66b3efca?format=webp&width=800"
                       alt="Central de suporte"
                       className="w-12 h-12 object-contain"
                     />
