@@ -425,7 +425,16 @@ def criar_chamado_com_anexos(
             except Exception:
                 pass
 
-        # EMITE ATUALIZAÇÃO DE MÉTRICAS EM TEMPO REAL
+        # REFRESH e EXPUNGE ANTES de qualquer operação async para evitar estado transitório
+        try:
+            db.refresh(ch)
+            db.expunge(ch)
+        except Exception as e:
+            print(f"[REFRESH] Erro ao refresh chamado: {e}")
+            # Mesmo com erro, continue com o resto da operação
+            pass
+
+        # EMITE ATUALIZAÇÃO DE MÉTRICAS EM TEMPO REAL (sem dependência de db após refresh)
         try:
             from ti.services.cache_manager_incremental import IncrementalMetricsCache
             metricas = IncrementalMetricsCache.get_metrics(db)
@@ -439,8 +448,6 @@ def criar_chamado_com_anexos(
             print(f"[WebSocket] Erro ao emitir eventos de métricas: {e}")
             pass
 
-        db.refresh(ch)
-        db.expunge(ch)
         return ch
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro ao criar chamado com anexos: {e}")
