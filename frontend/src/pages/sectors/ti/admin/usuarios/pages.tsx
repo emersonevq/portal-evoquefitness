@@ -99,7 +99,7 @@ export function CriarUsuario() {
     setSelSectors((prev) =>
       prev.includes(key) ? prev.filter((n) => n !== key) : [...prev, key],
     );
-    if (name === "Portal de BI" && !isBiSelected) {
+    if (name === "Portal de bi" && !isBiSelected) {
       setSelBiSubcategories("");
     }
   };
@@ -338,7 +338,7 @@ export function CriarUsuario() {
             {isBiSelected && biSubcategories.length > 0 && (
               <div className="mt-3">
                 <div className="text-xs font-medium text-muted-foreground mb-2">
-                  Selecione um dashboard do Portal de BI
+                  Selecione um dashboard do Portal de bi
                 </div>
                 <div className="rounded-md border border-border/40 p-3 space-y-2 text-sm bg-muted/30">
                   {biSubcategories.map((sub: any) => (
@@ -593,7 +593,7 @@ export function Permissoes() {
     setEditSetores((prev) =>
       prev.includes(key) ? prev.filter((n) => n !== key) : [...prev, key],
     );
-    if (name === "Portal de BI" && !isEditBiSelected) {
+    if (name === "Portal de bi" && !isEditBiSelected) {
       setEditBiSubcategories([]);
     }
   };
@@ -1130,7 +1130,7 @@ export function Permissoes() {
                 {isEditBiSelected && biSubcategories.length > 0 && (
                   <div className="mt-3">
                     <div className="text-xs font-medium text-muted-foreground mb-2">
-                      Dashboards do Portal de BI
+                      Dashboards do Portal de bi
                     </div>
                     <div className="rounded-md border border-border/40 p-3 grid grid-cols-1 gap-2 text-sm bg-muted/30">
                       {biSubcategories.map((sub: any) => (
