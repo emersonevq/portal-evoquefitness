@@ -317,10 +317,7 @@ export default function Overview() {
         socket.off("sla:reset", handleSLAReset);
       };
     } catch (error) {
-      console.debug(
-        "[Overview] Erro ao configurar listener WebSocket:",
-        error,
-      );
+      console.debug("[Overview] Erro ao configurar listener WebSocket:", error);
     }
   }, [queryClient]);
 
