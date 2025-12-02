@@ -494,10 +494,13 @@ def enviar_ticket(
     mensagem: str = Form(...),
     destinatarios: str = Form(...),
     autor_email: str | None = Form(None),
-    files: list[UploadFile] = File(default=[]),
+    files: list[UploadFile] | None = File(None),
     db: Session = Depends(get_db),
 ):
     try:
+        # Normalizar files: None -> []
+        if files is None:
+            files = []
         # Verificar se o chamado existe e não foi deletado
         chamado = db.query(Chamado).filter(
             (Chamado.id == chamado_id) & (Chamado.deletado_em.is_(None))
