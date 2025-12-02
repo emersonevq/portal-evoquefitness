@@ -302,8 +302,18 @@ export default function TiPage() {
                         onClick={() => setSuccessOpen(false)}
                         className="text-slate-400 hover:text-white transition-colors"
                       >
-                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        <svg
+                          className="w-6 h-6"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M6 18L18 6M6 6l12 12"
+                          />
                         </svg>
                       </button>
                     </div>
@@ -318,7 +328,8 @@ export default function TiPage() {
                         Chamado criado com sucesso!
                       </h2>
                       <p className="text-slate-400">
-                        Seu chamado foi registrado no sistema. Guarde as informações abaixo para futuras consultas.
+                        Seu chamado foi registrado no sistema. Guarde as
+                        informações abaixo para futuras consultas.
                       </p>
                     </motion.div>
 
@@ -335,7 +346,8 @@ export default function TiPage() {
                             Importante: Guarde estas informações
                           </div>
                           <p className="text-sm text-amber-200/80">
-                            O código e protocolo são essenciais para rastrear seu chamado.
+                            O código e protocolo são essenciais para rastrear
+                            seu chamado.
                           </p>
                         </div>
                       </div>
@@ -349,7 +361,7 @@ export default function TiPage() {
                     >
                       {[
                         { label: "Código", value: lastCreated.codigo },
-                        { label: "Protocolo", value: lastCreated.protocolo }
+                        { label: "Protocolo", value: lastCreated.protocolo },
                       ].map((item, idx) => (
                         <motion.div
                           key={item.label}
@@ -372,7 +384,9 @@ export default function TiPage() {
                               whileTap={{ scale: 0.95 }}
                               onClick={async () => {
                                 try {
-                                  await navigator.clipboard.writeText(item.value);
+                                  await navigator.clipboard.writeText(
+                                    item.value,
+                                  );
                                 } catch {}
                               }}
                               className="px-4 py-3 rounded-lg bg-primary hover:bg-primary/90 text-white font-medium transition-all duration-200 flex items-center gap-2"
@@ -397,7 +411,7 @@ export default function TiPage() {
                         onClick={async () => {
                           try {
                             await navigator.clipboard.writeText(
-                              `Código: ${lastCreated.codigo} | Protocolo: ${lastCreated.protocolo}`
+                              `Código: ${lastCreated.codigo} | Protocolo: ${lastCreated.protocolo}`,
                             );
                           } catch {}
                         }}
