@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuthContext } from "@/lib/auth-context";
 import { Separator } from "@/components/ui/separator";
-import { CheckCircle, Copy } from "lucide-react";
+import { CheckCircle, Copy, AlertCircle } from "lucide-react";
 import {
   Dialog,
   DialogContent,
