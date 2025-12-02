@@ -399,6 +399,7 @@ def criar_chamado_com_anexos(
                 raise HTTPException(status_code=500, detail="Falha ao salvar anexos da abertura")
             # Try to gather saved attachments and send them with the opening email
             try:
+                print(f"[CRIAR CHAMADO] Preparando para enviar email com anexos...")
                 attach_rows = db.execute(text("SELECT id, nome_original, tipo_mime FROM chamado_anexo WHERE chamado_id=:i"), {"i": ch.id}).fetchall()
                 attachments_payload = []
                 import base64
@@ -416,46 +417,60 @@ def criar_chamado_com_anexos(
                                 "contentType": mime,
                                 "contentBytes": b64,
                             })
-                    except Exception:
+                    except Exception as e:
+                        print(f"[CRIAR CHAMADO] Erro ao processar anexo para email: {e}")
                         continue
                 # send async email with attachments
                 try:
                     if attachments_payload:
+                        print(f"[CRIAR CHAMADO] Enviando email com {len(attachments_payload)} anexo(s)...")
                         send_async(send_chamado_abertura, ch, attachments_payload)
                     else:
+                        print(f"[CRIAR CHAMADO] Enviando email sem anexos...")
                         send_async(send_chamado_abertura, ch)
-                except Exception:
+                except Exception as e:
+                    print(f"[CRIAR CHAMADO] Erro ao enviar email: {e}")
                     pass
-            except Exception:
+            except Exception as e:
+                print(f"[CRIAR CHAMADO] Erro ao preparar email: {e}")
                 pass
         else:
             # No files: still send the opening email
             try:
+                print(f"[CRIAR CHAMADO] Enviando email de abertura sem anexos...")
                 send_async(send_chamado_abertura, ch)
-            except Exception:
+            except Exception as e:
+                print(f"[CRIAR CHAMADO] Erro ao enviar email de abertura: {e}")
                 pass
 
         # REFRESH e EXPUNGE ANTES de qualquer operação async para evitar estado transitório
         try:
+            print(f"[CRIAR CHAMADO] Fazendo refresh no chamado...")
             db.refresh(ch)
             db.expunge(ch)
+            print(f"[CRIAR CHAMADO] Refresh e expunge concluído com sucesso")
         except Exception as e:
-            print(f"[REFRESH] Erro ao refresh chamado: {e}")
+            print(f"[CRIAR CHAMADO] Erro ao refresh/expunge chamado: {e}")
             # Mesmo com erro, continue com o resto da operação
             pass
 
         # EMITE ATUALIZAÇÃO DE MÉTRICAS EM TEMPO REAL (sem dependência de db após refresh)
         try:
+            print(f"[CRIAR CHAMADO] Atualizando métricas...")
             from ti.services.cache_manager_incremental import IncrementalMetricsCache
             metricas = IncrementalMetricsCache.get_metrics(db)
             import anyio
+            print(f"[CRIAR CHAMADO] Emitindo evento de métricas atualizadas...")
             anyio.from_thread.run(sio.emit, "metrics:updated", {
                 "chamados_hoje": 1,
                 "sla_metrics": metricas,
                 "timestamp": now_brazil_naive().isoformat(),
             })
+            print(f"[CRIAR CHAMADO] Eventos de métricas emitidos com sucesso")
         except Exception as e:
-            print(f"[WebSocket] Erro ao emitir eventos de métricas: {e}")
+            print(f"[CRIAR CHAMADO] Erro ao atualizar métricas: {e}")
+            import traceback
+            print(f"[CRIAR CHAMADO] Traceback: {traceback.format_exc()}")
             pass
 
         print(f"[CRIAR CHAMADO] Retornando chamado criado com sucesso")
