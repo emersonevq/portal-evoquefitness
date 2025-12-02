@@ -322,6 +322,10 @@ def criar_chamado_com_anexos(
     db: Session = Depends(get_db),
 ):
     try:
+        # Normalizar files: None -> []
+        if files is None:
+            files = []
+
         try:
             Chamado.__table__.create(bind=engine, checkfirst=True)
             ChamadoAnexo.__table__.create(bind=engine, checkfirst=True)
