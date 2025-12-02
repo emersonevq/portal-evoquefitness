@@ -264,103 +264,164 @@ export default function TiPage() {
         </div>
       </section>
 
-      <Dialog open={successOpen} onOpenChange={setSuccessOpen}>
-        <DialogContent className="max-w-md overflow-hidden p-0">
-          {lastCreated && (
-            <div className="w-full">
-              <div className="brand-gradient px-5 py-4 flex items-center gap-3">
-                <div className="rounded-full bg-white/15 p-2">
-                  <CheckCircle className="size-6 text-primary-foreground" />
-                </div>
-                <div>
-                  <div className="text-sm/5 text-primary-foreground/90">
-                    Chamado aberto
-                  </div>
-                  <div className="text-xl font-extrabold text-primary-foreground drop-shadow">
-                    Sucesso!
+      <AnimatePresence>
+        {successOpen && lastCreated && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setSuccessOpen(false)}
+              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
+            />
+            <motion.div
+              initial={{ scale: 0.8, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.8, opacity: 0, y: 20 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-lg z-50"
+            >
+              <div className="mx-4 rounded-2xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 border border-slate-700/50 shadow-2xl overflow-hidden">
+                <div className="relative overflow-hidden">
+                  <div className="absolute -right-20 -top-20 w-40 h-40 bg-primary/20 rounded-full blur-3xl" />
+                  <div className="absolute -left-20 -bottom-20 w-40 h-40 bg-primary/10 rounded-full blur-3xl" />
+
+                  <div className="relative p-8 sm:p-10">
+                    <div className="flex items-start justify-between mb-8">
+                      <motion.div
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        transition={{ type: "spring", delay: 0.2, damping: 20 }}
+                        className="flex-shrink-0"
+                      >
+                        <div className="flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-primary to-primary/70 shadow-lg">
+                          <CheckCircle className="w-8 h-8 text-white" />
+                        </div>
+                      </motion.div>
+                      <button
+                        onClick={() => setSuccessOpen(false)}
+                        className="text-slate-400 hover:text-white transition-colors"
+                      >
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.3 }}
+                      className="mb-8"
+                    >
+                      <h2 className="text-3xl font-bold text-white mb-2">
+                        Chamado criado com sucesso!
+                      </h2>
+                      <p className="text-slate-400">
+                        Seu chamado foi registrado no sistema. Guarde as informações abaixo para futuras consultas.
+                      </p>
+                    </motion.div>
+
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.4 }}
+                      className="mb-8 rounded-lg border border-amber-500/30 bg-amber-500/10 p-4"
+                    >
+                      <div className="flex gap-3">
+                        <AlertCircle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+                        <div className="flex-1">
+                          <div className="font-semibold text-amber-300 text-sm mb-1">
+                            Importante: Guarde estas informações
+                          </div>
+                          <p className="text-sm text-amber-200/80">
+                            O código e protocolo são essenciais para rastrear seu chamado.
+                          </p>
+                        </div>
+                      </div>
+                    </motion.div>
+
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.5 }}
+                      className="space-y-4 mb-8"
+                    >
+                      {[
+                        { label: "Código", value: lastCreated.codigo },
+                        { label: "Protocolo", value: lastCreated.protocolo }
+                      ].map((item, idx) => (
+                        <motion.div
+                          key={item.label}
+                          initial={{ opacity: 0, x: -10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: 0.5 + idx * 0.1 }}
+                          className="group"
+                        >
+                          <label className="text-sm font-medium text-slate-300 mb-2 block">
+                            {item.label}
+                          </label>
+                          <div className="flex items-center gap-2">
+                            <div className="flex-1 px-4 py-3 rounded-lg bg-slate-700/50 border border-slate-600/50 group-hover:border-primary/50 transition-colors">
+                              <code className="text-white font-mono text-lg font-semibold tracking-wide">
+                                {item.value}
+                              </code>
+                            </div>
+                            <motion.button
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              onClick={async () => {
+                                try {
+                                  await navigator.clipboard.writeText(item.value);
+                                } catch {}
+                              }}
+                              className="px-4 py-3 rounded-lg bg-primary hover:bg-primary/90 text-white font-medium transition-all duration-200 flex items-center gap-2"
+                            >
+                              <Copy className="w-4 h-4" />
+                              <span className="hidden sm:inline">Copiar</span>
+                            </motion.button>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </motion.div>
+
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.7 }}
+                      className="flex flex-col sm:flex-row gap-3"
+                    >
+                      <motion.button
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={async () => {
+                          try {
+                            await navigator.clipboard.writeText(
+                              `Código: ${lastCreated.codigo} | Protocolo: ${lastCreated.protocolo}`
+                            );
+                          } catch {}
+                        }}
+                        className="flex-1 px-4 py-3 rounded-lg border border-slate-600 hover:border-primary/50 text-slate-300 hover:text-white font-medium transition-all duration-200 flex items-center justify-center gap-2"
+                      >
+                        <Copy className="w-4 h-4" />
+                        Copiar tudo
+                      </motion.button>
+                      <motion.button
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => setSuccessOpen(false)}
+                        className="flex-1 px-4 py-3 rounded-lg bg-gradient-to-r from-primary to-primary/80 hover:from-primary hover:to-primary/70 text-white font-semibold transition-all duration-200"
+                      >
+                        Pronto, fechar
+                      </motion.button>
+                    </motion.div>
                   </div>
                 </div>
               </div>
-
-              <div className="p-5 space-y-4">
-                <div className="rounded-lg border-l-4 border-l-amber-500 bg-amber-50 px-4 py-3 flex gap-3">
-                  <AlertCircle className="size-5 text-amber-600 flex-shrink-0 mt-0.5" />
-                  <div className="flex-1">
-                    <div className="font-semibold text-amber-900">Prioridade: Guarde estas informações</div>
-                    <div className="text-sm text-amber-800 mt-1">
-                      O código e protocolo são essenciais para rastrear seu chamado. Não feche esta janela sem copiar as informações.
-                    </div>
-                  </div>
-                </div>
-
-                <div className="grid gap-3">
-                  <div className="text-xs text-muted-foreground">Código</div>
-                  <div className="flex items-center justify-between rounded-md border border-border/60 bg-background px-3 py-2">
-                    <div className="font-mono font-semibold text-base break-all">
-                      {lastCreated.codigo}
-                    </div>
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      className="ml-2"
-                      onClick={async () => {
-                        try {
-                          await navigator.clipboard.writeText(
-                            lastCreated.codigo,
-                          );
-                        } catch {}
-                      }}
-                    >
-                      <Copy className="size-4 mr-1" /> Copiar
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="grid gap-3">
-                  <div className="text-xs text-muted-foreground">Protocolo</div>
-                  <div className="flex items-center justify-between rounded-md border border-border/60 bg-background px-3 py-2">
-                    <div className="font-mono font-semibold text-base break-all">
-                      {lastCreated.protocolo}
-                    </div>
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      className="ml-2"
-                      onClick={async () => {
-                        try {
-                          await navigator.clipboard.writeText(
-                            lastCreated.protocolo,
-                          );
-                        } catch {}
-                      }}
-                    >
-                      <Copy className="size-4 mr-1" /> Copiar
-                    </Button>
-                  </div>
-                </div>
-
-                <Separator />
-
-                <div className="flex flex-wrap gap-2 justify-end">
-                  <Button
-                    variant="secondary"
-                    onClick={async () => {
-                      try {
-                        await navigator.clipboard.writeText(
-                          `Código: ${lastCreated.codigo} | Protocolo: ${lastCreated.protocolo}`,
-                        );
-                      } catch {}
-                    }}
-                  >
-                    <Copy className="size-4 mr-1" /> Copiar tudo
-                  </Button>
-                  <Button onClick={() => setSuccessOpen(false)}>Fechar</Button>
-                </div>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </Layout>
   );
 }
