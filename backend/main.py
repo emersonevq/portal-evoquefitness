@@ -95,6 +95,23 @@ _http.add_middleware(
     allow_headers=["*"],
 )
 
+class RequestLoggingMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        method = request.method
+        path = request.url.path
+        if method == "POST" or "/chamados" in path:
+            print(f"[REQUEST] {method} {path}")
+        try:
+            response = await call_next(request)
+            if method == "POST" or "/chamados" in path:
+                print(f"[RESPONSE] {method} {path} -> {response.status_code}")
+            return response
+        except Exception as e:
+            print(f"[ERROR] {method} {path} -> {e}")
+            raise
+
+_http.add_middleware(RequestLoggingMiddleware)
+
 @_http.get("/api/ping")
 def ping():
     return {"message": "pong"}
