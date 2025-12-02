@@ -282,8 +282,14 @@ export default function TiPage() {
               </div>
 
               <div className="p-5 space-y-4">
-                <div className="text-sm text-muted-foreground">
-                  Guarde as informações abaixo:
+                <div className="rounded-lg border-l-4 border-l-amber-500 bg-amber-50 px-4 py-3 flex gap-3">
+                  <AlertCircle className="size-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <div className="font-semibold text-amber-900">Prioridade: Guarde estas informações</div>
+                    <div className="text-sm text-amber-800 mt-1">
+                      O código e protocolo são essenciais para rastrear seu chamado. Não feche esta janela sem copiar as informações.
+                    </div>
+                  </div>
                 </div>
 
                 <div className="grid gap-3">
