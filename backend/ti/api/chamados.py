@@ -350,6 +350,7 @@ def criar_chamado_com_anexos(
         print(f"[CRIAR CHAMADO] SLA sincronizado com sucesso")
 
         if files:
+            print(f"[CRIAR CHAMADO] Processando {len(files)} anexo(s)...")
             user_id = None
             if autor_email:
                 try:
@@ -362,6 +363,7 @@ def criar_chamado_com_anexos(
             for f in files:
                 try:
                     safe_name = (f.filename or "arquivo")
+                    print(f"[CRIAR CHAMADO] Processando arquivo: {safe_name}")
                     content = f.file.read()
                     ext = safe_name.rsplit(".", 1)[-1].lower() if "." in safe_name else None
                     sha = hashlib.sha256(content).hexdigest()
@@ -387,9 +389,12 @@ def criar_chamado_com_anexos(
                     if rid:
                         _update_path(db, "chamado_anexo", rid, f"api/chamados/anexos/chamado/{rid}")
                         saved += 1
-                except Exception:
+                        print(f"[CRIAR CHAMADO] Arquivo salvo com sucesso: id={rid}")
+                except Exception as e:
+                    print(f"[CRIAR CHAMADO] Erro ao salvar arquivo {f.filename}: {e}")
                     continue
             db.commit()
+            print(f"[CRIAR CHAMADO] {saved} de {len(files)} arquivo(s) salvos com sucesso")
             if files and saved == 0:
                 raise HTTPException(status_code=500, detail="Falha ao salvar anexos da abertura")
             # Try to gather saved attachments and send them with the opening email
