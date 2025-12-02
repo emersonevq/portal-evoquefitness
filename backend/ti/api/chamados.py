@@ -317,7 +317,7 @@ def criar_chamado_com_anexos(
     internetItem: str | None = Form(None),
     visita: str | None = Form(None),
     descricao: str | None = Form(None),
-    files: list[UploadFile] = File(default=[]),
+    files: list[UploadFile] | None = File(None),
     autor_email: str | None = Form(None),
     db: Session = Depends(get_db),
 ):
