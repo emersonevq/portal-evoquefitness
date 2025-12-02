@@ -453,9 +453,14 @@ def criar_chamado_com_anexos(
             print(f"[WebSocket] Erro ao emitir eventos de métricas: {e}")
             pass
 
+        print(f"[CRIAR CHAMADO] Retornando chamado criado com sucesso")
         return ch
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erro ao criar chamado com anexos: {e}")
+        import traceback
+        error_msg = f"Erro ao criar chamado com anexos: {e}"
+        print(f"[CRIAR CHAMADO] {error_msg}")
+        print(f"[CRIAR CHAMADO] Traceback completo: {traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=error_msg)
 
 
 @router.post("/{chamado_id}/ticket")
