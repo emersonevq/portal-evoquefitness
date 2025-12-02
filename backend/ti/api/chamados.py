@@ -326,7 +326,8 @@ def criar_chamado_com_anexos(
             Chamado.__table__.create(bind=engine, checkfirst=True)
             ChamadoAnexo.__table__.create(bind=engine, checkfirst=True)
             _ensure_column("chamado_anexo", "conteudo", "MEDIUMBLOB NULL")
-        except Exception:
+        except Exception as e:
+            print(f"[CRIAR CHAMADO] Erro ao criar tabelas: {e}")
             pass
         payload = ChamadoCreate(
             solicitante=solicitante,
@@ -339,10 +340,14 @@ def criar_chamado_com_anexos(
             visita=visita,
             descricao=descricao,
         )
+        print(f"[CRIAR CHAMADO] Iniciando criação com payload: {payload}")
         ch = service_criar(db, payload)
+        print(f"[CRIAR CHAMADO] Chamado criado com sucesso: id={ch.id}, codigo={ch.codigo}")
 
         # Sincroniza o chamado com a tabela de SLA
+        print(f"[CRIAR CHAMADO] Sincronizando SLA...")
         _sincronizar_sla(db, ch)
+        print(f"[CRIAR CHAMADO] SLA sincronizado com sucesso")
 
         if files:
             user_id = None
