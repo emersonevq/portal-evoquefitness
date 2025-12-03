@@ -111,7 +111,7 @@ export default function ResetPasswordSuccess() {
 
             {/* Botão principal */}
             <Button asChild className="w-full h-11 rounded-md mb-4 group">
-              <Link to="/login">
+              <Link to="/auth0/login">
                 <ArrowLeft className="h-4 w-4 mr-2 group-hover:-translate-x-1 transition-transform" />
                 Voltar ao login
               </Link>

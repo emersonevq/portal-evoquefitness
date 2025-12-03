@@ -41,7 +41,7 @@ export default function ChangePassword() {
       }
       alert("Senha alterada com sucesso. Faça login novamente.");
       logout();
-      navigate("/login");
+      navigate("/auth0/login");
     } catch (err: any) {
       alert(err?.message || "Erro");
     } finally {

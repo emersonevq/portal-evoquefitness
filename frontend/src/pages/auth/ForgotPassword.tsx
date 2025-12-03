@@ -71,7 +71,7 @@ export default function ForgotPassword() {
             {/* Título da página */}
             <div className="mb-6">
               <Link
-                to="/login"
+                to="/auth0/login"
                 className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4 group"
               >
                 <ArrowLeft className="h-4 w-4 group-hover:-translate-x-1 transition-transform" />
@@ -126,7 +126,7 @@ export default function ForgotPassword() {
               <p className="text-sm text-muted-foreground">
                 Lembrou da senha?{" "}
                 <Link
-                  to="/login"
+                  to="/auth0/login"
                   className="text-primary hover:underline font-medium"
                 >
                   Fazer login

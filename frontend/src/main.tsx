@@ -74,7 +74,7 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Index />} />
-            <Route path="/login" element={<Login />} />
+            <Route path="/auth0/login" element={<Login />} />
             <Route path="/auth/forgot-password" element={<ForgotPassword />} />
             <Route path="/auth/change-password" element={<ChangePassword />} />
             <Route path="/access-denied" element={<AccessDenied />} />
@@ -223,9 +223,9 @@ const App = () => (
 window.addEventListener("auth:revoked", () => {
   try {
     const redirect = window.location.pathname + window.location.search;
-    window.location.href = `/login?redirect=${encodeURIComponent(redirect)}`;
+    window.location.href = `/auth0/login?redirect=${encodeURIComponent(redirect)}`;
   } catch (e) {
-    window.location.href = "/login";
+    window.location.href = "/auth0/login";
   }
 });
 
