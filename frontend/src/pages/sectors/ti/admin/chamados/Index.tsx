@@ -597,9 +597,9 @@ export default function ChamadosPage() {
       setAssignDialogOpen(false);
 
       // Refresh the ticket's history to reflect the assignment
-      const hist = await apiFetch(
-        `/chamados/${selected.id}/historico`,
-      ).then((x) => x.json());
+      const hist = await apiFetch(`/chamados/${selected.id}/historico`).then(
+        (x) => x.json(),
+      );
       const arr = hist.items.map((it: any) => ({
         t: new Date(it.t).getTime(),
         label: it.label,

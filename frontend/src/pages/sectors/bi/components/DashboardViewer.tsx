@@ -470,7 +470,10 @@ export default function DashboardViewer({
         // force the loading state to clear anyway
         const safetyTimeout = setTimeout(() => {
           if (embedCycleToken.current === cycleToken && !isRendered) {
-            logger("[PowerBI] Forcing loading completion after loaded event timeout", "warn");
+            logger(
+              "[PowerBI] Forcing loading completion after loaded event timeout",
+              "warn",
+            );
             isRendered = true;
             clearTimeout(renderTimeout);
             setLoadingProgress(100);
