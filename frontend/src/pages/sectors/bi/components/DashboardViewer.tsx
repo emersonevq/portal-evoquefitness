@@ -76,11 +76,6 @@ export default function DashboardViewer({
       type: "info" | "success" | "error" | "warn" | "debug" = "info",
     ) => {
       const ts = Date.now();
-      setLogs((prev) => {
-        const arr = [...prev, { message, type, timestamp: ts }];
-        return arr.length > 150 ? arr.slice(-150) : arr;
-      });
-
       const prefix = `[PowerBI ${new Date().toLocaleTimeString()}]`;
       if (type === "error") console.error(prefix, message);
       else if (type === "warn") console.warn(prefix, message);
