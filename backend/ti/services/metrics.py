@@ -515,6 +515,49 @@ class MetricsCalculator:
         return resultado
 
     @staticmethod
+    def get_chamados_por_mes(db: Session, meses: int = 3) -> list[dict]:
+        """Retorna quantidade de chamados registrados e concluídos por mês dos últimos N meses"""
+        agora = now_brazil_naive()
+        resultado = []
+
+        for i in range(meses):
+            mes_num = meses - i
+            # Calcular o primeiro dia do mês i meses atrás
+            data_temp = agora - timedelta(days=30 * i)
+            mes_inicio = data_temp.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+
+            # Calcular o primeiro dia do próximo mês
+            if mes_inicio.month == 12:
+                mes_fim = mes_inicio.replace(year=mes_inicio.year + 1, month=1)
+            else:
+                mes_fim = mes_inicio.replace(month=mes_inicio.month + 1)
+
+            # Contar chamados registrados
+            registrados = db.query(Chamado).filter(
+                and_(
+                    Chamado.data_abertura >= mes_inicio,
+                    Chamado.data_abertura < mes_fim,
+                )
+            ).count()
+
+            # Contar chamados concluídos
+            concluidos = db.query(Chamado).filter(
+                and_(
+                    Chamado.data_conclusao >= mes_inicio,
+                    Chamado.data_conclusao < mes_fim,
+                    Chamado.status == "Concluído"
+                )
+            ).count()
+
+            resultado.insert(0, {
+                "mes": mes_inicio.strftime("%b %Y"),
+                "registrados": registrados,
+                "concluidos": concluidos
+            })
+
+        return resultado
+
+    @staticmethod
     def get_sla_distribution(db: Session) -> dict:
         """Retorna distribuição de SLA (dentro/fora) - usa fonte unificada"""
         from ti.services.sla_metrics_unified import UnifiedSLAMetricsCalculator
