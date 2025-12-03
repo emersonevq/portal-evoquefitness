@@ -65,7 +65,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       } catch {}
     } catch {}
     logout();
-    navigate("/login");
+    navigate("/auth0/login");
   };
   const isAdminRoute = location.pathname.startsWith("/setor/ti/admin");
 

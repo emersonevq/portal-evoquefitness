@@ -121,7 +121,7 @@ export default function RequireLogin({
         const redirect = location.pathname + location.search;
         return (
           <Navigate
-            to={`/login?redirect=${encodeURIComponent(redirect)}`}
+            to={`/auth0/login?redirect=${encodeURIComponent(redirect)}`}
             replace
           />
         );
