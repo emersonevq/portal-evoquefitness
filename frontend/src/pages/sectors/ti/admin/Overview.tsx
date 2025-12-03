@@ -234,6 +234,12 @@ export default function Overview() {
   }, [weeklyChartData]);
 
   useEffect(() => {
+    if (monthlyChartData && Array.isArray(monthlyChartData)) {
+      setMonthlyData(monthlyChartData);
+    }
+  }, [monthlyChartData]);
+
+  useEffect(() => {
     if (performanceMetricsData) {
       setPerformanceData(performanceMetricsData);
     }
