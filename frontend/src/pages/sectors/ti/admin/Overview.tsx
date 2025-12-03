@@ -119,6 +119,13 @@ export default function Overview() {
   const [weeklyData, setWeeklyData] = useState<
     Array<{ semana: string; quantidade: number }>
   >([]);
+  const [monthlyData, setMonthlyData] = useState<
+    Array<{
+      mes: string;
+      registrados: number;
+      concluidos: number;
+    }>
+  >([]);
   const [slaData, setSLAData] = useState<{
     dentro_sla: number;
     fora_sla: number;
@@ -130,6 +137,8 @@ export default function Overview() {
     chamados_backlog: number;
   } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [dateRange, setDateRange] = useState<"7d" | "30d" | "90d" | "all">("30d");
+  const [showCompleted, setShowCompleted] = useState(true);
 
   // Cache de métricas com React Query
   const { data: basicMetricsData, isLoading: basicLoading } = useQuery({
