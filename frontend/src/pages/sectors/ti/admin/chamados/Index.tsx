@@ -595,9 +595,27 @@ export default function ChamadosPage() {
         description: `Atribuído para ${agent?.nome || "agente"}`,
       });
       setAssignDialogOpen(false);
-      setSelected({
-        ...selected,
-      });
+
+      // Refresh the ticket's history to reflect the assignment
+      const hist = await apiFetch(
+        `/chamados/${selected.id}/historico`,
+      ).then((x) => x.json());
+      const arr = hist.items.map((it: any) => ({
+        t: new Date(it.t).getTime(),
+        label: it.label,
+        attachments: it.anexos
+          ? it.anexos.map((a: any) => a.nome_original)
+          : undefined,
+        files: it.anexos
+          ? it.anexos.map((a: any) => ({
+              name: a.nome_original,
+              url: `${API_BASE.replace(/\/api$/, "")}/${a.caminho_arquivo}`,
+              mime: a.mime_type || undefined,
+            }))
+          : undefined,
+      }));
+      setHistory(arr);
+      setTab("historico");
     } catch (e) {
       toast({
         title: "Erro",
