@@ -575,6 +575,68 @@ export default function Overview() {
         </div>
       </div>
 
+      {/* Monthly Chart */}
+      <div className="relative group">
+        <div className="absolute -inset-1 bg-gradient-to-r from-primary/10 to-primary/5 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity" />
+        <div className="relative card-surface rounded-2xl p-6 border border-border/60">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-lg">Chamados por Mês</h3>
+            <div className="flex items-center gap-2">
+              <label className="text-xs font-medium text-muted-foreground">
+                Mostrar concluídos:
+              </label>
+              <button
+                onClick={() => setShowCompleted(!showCompleted)}
+                className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                  showCompleted
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted text-muted-foreground"
+                }`}
+              >
+                {showCompleted ? "Sim" : "Não"}
+              </button>
+            </div>
+          </div>
+          <ResponsiveContainer width="100%" height={320}>
+            <BarChart data={monthlyData}>
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke="hsl(var(--border))"
+                opacity={0.3}
+              />
+              <XAxis
+                dataKey="mes"
+                stroke="hsl(var(--muted-foreground))"
+                fontSize={12}
+              />
+              <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: "hsl(var(--card))",
+                  border: "1px solid hsl(var(--border))",
+                  borderRadius: "8px",
+                }}
+              />
+              <Legend />
+              <Bar
+                dataKey="registrados"
+                fill="hsl(var(--primary))"
+                radius={[8, 8, 0, 0]}
+                name="Registrados"
+              />
+              {showCompleted && (
+                <Bar
+                  dataKey="concluidos"
+                  fill="hsl(var(--chart-1))"
+                  radius={[8, 8, 0, 0]}
+                  name="Concluídos"
+                />
+              )}
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
       {/* Charts Row 2 - SLA Distribution and P90 Analysis */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="relative group lg:col-span-1">
