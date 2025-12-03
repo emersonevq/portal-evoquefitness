@@ -182,7 +182,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                     const allowed = canAccess(s.slug);
                     const href = user
                       ? `/setor/${s.slug}`
-                      : `/login?redirect=/setor/${s.slug}`;
+                      : `/auth0/login?redirect=/setor/${s.slug}`;
                     return (
                       <Link key={s.slug} to={href}>
                         <DropdownMenuItem
