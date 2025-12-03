@@ -238,6 +238,29 @@ export default function ChamadosPage() {
   const loadMoreTicketsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    apiFetch("/usuarios")
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error("fail"))))
+      .then((data) => {
+        if (Array.isArray(data)) {
+          const agentsData = data.filter(
+            (u: any) =>
+              u.nivel_acesso &&
+              (u.nivel_acesso.toLowerCase().includes("agente") ||
+                u.nivel_acesso.toLowerCase() === "administrador"),
+          );
+          setAgents(
+            agentsData.map((u: any) => ({
+              id: u.id,
+              nome: u.nome,
+              email: u.email,
+            })),
+          );
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
     function toUiStatus(s: string): TicketStatus {
       const n = (s || "")
         .normalize("NFD")
@@ -444,6 +467,11 @@ export default function ChamadosPage() {
   const [priority, setPriority] = useState(false);
   const [ccMe, setCcMe] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
+  const [agents, setAgents] = useState<
+    { id: number; nome: string; email: string }[]
+  >([]);
+  const [selectedAgent, setSelectedAgent] = useState<string>("");
+  const [assignDialogOpen, setAssignDialogOpen] = useState(false);
 
   const initFromSelected = useCallback((s: UiTicket) => {
     setTab("resumo");
