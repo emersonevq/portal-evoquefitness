@@ -806,7 +806,6 @@ export default function DashboardViewer({
             ×
           </button>
         )}
-
       </div>
     </div>
   );

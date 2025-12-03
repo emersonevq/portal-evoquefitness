@@ -137,7 +137,9 @@ export default function Overview() {
     chamados_backlog: number;
   } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [dateRange, setDateRange] = useState<"7d" | "30d" | "90d" | "all">("30d");
+  const [dateRange, setDateRange] = useState<"7d" | "30d" | "90d" | "all">(
+    "30d",
+  );
   const [showCompleted, setShowCompleted] = useState(true);
 
   // Cache de métricas com React Query
@@ -428,7 +430,10 @@ export default function Overview() {
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
             <Calendar className="w-4 h-4 text-muted-foreground" />
-            <Select value={dateRange} onValueChange={(v) => setDateRange(v as any)}>
+            <Select
+              value={dateRange}
+              onValueChange={(v) => setDateRange(v as any)}
+            >
               <SelectTrigger className="w-32">
                 <SelectValue />
               </SelectTrigger>

@@ -215,10 +215,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                     {user?.email}
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    onClick={doLogout}
-                    className="text-red-600"
-                  >
+                  <DropdownMenuItem onClick={doLogout} className="text-red-600">
                     <LogOut className="size-4 mr-2" />
                     Sair
                   </DropdownMenuItem>

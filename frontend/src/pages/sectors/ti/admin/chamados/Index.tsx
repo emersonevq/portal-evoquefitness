@@ -578,16 +578,13 @@ export default function ChamadosPage() {
     if (!selected || !selectedAgent) return;
     try {
       const agentId = parseInt(selectedAgent);
-      const r = await apiFetch(
-        `/chamados/${selected.id}/assign`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ agent_id: agentId }),
+      const r = await apiFetch(`/chamados/${selected.id}/assign`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
         },
-      );
+        body: JSON.stringify({ agent_id: agentId }),
+      });
       if (!r.ok) {
         const text = await r.text();
         throw new Error(text);
@@ -1212,11 +1209,11 @@ export default function ChamadosPage() {
                             setMessage("");
                           } else if (v === "atualizacao") {
                             setMessage(
-                              "Prezado,\n\nSegue abaixo uma atualização sobre seu chamado.\n\nContinuamos trabalhando para resolver sua solicitação com a máxima agilidade.\n\nQualquer dúvida, não hesite em nos contatar.\n\nAtenciosamente,\nTim de TI"
+                              "Prezado,\n\nSegue abaixo uma atualização sobre seu chamado.\n\nContinuamos trabalhando para resolver sua solicitação com a máxima agilidade.\n\nQualquer dúvida, não hesite em nos contatar.\n\nAtenciosamente,\nTim de TI",
                             );
                           } else if (v === "info") {
                             setMessage(
-                              "Prezado,\n\nPara que possamos avançar no atendimento de seu chamado, solicitamos algumas informações adicionais:\n\n- [Informação 1]\n- [Informação 2]\n\nFavor responder com os detalhes solicitados para que possamos prosseguir.\n\nAtenciosamente,\nTim de TI"
+                              "Prezado,\n\nPara que possamos avançar no atendimento de seu chamado, solicitamos algumas informações adicionais:\n\n- [Informação 1]\n- [Informação 2]\n\nFavor responder com os detalhes solicitados para que possamos prosseguir.\n\nAtenciosamente,\nTim de TI",
                             );
                           }
                         }}
@@ -1330,10 +1327,7 @@ export default function ChamadosPage() {
               >
                 Cancelar
               </Button>
-              <Button
-                onClick={handleAssignTicket}
-                disabled={!selectedAgent}
-              >
+              <Button onClick={handleAssignTicket} disabled={!selectedAgent}>
                 <UserPlus className="size-4 mr-2" /> Confirmar Atribuição
               </Button>
             </div>
