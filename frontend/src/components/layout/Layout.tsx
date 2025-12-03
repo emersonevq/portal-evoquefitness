@@ -149,11 +149,11 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                   loading="lazy"
                   decoding="async"
                 />
-                <span className="text-lg">Evoque Fitness</span>
+                <span className="text-lg">Portal Evoque</span>
               </>
             ) : (
               // On BI page, keep header minimal and rely on sidebar logo
-              <span className="sr-only">Evoque Fitness</span>
+              <span className="sr-only">Portal Evoque</span>
             )}
           </Link>
           {/* Desktop navigation */}
@@ -248,7 +248,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                     alt="Evoque Fitness Logo"
                     className="h-6 w-auto rounded-sm"
                   />
-                  <span className="font-semibold">Evoque Fitness</span>
+                  <span className="font-semibold">Portal Evoque</span>
                 </div>
                 <div className="p-4 space-y-2">
                   {isAdminRoute ? (
@@ -340,7 +340,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       <main className="flex-1 w-full">{children}</main>
       <footer className="border-t border-border/60">
         <div className="container py-6 text-xs text-muted-foreground flex items-center justify-between">
-          <p>© {new Date().getFullYear()} Evoque Fitness</p>
+          <p>© {new Date().getFullYear()} Portal Evoque</p>
           <p>Sistema interno</p>
         </div>
       </footer>
