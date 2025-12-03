@@ -14,7 +14,6 @@ import {
   AlertCircle,
   ChevronDown,
   Clock,
-  Code,
   Database,
   Layers,
   Loader2,
@@ -25,8 +24,6 @@ import {
   RefreshCw,
   Shield,
   Sparkles,
-  Terminal,
-  X,
   Loader,
 } from "lucide-react";
 
