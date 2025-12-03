@@ -473,6 +473,26 @@ export default function DashboardViewer({
         logger("[PowerBI] Loaded ✅", "success");
         setLoadingProgress(85);
         setLoadingPhase("finalizing");
+
+        // Safety timeout: if "rendered" event doesn't fire within 2 seconds after loaded,
+        // force the loading state to clear anyway
+        const safetyTimeout = setTimeout(() => {
+          if (embedCycleToken.current === cycleToken && !isRendered) {
+            logger("[PowerBI] Forcing loading completion after loaded event timeout", "warn");
+            isRendered = true;
+            clearTimeout(renderTimeout);
+            setLoadingProgress(100);
+            setTimeout(() => {
+              if (embedCycleToken.current === cycleToken) {
+                setIsLoading(false);
+                setIsReady(true);
+                setError(null);
+                retryCount.current = 0;
+                if (onSuccess) onSuccess();
+              }
+            }, 300);
+          }
+        }, 2000);
       });
 
       report.on("rendered", () => {
