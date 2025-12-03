@@ -574,6 +574,42 @@ export default function ChamadosPage() {
     }
   }
 
+  async function handleAssignTicket() {
+    if (!selected || !selectedAgent) return;
+    try {
+      const agentId = parseInt(selectedAgent);
+      const r = await apiFetch(
+        `/chamados/${selected.id}/assign`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ agent_id: agentId }),
+        },
+      );
+      if (!r.ok) {
+        const text = await r.text();
+        throw new Error(text);
+      }
+      const agent = agents.find((a) => a.id === agentId);
+      toast({
+        title: "Chamado atribuído",
+        description: `Atribuído para ${agent?.nome || "agente"}`,
+      });
+      setAssignDialogOpen(false);
+      setSelected({
+        ...selected,
+      });
+    } catch (e) {
+      toast({
+        title: "Erro",
+        description: "Falha ao atribuir chamado",
+        variant: "destructive",
+      });
+    }
+  }
+
   return (
     <div className="space-y-6 h-[calc(100vh-8rem)] flex flex-col">
       {/* Summary Cards */}
