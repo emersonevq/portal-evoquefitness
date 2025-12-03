@@ -1290,6 +1290,45 @@ export default function ChamadosPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      <Dialog open={assignDialogOpen} onOpenChange={setAssignDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Atribuir Chamado</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid gap-2">
+              <label className="text-sm font-medium">Selecione um agente</label>
+              <Select value={selectedAgent} onValueChange={setSelectedAgent}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Escolha um agente..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {agents.map((agent) => (
+                    <SelectItem key={agent.id} value={String(agent.id)}>
+                      {agent.nome} ({agent.email})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex justify-end gap-2 pt-4">
+              <Button
+                variant="outline"
+                onClick={() => setAssignDialogOpen(false)}
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={handleAssignTicket}
+                disabled={!selectedAgent}
+              >
+                <UserPlus className="size-4 mr-2" /> Confirmar Atribuição
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
