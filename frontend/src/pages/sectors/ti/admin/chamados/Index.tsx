@@ -1023,7 +1023,14 @@ export default function ChamadosPage() {
                             <SelectItem value="CANCELADO">Cancelado</SelectItem>
                           </SelectContent>
                         </Select>
-                        <Button variant="success" className="w-full">
+                        <Button
+                          variant="success"
+                          className="w-full"
+                          onClick={() => {
+                            setSelectedAgent("");
+                            setAssignDialogOpen(true);
+                          }}
+                        >
                           <UserPlus className="size-4" /> Atribuir
                         </Button>
                         <Button
