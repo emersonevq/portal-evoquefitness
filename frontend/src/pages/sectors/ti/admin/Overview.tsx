@@ -422,19 +422,35 @@ export default function Overview() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">Visão Geral</h1>
-        <Button
-          onClick={() => atualizarMetricasMutation.mutate()}
-          disabled={atualizarMetricasMutation.isPending}
-          size="sm"
-          className="gap-2"
-        >
-          <RefreshCw
-            className={`w-4 h-4 ${atualizarMetricasMutation.isPending ? "animate-spin" : ""}`}
-          />
-          {atualizarMetricasMutation.isPending
-            ? "Atualizando..."
-            : "Atualizar Métricas"}
-        </Button>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <Calendar className="w-4 h-4 text-muted-foreground" />
+            <Select value={dateRange} onValueChange={(v) => setDateRange(v as any)}>
+              <SelectTrigger className="w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="7d">Últimos 7 dias</SelectItem>
+                <SelectItem value="30d">Últimos 30 dias</SelectItem>
+                <SelectItem value="90d">Últimos 90 dias</SelectItem>
+                <SelectItem value="all">Todos os dados</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <Button
+            onClick={() => atualizarMetricasMutation.mutate()}
+            disabled={atualizarMetricasMutation.isPending}
+            size="sm"
+            className="gap-2"
+          >
+            <RefreshCw
+              className={`w-4 h-4 ${atualizarMetricasMutation.isPending ? "animate-spin" : ""}`}
+            />
+            {atualizarMetricasMutation.isPending
+              ? "Atualizando..."
+              : "Atualizar Métricas"}
+          </Button>
+        </div>
       </div>
 
       {/* Metrics Grid */}
