@@ -8,11 +8,19 @@ import {
   ArrowDownRight,
   Loader,
   RefreshCw,
+  Calendar,
 } from "lucide-react";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { useSLACacheManager } from "@/hooks/useSLACacheManager";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
 import {
   Bar,
@@ -27,6 +35,7 @@ import {
   Pie,
   PieChart,
   Cell,
+  Legend,
 } from "recharts";
 
 function Metric({
