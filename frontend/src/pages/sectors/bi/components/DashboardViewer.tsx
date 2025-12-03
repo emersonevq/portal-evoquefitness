@@ -48,10 +48,6 @@ export default function DashboardViewer({
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [showDebug, setShowDebug] = useState(false);
-  const [logs, setLogs] = useState<
-    { message: string; type: string; timestamp: number }[]
-  >([]);
 
   // Referências críticas
   const containerRef = useRef<HTMLDivElement | null>(null);
