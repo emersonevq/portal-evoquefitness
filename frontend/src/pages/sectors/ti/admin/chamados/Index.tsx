@@ -1220,7 +1220,7 @@ export default function ChamadosPage() {
                         Modelo de Mensagem
                       </label>
                       <Select
-                        value={template}
+                        value={template || "none"}
                         onValueChange={(v) => {
                           setTemplate(v === "none" ? "" : v);
                           if (v === "none") {
