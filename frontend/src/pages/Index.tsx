@@ -135,7 +135,7 @@ export default function Index() {
           <div className="rounded-2xl brand-gradient px-4 py-8 sm:px-12 sm:py-16 shadow-xl">
             <div className="text-center">
               <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-primary-foreground drop-shadow-md">
-                Evoque Fitness
+                Portal Evoque
               </h1>
               <p className="mt-3 sm:mt-4 text-sm sm:text-base text-primary-foreground/90">
                 Explore nossos setores e eleve sua experiência com serviços

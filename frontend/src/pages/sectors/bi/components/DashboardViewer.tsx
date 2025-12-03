@@ -48,10 +48,6 @@ export default function DashboardViewer({
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [showDebug, setShowDebug] = useState(false);
-  const [logs, setLogs] = useState<
-    { message: string; type: string; timestamp: number }[]
-  >([]);
 
   // Referências críticas
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -696,13 +692,6 @@ export default function DashboardViewer({
         </div>
         <div className="flex items-center gap-2">
           <button
-            onClick={() => setShowDebug(!showDebug)}
-            className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors"
-            title="Console de Depuração"
-          >
-            <Terminal className="w-4 h-4" />
-          </button>
-          <button
             aria-label={
               isFullscreen ? "Sair da tela cheia" : "Entrar em tela cheia"
             }
@@ -719,7 +708,7 @@ export default function DashboardViewer({
       </div>
 
       <div className="flex-1 bi-viewer-outer" ref={containerRef}>
-        {isLoading && (
+        {isLoading && !isReady && (
           <div className="bi-loading-overlay">
             <div className="flex flex-col items-center gap-3">
               <Loader className="w-6 h-6 animate-spin text-primary" />
@@ -816,82 +805,6 @@ export default function DashboardViewer({
           >
             ×
           </button>
-        )}
-
-        {showDebug && (
-          <div className="absolute right-0 top-0 bottom-0 w-96 bg-slate-900 text-white shadow-xl z-20 flex flex-col overflow-hidden border-l border-slate-700">
-            <div className="p-3 border-b border-slate-700 flex items-center justify-between bg-slate-800">
-              <div className="flex items-center gap-2">
-                <Terminal className="w-4 h-4 text-blue-400" />
-                <h3 className="font-mono text-sm font-medium">
-                  Console de Depuração
-                </h3>
-              </div>
-              <button
-                onClick={() => setShowDebug(false)}
-                className="p-1 text-slate-400 hover:text-white hover:bg-slate-700 rounded transition-colors"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div className="flex-1 overflow-y-auto p-2 font-mono text-xs">
-              <div className="space-y-1">
-                {logs.map((log, idx) => (
-                  <div
-                    key={`${log.timestamp}-${idx}`}
-                    className={`py-1 px-2 rounded ${
-                      log.type === "error"
-                        ? "bg-red-950 text-red-300"
-                        : log.type === "success"
-                          ? "bg-green-950 text-green-300"
-                          : log.type === "warn"
-                            ? "bg-yellow-950 text-yellow-300"
-                            : "text-slate-300"
-                    }`}
-                  >
-                    <span className="text-slate-500 mr-1">
-                      {formatTimestamp(log.timestamp)}
-                    </span>
-                    <span>{log.message}</span>
-                  </div>
-                ))}
-                {logs.length === 0 && (
-                  <div className="text-slate-500 p-4 text-center">
-                    Nenhum log disponível
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="p-3 border-t border-slate-700 bg-slate-800 space-y-2">
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  onClick={() => {
-                    setLogs([]);
-                    logger("Console limpo", "info");
-                  }}
-                  className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 rounded text-xs transition-colors"
-                >
-                  Limpar Console
-                </button>
-                <button
-                  onClick={() => {
-                    retryCount.current = 0;
-                    embedReport();
-                  }}
-                  className="px-3 py-1.5 bg-blue-700 hover:bg-blue-600 rounded text-xs transition-colors"
-                >
-                  Recarregar
-                </button>
-              </div>
-
-              <div className="text-xs text-slate-400">
-                Ciclo: {embedCycleToken.current.slice(0, 8)} | Retry:{" "}
-                {retryCount.current}/{MAX_RETRIES}
-              </div>
-            </div>
-          </div>
         )}
       </div>
     </div>

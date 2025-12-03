@@ -796,6 +796,64 @@ def atualizar_status(chamado_id: int, payload: ChamadoStatusUpdate, db: Session 
         raise HTTPException(status_code=500, detail=f"Erro ao atualizar status: {e}")
 
 
+@router.post("/{chamado_id}/assign", response_model=ChamadoOut)
+def atribuir_chamado(chamado_id: int, payload: dict = Body(...), db: Session = Depends(get_db)):
+    try:
+        agent_id = payload.get("agent_id")
+        if not agent_id:
+            raise HTTPException(status_code=400, detail="agent_id é obrigatório")
+
+        # Buscar o agente (usuário)
+        agent = db.query(User).filter(User.id == agent_id).first()
+        if not agent:
+            raise HTTPException(status_code=404, detail="Agente não encontrado")
+
+        # Buscar o chamado
+        ch = db.query(Chamado).filter(
+            (Chamado.id == chamado_id) & (Chamado.deletado_em.is_(None))
+        ).first()
+        if not ch:
+            raise HTTPException(status_code=404, detail="Chamado não encontrado")
+
+        # Atualizar a atribuição
+        ch.status_assumido_por_id = agent_id
+        ch.status_assumido_em = now_brazil_naive()
+        db.add(ch)
+        db.commit()
+        db.refresh(ch)
+
+        # Criar notificação
+        try:
+            Notification.__table__.create(bind=engine, checkfirst=True)
+            dados = json.dumps({
+                "id": ch.id,
+                "codigo": ch.codigo,
+                "agente_id": agent_id,
+                "agente_nome": agent.nome,
+            }, ensure_ascii=False)
+
+            n = Notification(
+                tipo="chamado",
+                titulo=f"Chamado atribuído: {ch.codigo}",
+                mensagem=f"Chamado {ch.protocolo} foi atribuído para {agent.nome}",
+                recurso="chamado",
+                recurso_id=chamado_id,
+                acao="atribuido",
+                dados=dados,
+            )
+            db.add(n)
+            db.commit()
+            db.refresh(n)
+        except Exception as e:
+            print(f"[ASSIGN] Erro ao criar notificação: {e}")
+
+        return ch
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao atribuir chamado: {e}")
+
+
 @router.delete("/{chamado_id}")
 def deletar_chamado(chamado_id: int, payload: ChamadoDeleteRequest = Body(...), db: Session = Depends(get_db)):
     try:

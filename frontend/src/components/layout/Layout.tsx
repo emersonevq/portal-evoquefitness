@@ -149,11 +149,11 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                   loading="lazy"
                   decoding="async"
                 />
-                <span className="text-lg">Evoque Fitness</span>
+                <span className="text-lg">Portal Evoque</span>
               </>
             ) : (
               // On BI page, keep header minimal and rely on sidebar logo
-              <span className="sr-only">Evoque Fitness</span>
+              <span className="sr-only">Portal Evoque</span>
             )}
           </Link>
           {/* Desktop navigation */}
@@ -198,39 +198,39 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 })}
               </DropdownMenuContent>
             </DropdownMenu>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
+            {user ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="secondary"
+                    className="ml-2 hidden md:flex items-center gap-2 rounded-full px-3 py-1.5 text-sm"
+                  >
+                    <div className="h-6 w-6 rounded-full bg-primary/90" />
+                    <span>{user?.name}</span>
+                    <ChevronDown className="size-3" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem className="text-xs text-muted-foreground">
+                    {user?.email}
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={doLogout} className="text-red-600">
+                    <LogOut className="size-4 mr-2" />
+                    Sair
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Link to="/login">
                 <Button
                   variant="secondary"
                   className="ml-2 hidden md:flex items-center gap-2 rounded-full px-3 py-1.5 text-sm"
                 >
-                  <div className="h-6 w-6 rounded-full bg-primary/90" />
-                  <span>{user?.name || "Faça login"}</span>
-                  <ChevronDown className="size-3" />
+                  Fazer login
                 </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
-                {user ? (
-                  <>
-                    <DropdownMenuItem className="text-xs text-muted-foreground">
-                      {user?.email}
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      onClick={doLogout}
-                      className="text-red-600"
-                    >
-                      <LogOut className="size-4 mr-2" />
-                      Sair
-                    </DropdownMenuItem>
-                  </>
-                ) : (
-                  <Link to="/login">
-                    <DropdownMenuItem>Fazer login</DropdownMenuItem>
-                  </Link>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
+              </Link>
+            )}
           </nav>
 
           {/* Mobile hamburger */}
@@ -248,7 +248,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                     alt="Evoque Fitness Logo"
                     className="h-6 w-auto rounded-sm"
                   />
-                  <span className="font-semibold">Evoque Fitness</span>
+                  <span className="font-semibold">Portal Evoque</span>
                 </div>
                 <div className="p-4 space-y-2">
                   {isAdminRoute ? (
@@ -340,7 +340,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       <main className="flex-1 w-full">{children}</main>
       <footer className="border-t border-border/60">
         <div className="container py-6 text-xs text-muted-foreground flex items-center justify-between">
-          <p>© {new Date().getFullYear()} Evoque Fitness</p>
+          <p>© {new Date().getFullYear()} Portal Evoque</p>
           <p>Sistema interno</p>
         </div>
       </footer>

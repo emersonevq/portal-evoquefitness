@@ -45,7 +45,7 @@ export const ALERT_PAGES = {
   // Setores
   sectorTI: {
     id: "sectorTI",
-    label: "Setor de ti",
+    label: "Portal de TI",
     path: "/setor/ti",
     category: "Setores",
   },
@@ -57,13 +57,13 @@ export const ALERT_PAGES = {
   },
   sectorCompras: {
     id: "sectorCompras",
-    label: "Setor de compras",
+    label: "Portal Financeiro",
     path: "/setor/compras",
     category: "Setores",
   },
   sectorManutencao: {
     id: "sectorManutencao",
-    label: "Setor de manutenção",
+    label: "Portal de Manutenção",
     path: "/setor/manutencao",
     category: "Setores",
   },

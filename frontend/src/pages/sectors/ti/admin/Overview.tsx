@@ -8,11 +8,19 @@ import {
   ArrowDownRight,
   Loader,
   RefreshCw,
+  Calendar,
 } from "lucide-react";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { useSLACacheManager } from "@/hooks/useSLACacheManager";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
 import {
   Bar,
@@ -27,6 +35,7 @@ import {
   Pie,
   PieChart,
   Cell,
+  Legend,
 } from "recharts";
 
 function Metric({
@@ -110,6 +119,13 @@ export default function Overview() {
   const [weeklyData, setWeeklyData] = useState<
     Array<{ semana: string; quantidade: number }>
   >([]);
+  const [monthlyData, setMonthlyData] = useState<
+    Array<{
+      mes: string;
+      registrados: number;
+      concluidos: number;
+    }>
+  >([]);
   const [slaData, setSLAData] = useState<{
     dentro_sla: number;
     fora_sla: number;
@@ -121,6 +137,10 @@ export default function Overview() {
     chamados_backlog: number;
   } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [dateRange, setDateRange] = useState<"7d" | "30d" | "90d" | "all">(
+    "30d",
+  );
+  const [showCompleted, setShowCompleted] = useState(true);
 
   // Cache de métricas com React Query
   const { data: basicMetricsData, isLoading: basicLoading } = useQuery({
@@ -184,6 +204,18 @@ export default function Overview() {
     gcTime: 120 * 60 * 1000,
   });
 
+  const { data: monthlyChartData, isLoading: monthlyLoading } = useQuery({
+    queryKey: ["metrics-monthly", dateRange],
+    queryFn: async () => {
+      const response = await api.get("/metrics/chamados-por-mes", {
+        params: { range: dateRange },
+      });
+      return response.data?.dados || [];
+    },
+    staleTime: 15 * 60 * 1000,
+    gcTime: 60 * 60 * 1000,
+  });
+
   // Atualiza estado local quando dados do React Query chegam
   useEffect(() => {
     if (basicMetricsData) {
@@ -202,6 +234,12 @@ export default function Overview() {
       setWeeklyData(weeklyChartData);
     }
   }, [weeklyChartData]);
+
+  useEffect(() => {
+    if (monthlyChartData && Array.isArray(monthlyChartData)) {
+      setMonthlyData(monthlyChartData);
+    }
+  }, [monthlyChartData]);
 
   useEffect(() => {
     if (performanceMetricsData) {
@@ -241,6 +279,7 @@ export default function Overview() {
       queryClient.invalidateQueries({ queryKey: ["metrics-sla"] });
       queryClient.invalidateQueries({ queryKey: ["metrics-daily"] });
       queryClient.invalidateQueries({ queryKey: ["metrics-weekly"] });
+      queryClient.invalidateQueries({ queryKey: ["metrics-monthly"] });
       queryClient.invalidateQueries({ queryKey: ["metrics-performance"] });
       queryClient.invalidateQueries({ queryKey: ["sla-p90-analysis"] });
 
@@ -291,6 +330,7 @@ export default function Overview() {
         queryClient.invalidateQueries({ queryKey: ["metrics-basic"] });
         queryClient.invalidateQueries({ queryKey: ["metrics-daily"] });
         queryClient.invalidateQueries({ queryKey: ["metrics-weekly"] });
+        queryClient.invalidateQueries({ queryKey: ["metrics-monthly"] });
         queryClient.invalidateQueries({ queryKey: ["metrics-sla"] });
         queryClient.invalidateQueries({ queryKey: ["metrics-performance"] });
       };
@@ -304,6 +344,7 @@ export default function Overview() {
         queryClient.invalidateQueries({ queryKey: ["metrics-basic"] });
         queryClient.invalidateQueries({ queryKey: ["metrics-daily"] });
         queryClient.invalidateQueries({ queryKey: ["metrics-weekly"] });
+        queryClient.invalidateQueries({ queryKey: ["metrics-monthly"] });
         queryClient.invalidateQueries({ queryKey: ["metrics-sla"] });
         queryClient.invalidateQueries({ queryKey: ["metrics-performance"] });
         queryClient.invalidateQueries({ queryKey: ["sla-p90-analysis"] });
@@ -329,7 +370,8 @@ export default function Overview() {
       weeklyLoading ||
       slaLoading ||
       performanceLoading ||
-      p90Loading;
+      p90Loading ||
+      monthlyLoading;
     setIsLoading(allLoading);
   }, [
     basicLoading,
@@ -338,6 +380,7 @@ export default function Overview() {
     slaLoading,
     performanceLoading,
     p90Loading,
+    monthlyLoading,
   ]);
 
   if (isLoading) {
@@ -384,19 +427,38 @@ export default function Overview() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">Visão Geral</h1>
-        <Button
-          onClick={() => atualizarMetricasMutation.mutate()}
-          disabled={atualizarMetricasMutation.isPending}
-          size="sm"
-          className="gap-2"
-        >
-          <RefreshCw
-            className={`w-4 h-4 ${atualizarMetricasMutation.isPending ? "animate-spin" : ""}`}
-          />
-          {atualizarMetricasMutation.isPending
-            ? "Atualizando..."
-            : "Atualizar Métricas"}
-        </Button>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <Calendar className="w-4 h-4 text-muted-foreground" />
+            <Select
+              value={dateRange}
+              onValueChange={(v) => setDateRange(v as any)}
+            >
+              <SelectTrigger className="w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="7d">Últimos 7 dias</SelectItem>
+                <SelectItem value="30d">Últimos 30 dias</SelectItem>
+                <SelectItem value="90d">Últimos 90 dias</SelectItem>
+                <SelectItem value="all">Todos os dados</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <Button
+            onClick={() => atualizarMetricasMutation.mutate()}
+            disabled={atualizarMetricasMutation.isPending}
+            size="sm"
+            className="gap-2"
+          >
+            <RefreshCw
+              className={`w-4 h-4 ${atualizarMetricasMutation.isPending ? "animate-spin" : ""}`}
+            />
+            {atualizarMetricasMutation.isPending
+              ? "Atualizando..."
+              : "Atualizar Métricas"}
+          </Button>
+        </div>
       </div>
 
       {/* Metrics Grid */}
@@ -518,6 +580,68 @@ export default function Overview() {
               </BarChart>
             </ResponsiveContainer>
           </div>
+        </div>
+      </div>
+
+      {/* Monthly Chart */}
+      <div className="relative group">
+        <div className="absolute -inset-1 bg-gradient-to-r from-primary/10 to-primary/5 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity" />
+        <div className="relative card-surface rounded-2xl p-6 border border-border/60">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-lg">Chamados por Mês</h3>
+            <div className="flex items-center gap-2">
+              <label className="text-xs font-medium text-muted-foreground">
+                Mostrar concluídos:
+              </label>
+              <button
+                onClick={() => setShowCompleted(!showCompleted)}
+                className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                  showCompleted
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted text-muted-foreground"
+                }`}
+              >
+                {showCompleted ? "Sim" : "Não"}
+              </button>
+            </div>
+          </div>
+          <ResponsiveContainer width="100%" height={320}>
+            <BarChart data={monthlyData}>
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke="hsl(var(--border))"
+                opacity={0.3}
+              />
+              <XAxis
+                dataKey="mes"
+                stroke="hsl(var(--muted-foreground))"
+                fontSize={12}
+              />
+              <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: "hsl(var(--card))",
+                  border: "1px solid hsl(var(--border))",
+                  borderRadius: "8px",
+                }}
+              />
+              <Legend />
+              <Bar
+                dataKey="registrados"
+                fill="hsl(var(--primary))"
+                radius={[8, 8, 0, 0]}
+                name="Registrados"
+              />
+              {showCompleted && (
+                <Bar
+                  dataKey="concluidos"
+                  fill="hsl(var(--chart-1))"
+                  radius={[8, 8, 0, 0]}
+                  name="Concluídos"
+                />
+              )}
+            </BarChart>
+          </ResponsiveContainer>
         </div>
       </div>
 

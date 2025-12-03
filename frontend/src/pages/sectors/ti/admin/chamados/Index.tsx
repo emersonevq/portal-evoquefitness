@@ -238,6 +238,29 @@ export default function ChamadosPage() {
   const loadMoreTicketsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    apiFetch("/usuarios")
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error("fail"))))
+      .then((data) => {
+        if (Array.isArray(data)) {
+          const agentsData = data.filter(
+            (u: any) =>
+              u.nivel_acesso &&
+              (u.nivel_acesso.toLowerCase().includes("agente") ||
+                u.nivel_acesso.toLowerCase() === "administrador"),
+          );
+          setAgents(
+            agentsData.map((u: any) => ({
+              id: u.id,
+              nome: u.nome,
+              email: u.email,
+            })),
+          );
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
     function toUiStatus(s: string): TicketStatus {
       const n = (s || "")
         .normalize("NFD")
@@ -444,6 +467,11 @@ export default function ChamadosPage() {
   const [priority, setPriority] = useState(false);
   const [ccMe, setCcMe] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
+  const [agents, setAgents] = useState<
+    { id: number; nome: string; email: string }[]
+  >([]);
+  const [selectedAgent, setSelectedAgent] = useState<string>("");
+  const [assignDialogOpen, setAssignDialogOpen] = useState(false);
 
   const initFromSelected = useCallback((s: UiTicket) => {
     setTab("resumo");
@@ -541,6 +569,39 @@ export default function ChamadosPage() {
       toast({
         title: "Erro",
         description: "Falha ao enviar ticket",
+        variant: "destructive",
+      });
+    }
+  }
+
+  async function handleAssignTicket() {
+    if (!selected || !selectedAgent) return;
+    try {
+      const agentId = parseInt(selectedAgent);
+      const r = await apiFetch(`/chamados/${selected.id}/assign`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ agent_id: agentId }),
+      });
+      if (!r.ok) {
+        const text = await r.text();
+        throw new Error(text);
+      }
+      const agent = agents.find((a) => a.id === agentId);
+      toast({
+        title: "Chamado atribuído",
+        description: `Atribuído para ${agent?.nome || "agente"}`,
+      });
+      setAssignDialogOpen(false);
+      setSelected({
+        ...selected,
+      });
+    } catch (e) {
+      toast({
+        title: "Erro",
+        description: "Falha ao atribuir chamado",
         variant: "destructive",
       });
     }
@@ -995,7 +1056,14 @@ export default function ChamadosPage() {
                             <SelectItem value="CANCELADO">Cancelado</SelectItem>
                           </SelectContent>
                         </Select>
-                        <Button variant="success" className="w-full">
+                        <Button
+                          variant="success"
+                          className="w-full"
+                          onClick={() => {
+                            setSelectedAgent("");
+                            setAssignDialogOpen(true);
+                          }}
+                        >
                           <UserPlus className="size-4" /> Atribuir
                         </Button>
                         <Button
@@ -1135,9 +1203,20 @@ export default function ChamadosPage() {
                       </label>
                       <Select
                         value={template}
-                        onValueChange={(v) =>
-                          setTemplate(v === "none" ? "" : v)
-                        }
+                        onValueChange={(v) => {
+                          setTemplate(v === "none" ? "" : v);
+                          if (v === "none") {
+                            setMessage("");
+                          } else if (v === "atualizacao") {
+                            setMessage(
+                              "Prezado,\n\nSegue abaixo uma atualização sobre seu chamado.\n\nContinuamos trabalhando para resolver sua solicitação com a máxima agilidade.\n\nQualquer dúvida, não hesite em nos contatar.\n\nAtenciosamente,\nTim de TI",
+                            );
+                          } else if (v === "info") {
+                            setMessage(
+                              "Prezado,\n\nPara que possamos avançar no atendimento de seu chamado, solicitamos algumas informações adicionais:\n\n- [Informação 1]\n- [Informação 2]\n\nFavor responder com os detalhes solicitados para que possamos prosseguir.\n\nAtenciosamente,\nTim de TI",
+                            );
+                          }
+                        }}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Selecione um modelo (opcional)" />
@@ -1217,6 +1296,42 @@ export default function ChamadosPage() {
               </div>
             </>
           )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={assignDialogOpen} onOpenChange={setAssignDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Atribuir Chamado</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid gap-2">
+              <label className="text-sm font-medium">Selecione um agente</label>
+              <Select value={selectedAgent} onValueChange={setSelectedAgent}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Escolha um agente..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {agents.map((agent) => (
+                    <SelectItem key={agent.id} value={String(agent.id)}>
+                      {agent.nome} ({agent.email})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex justify-end gap-2 pt-4">
+              <Button
+                variant="outline"
+                onClick={() => setAssignDialogOpen(false)}
+              >
+                Cancelar
+              </Button>
+              <Button onClick={handleAssignTicket} disabled={!selectedAgent}>
+                <UserPlus className="size-4 mr-2" /> Confirmar Atribuição
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

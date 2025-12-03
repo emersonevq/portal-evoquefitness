@@ -9,10 +9,10 @@ export default function ComprasPage() {
       <div className="container py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-primary mb-2">
-            Setor de compras
+            Portal Financeiro
           </h1>
           <p className="text-muted-foreground">
-            Gerencie solicitações e acompanhe o processo de compras
+            Gerencie e acompanhe suas solicitações
           </p>
         </div>
 

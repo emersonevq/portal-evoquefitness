@@ -9,7 +9,7 @@ export default function ManutencaoPage() {
       <div className="container py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-primary mb-2">
-            Setor de manutenção
+            Portal de Manutenção
           </h1>
           <p className="text-muted-foreground">
             Gerencie solicitações e acompanhe reparos e manutenção
