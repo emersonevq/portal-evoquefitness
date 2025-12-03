@@ -1206,9 +1206,20 @@ export default function ChamadosPage() {
                       </label>
                       <Select
                         value={template}
-                        onValueChange={(v) =>
-                          setTemplate(v === "none" ? "" : v)
-                        }
+                        onValueChange={(v) => {
+                          setTemplate(v === "none" ? "" : v);
+                          if (v === "none") {
+                            setMessage("");
+                          } else if (v === "atualizacao") {
+                            setMessage(
+                              "Prezado,\n\nSegue abaixo uma atualização sobre seu chamado.\n\nContinuamos trabalhando para resolver sua solicitação com a máxima agilidade.\n\nQualquer dúvida, não hesite em nos contatar.\n\nAtenciosamente,\nTim de TI"
+                            );
+                          } else if (v === "info") {
+                            setMessage(
+                              "Prezado,\n\nPara que possamos avançar no atendimento de seu chamado, solicitamos algumas informações adicionais:\n\n- [Informação 1]\n- [Informação 2]\n\nFavor responder com os detalhes solicitados para que possamos prosseguir.\n\nAtenciosamente,\nTim de TI"
+                            );
+                          }
+                        }}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Selecione um modelo (opcional)" />
