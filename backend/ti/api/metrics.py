@@ -278,6 +278,32 @@ def get_chamados_por_semana(semanas: int = 4, db: Session = Depends(get_db)):
         return {"dados": []}
 
 
+@router.get("/metrics/chamados-por-mes")
+def get_chamados_por_mes(range: str = "30d", db: Session = Depends(get_db)):
+    """Retorna quantidade de chamados registrados e concluídos por mês
+
+    Query params:
+    - range: '7d', '30d', '90d' ou 'all' (padrão: '30d')
+    """
+    try:
+        meses_param = {
+            "7d": 1,
+            "30d": 3,
+            "90d": 12,
+            "all": 24
+        }.get(range, 3)
+
+        dados = MetricsCalculator.get_chamados_por_mes(db, meses_param)
+        if not isinstance(dados, list):
+            return {"dados": []}
+        return {"dados": dados}
+    except Exception as e:
+        print(f"Erro ao calcular chamados por mês: {e}")
+        import traceback
+        traceback.print_exc()
+        return {"dados": []}
+
+
 @router.get("/metrics/sla-distribution")
 def get_sla_distribution(db: Session = Depends(get_db)):
     """Retorna distribuição de SLA (dentro/fora do acordo)"""
