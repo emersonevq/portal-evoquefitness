@@ -365,7 +365,8 @@ export default function Overview() {
       weeklyLoading ||
       slaLoading ||
       performanceLoading ||
-      p90Loading;
+      p90Loading ||
+      monthlyLoading;
     setIsLoading(allLoading);
   }, [
     basicLoading,
@@ -374,6 +375,7 @@ export default function Overview() {
     slaLoading,
     performanceLoading,
     p90Loading,
+    monthlyLoading,
   ]);
 
   if (isLoading) {
