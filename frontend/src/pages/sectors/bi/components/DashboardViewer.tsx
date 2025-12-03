@@ -696,13 +696,6 @@ export default function DashboardViewer({
         </div>
         <div className="flex items-center gap-2">
           <button
-            onClick={() => setShowDebug(!showDebug)}
-            className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors"
-            title="Console de Depuração"
-          >
-            <Terminal className="w-4 h-4" />
-          </button>
-          <button
             aria-label={
               isFullscreen ? "Sair da tela cheia" : "Entrar em tela cheia"
             }
