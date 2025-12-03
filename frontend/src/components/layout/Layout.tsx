@@ -170,34 +170,36 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             >
               Início
             </NavLink>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="secondary" className="rounded-full">
-                  Setores <ChevronDown className="size-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                {sectors.map((s) => {
-                  const allowed = canAccess(s.slug);
-                  const href = user
-                    ? `/setor/${s.slug}`
-                    : `/login?redirect=/setor/${s.slug}`;
-                  return (
-                    <Link key={s.slug} to={href}>
-                      <DropdownMenuItem
-                        className={
-                          !user || allowed
-                            ? ""
-                            : "opacity-50 pointer-events-none"
-                        }
-                      >
-                        {s.title}
-                      </DropdownMenuItem>
-                    </Link>
-                  );
-                })}
-              </DropdownMenuContent>
-            </DropdownMenu>
+            {user && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="secondary" className="rounded-full">
+                    Setores <ChevronDown className="size-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  {sectors.map((s) => {
+                    const allowed = canAccess(s.slug);
+                    const href = user
+                      ? `/setor/${s.slug}`
+                      : `/login?redirect=/setor/${s.slug}`;
+                    return (
+                      <Link key={s.slug} to={href}>
+                        <DropdownMenuItem
+                          className={
+                            !user || allowed
+                              ? ""
+                              : "opacity-50 pointer-events-none"
+                          }
+                        >
+                          {s.title}
+                        </DropdownMenuItem>
+                      </Link>
+                    );
+                  })}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
             {user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
