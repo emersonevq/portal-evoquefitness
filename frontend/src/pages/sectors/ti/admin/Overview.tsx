@@ -202,6 +202,18 @@ export default function Overview() {
     gcTime: 120 * 60 * 1000,
   });
 
+  const { data: monthlyChartData, isLoading: monthlyLoading } = useQuery({
+    queryKey: ["metrics-monthly", dateRange],
+    queryFn: async () => {
+      const response = await api.get("/metrics/chamados-por-mes", {
+        params: { range: dateRange },
+      });
+      return response.data?.dados || [];
+    },
+    staleTime: 15 * 60 * 1000,
+    gcTime: 60 * 60 * 1000,
+  });
+
   // Atualiza estado local quando dados do React Query chegam
   useEffect(() => {
     if (basicMetricsData) {
