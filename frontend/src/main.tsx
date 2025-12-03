@@ -74,7 +74,7 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Index />} />
-            <Route path="/login" element={<Login />} />
+            <Route path="/auth0/login" element={<Login />} />
             <Route path="/auth/forgot-password" element={<ForgotPassword />} />
             <Route path="/auth/change-password" element={<ChangePassword />} />
             <Route path="/access-denied" element={<AccessDenied />} />
