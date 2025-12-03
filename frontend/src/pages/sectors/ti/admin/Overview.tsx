@@ -328,6 +328,7 @@ export default function Overview() {
         queryClient.invalidateQueries({ queryKey: ["metrics-basic"] });
         queryClient.invalidateQueries({ queryKey: ["metrics-daily"] });
         queryClient.invalidateQueries({ queryKey: ["metrics-weekly"] });
+        queryClient.invalidateQueries({ queryKey: ["metrics-monthly"] });
         queryClient.invalidateQueries({ queryKey: ["metrics-sla"] });
         queryClient.invalidateQueries({ queryKey: ["metrics-performance"] });
       };
@@ -341,6 +342,7 @@ export default function Overview() {
         queryClient.invalidateQueries({ queryKey: ["metrics-basic"] });
         queryClient.invalidateQueries({ queryKey: ["metrics-daily"] });
         queryClient.invalidateQueries({ queryKey: ["metrics-weekly"] });
+        queryClient.invalidateQueries({ queryKey: ["metrics-monthly"] });
         queryClient.invalidateQueries({ queryKey: ["metrics-sla"] });
         queryClient.invalidateQueries({ queryKey: ["metrics-performance"] });
         queryClient.invalidateQueries({ queryKey: ["sla-p90-analysis"] });
