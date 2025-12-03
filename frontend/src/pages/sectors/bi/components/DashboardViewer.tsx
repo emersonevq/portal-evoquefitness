@@ -719,7 +719,7 @@ export default function DashboardViewer({
       </div>
 
       <div className="flex-1 bi-viewer-outer" ref={containerRef}>
-        {isLoading && (
+        {isLoading && !isReady && (
           <div className="bi-loading-overlay">
             <div className="flex flex-col items-center gap-3">
               <Loader className="w-6 h-6 animate-spin text-primary" />
