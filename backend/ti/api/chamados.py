@@ -233,6 +233,10 @@ def criar_chamado(payload: ChamadoCreate, db: Session = Depends(get_db)):
                 print(f"[WebSocket] Erro ao emitir eventos: {e}")
                 import traceback
                 traceback.print_exc()
+        except Exception as e:
+            print(f"[Notification] Erro ao criar notificação: {e}")
+            pass
+
         try:
             send_async(send_chamado_abertura, ch)
         except Exception:
