@@ -18,6 +18,12 @@ class SLACalculator:
         4: ("08:00", "18:00"),
     }
 
+    # Cache de feriados em memória (atualizado periodicamente)
+    _feriados_cache: set[date] = set()
+    _feriados_cache_lock = threading.Lock()
+    _feriados_cache_timestamp = None
+    _FERIADOS_CACHE_TTL = 3600  # 1 hora em segundos
+
     @staticmethod
     def get_business_hours(db: Session, dia_semana: int) -> tuple[str, str] | None:
         try:
