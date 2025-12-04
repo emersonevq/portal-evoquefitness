@@ -97,7 +97,7 @@ class SLACalculator:
 
     @staticmethod
     def is_business_time(dt: datetime, db: Session | None = None) -> bool:
-        if not SLACalculator.is_business_day(dt):
+        if not SLACalculator.is_business_day(dt, db):
             return False
 
         bh = None
