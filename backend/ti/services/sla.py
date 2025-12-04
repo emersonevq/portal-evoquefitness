@@ -191,7 +191,7 @@ class SLACalculator:
         while current < end:
             next_day = (current + timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
 
-            if not SLACalculator.is_business_day(current):
+            if not SLACalculator.is_business_day(current, db):
                 current = next_day
                 continue
 
