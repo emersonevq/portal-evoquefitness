@@ -1,11 +1,12 @@
 from __future__ import annotations
-from datetime import datetime, time, timedelta
+from datetime import datetime, time, timedelta, date
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_
-from ti.models.sla_config import SLAConfiguration, SLABusinessHours, HistoricoSLA
+from ti.models.sla_config import SLAConfiguration, SLABusinessHours, HistoricoSLA, SLAFeriado
 from ti.models.historico_status import HistoricoStatus
 from ti.models.chamado import Chamado
 from core.utils import now_brazil_naive
+import threading
 
 
 class SLACalculator:
@@ -16,6 +17,12 @@ class SLACalculator:
         3: ("08:00", "18:00"),
         4: ("08:00", "18:00"),
     }
+
+    # Cache de feriados em memória (atualizado periodicamente)
+    _feriados_cache: set[date] = set()
+    _feriados_cache_lock = threading.Lock()
+    _feriados_cache_timestamp = None
+    _FERIADOS_CACHE_TTL = 3600  # 1 hora em segundos
 
     @staticmethod
     def get_business_hours(db: Session, dia_semana: int) -> tuple[str, str] | None:
@@ -33,12 +40,64 @@ class SLACalculator:
         return SLACalculator.DEFAULT_BUSINESS_HOURS.get(dia_semana)
 
     @staticmethod
-    def is_business_day(data: datetime) -> bool:
-        return data.weekday() < 5
+    def _load_feriados(db: Session) -> set[date]:
+        """Carrega feriados do banco de dados com cache de 1 hora"""
+        from datetime import datetime as dt
+
+        with SLACalculator._feriados_cache_lock:
+            now = dt.now().timestamp()
+
+            # Se cache está ainda válido, retorna
+            if SLACalculator._feriados_cache_timestamp and \
+               (now - SLACalculator._feriados_cache_timestamp) < SLACalculator._FERIADOS_CACHE_TTL:
+                return SLACalculator._feriados_cache
+
+            # Carrega do banco
+            try:
+                feriados = db.query(SLAFeriado).filter(
+                    SLAFeriado.ativo == True
+                ).all()
+
+                feriados_set = set()
+                for f in feriados:
+                    try:
+                        # Parse data no formato YYYY-MM-DD
+                        data_obj = datetime.strptime(f.data, "%Y-%m-%d").date()
+                        feriados_set.add(data_obj)
+                    except Exception:
+                        pass
+
+                SLACalculator._feriados_cache = feriados_set
+                SLACalculator._feriados_cache_timestamp = now
+                return feriados_set
+            except Exception as e:
+                print(f"[SLA] Erro ao carregar feriados: {e}")
+                return set()
+
+    @staticmethod
+    def is_holiday(data: datetime, db: Session | None = None) -> bool:
+        """Verifica se uma data é feriado"""
+        if db is None:
+            return False
+
+        data_obj = data.date()
+        feriados = SLACalculator._load_feriados(db)
+        return data_obj in feriados
+
+    @staticmethod
+    def is_business_day(data: datetime, db: Session | None = None) -> bool:
+        """Verifica se é um dia útil (não é fim de semana e não é feriado)"""
+        if data.weekday() >= 5:  # Sábado ou domingo
+            return False
+
+        if db is not None and SLACalculator.is_holiday(data, db):
+            return False
+
+        return True
 
     @staticmethod
     def is_business_time(dt: datetime, db: Session | None = None) -> bool:
-        if not SLACalculator.is_business_day(dt):
+        if not SLACalculator.is_business_day(dt, db):
             return False
 
         bh = None
@@ -132,7 +191,7 @@ class SLACalculator:
         while current < end:
             next_day = (current + timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
 
-            if not SLACalculator.is_business_day(current):
+            if not SLACalculator.is_business_day(current, db):
                 current = next_day
                 continue
 
