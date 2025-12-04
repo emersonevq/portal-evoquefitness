@@ -204,31 +204,35 @@ def criar_chamado(payload: ChamadoCreate, db: Session = Depends(get_db)):
             db.add(n)
             db.commit()
             db.refresh(n)
-            import anyio
-            anyio.from_thread.run(sio.emit, "chamado:created", {"id": ch.id})
-            anyio.from_thread.run(sio.emit, "notification:new", {
-                "id": n.id,
-                "tipo": n.tipo,
-                "titulo": n.titulo,
-                "mensagem": n.mensagem,
-                "recurso": n.recurso,
-                "recurso_id": n.recurso_id,
-                "acao": n.acao,
-                "dados": n.dados,
-                "lido": n.lido,
-                "criado_em": n.criado_em.isoformat() if n.criado_em else None,
-            })
-            # EMITE ATUALIZAÇÃO DE MÉTRICAS EM TEMPO REAL
-            from ti.services.cache_manager_incremental import IncrementalMetricsCache
-            metricas = IncrementalMetricsCache.get_metrics(db)
-            anyio.from_thread.run(sio.emit, "metrics:updated", {
-                "chamados_hoje": chamados_hoje,
-                "sla_metrics": metricas,
-                "timestamp": now_brazil_naive().isoformat(),
-            })
-        except Exception as e:
-            print(f"[WebSocket] Erro ao emitir eventos: {e}")
-            pass
+
+            # Emite eventos via WebSocket (thread-safe)
+            try:
+                sio.emit("chamado:created", {"id": ch.id})
+                sio.emit("notification:new", {
+                    "id": n.id,
+                    "tipo": n.tipo,
+                    "titulo": n.titulo,
+                    "mensagem": n.mensagem,
+                    "recurso": n.recurso,
+                    "recurso_id": n.recurso_id,
+                    "acao": n.acao,
+                    "dados": n.dados,
+                    "lido": n.lido,
+                    "criado_em": n.criado_em.isoformat() if n.criado_em else None,
+                })
+
+                # EMITE ATUALIZAÇÃO DE MÉTRICAS EM TEMPO REAL
+                from ti.services.cache_manager_incremental import IncrementalMetricsCache
+                metricas = IncrementalMetricsCache.get_metrics(db)
+                sio.emit("metrics:updated", {
+                    "chamados_hoje": chamados_hoje,
+                    "sla_metrics": metricas,
+                    "timestamp": now_brazil_naive().isoformat(),
+                })
+            except Exception as e:
+                print(f"[WebSocket] Erro ao emitir eventos: {e}")
+                import traceback
+                traceback.print_exc()
         try:
             send_async(send_chamado_abertura, ch)
         except Exception:
