@@ -534,9 +534,8 @@ def recalcular_sla_painel(db: Session = Depends(get_db)):
 
             # EMITE ATUALIZAÇÃO PARA O FRONTEND
             try:
-                import anyio
                 stats = result.data
-                anyio.from_thread.run(sio.emit, "metrics:updated", {
+                sio.emit("metrics:updated", {
                     "total_recalculados": stats.get("total_recalculados"),
                     "em_dia": stats.get("em_dia"),
                     "vencidos": stats.get("vencidos"),
@@ -548,7 +547,8 @@ def recalcular_sla_painel(db: Session = Depends(get_db)):
                 print(f"[PAINEL MÊS] ✅ Evento WebSocket emitido para frontend")
             except Exception as e:
                 print(f"[PAINEL MÊS] ⚠️  Erro ao emitir evento WebSocket: {e}")
-                pass
+                import traceback
+                traceback.print_exc()
 
             return result.data
         else:
