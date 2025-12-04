@@ -40,8 +40,60 @@ class SLACalculator:
         return SLACalculator.DEFAULT_BUSINESS_HOURS.get(dia_semana)
 
     @staticmethod
-    def is_business_day(data: datetime) -> bool:
-        return data.weekday() < 5
+    def _load_feriados(db: Session) -> set[date]:
+        """Carrega feriados do banco de dados com cache de 1 hora"""
+        from datetime import datetime as dt
+
+        with SLACalculator._feriados_cache_lock:
+            now = dt.now().timestamp()
+
+            # Se cache está ainda válido, retorna
+            if SLACalculator._feriados_cache_timestamp and \
+               (now - SLACalculator._feriados_cache_timestamp) < SLACalculator._FERIADOS_CACHE_TTL:
+                return SLACalculator._feriados_cache
+
+            # Carrega do banco
+            try:
+                feriados = db.query(SLAFeriado).filter(
+                    SLAFeriado.ativo == True
+                ).all()
+
+                feriados_set = set()
+                for f in feriados:
+                    try:
+                        # Parse data no formato YYYY-MM-DD
+                        data_obj = datetime.strptime(f.data, "%Y-%m-%d").date()
+                        feriados_set.add(data_obj)
+                    except Exception:
+                        pass
+
+                SLACalculator._feriados_cache = feriados_set
+                SLACalculator._feriados_cache_timestamp = now
+                return feriados_set
+            except Exception as e:
+                print(f"[SLA] Erro ao carregar feriados: {e}")
+                return set()
+
+    @staticmethod
+    def is_holiday(data: datetime, db: Session | None = None) -> bool:
+        """Verifica se uma data é feriado"""
+        if db is None:
+            return False
+
+        data_obj = data.date()
+        feriados = SLACalculator._load_feriados(db)
+        return data_obj in feriados
+
+    @staticmethod
+    def is_business_day(data: datetime, db: Session | None = None) -> bool:
+        """Verifica se é um dia útil (não é fim de semana e não é feriado)"""
+        if data.weekday() >= 5:  # Sábado ou domingo
+            return False
+
+        if db is not None and SLACalculator.is_holiday(data, db):
+            return False
+
+        return True
 
     @staticmethod
     def is_business_time(dt: datetime, db: Session | None = None) -> bool:
