@@ -402,8 +402,15 @@ def sincronizar_todos_chamados(db: Session = Depends(get_db)):
 @router.post("/recalcular/painel")
 def recalcular_sla_painel(db: Session = Depends(get_db)):
     """
-    Recalcula todos os SLAs quando o painel administrativo é acessado.
-    Operação atômica: ou recalcula tudo ou não recalcula nada.
+    Recalcula todos os SLAs do MÊS ATUAL quando o painel administrativo é acessado.
+
+    Estratégia otimizada:
+    1. Busca apenas chamados do mês atual (filtrado por data_abertura)
+    2. Ignora chamados cancelados e muito antigos
+    3. Cálculo rápido + incrementos para novos chamados
+    4. Invalida cache e envia evento WebSocket
+
+    Operação atômica.
     """
     from ti.services.sla_transaction_manager import SLATransactionManager
 
@@ -414,8 +421,11 @@ def recalcular_sla_painel(db: Session = Depends(get_db)):
         except Exception:
             pass
 
-        def _recalcular_impl(db_session: Session) -> dict:
-            """Implementação do recálculo"""
+        def _recalcular_mes_impl(db_session: Session) -> dict:
+            """Implementação do recálculo otimizada para o mês"""
+            agora = now_brazil_naive()
+            mes_inicio = agora.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+
             stats = {
                 "total_recalculados": 0,
                 "em_dia": 0,
@@ -423,83 +433,104 @@ def recalcular_sla_painel(db: Session = Depends(get_db)):
                 "em_andamento": 0,
                 "congelados": 0,
                 "erros": 0,
+                "periodo": f"{mes_inicio.date()} a {agora.date()}",
             }
 
+            # BUSCA OTIMIZADA: Apenas chamados do mês, não cancelados
             chamados = db_session.query(Chamado).filter(
                 and_(
+                    Chamado.data_abertura >= mes_inicio,
                     Chamado.status != "Cancelado",
-                    Chamado.status != "Concluído"
+                    Chamado.deletado_em.is_(None)
                 )
-            ).all()
+            ).order_by(Chamado.data_abertura.asc()).all()
 
-            for chamado in chamados:
-                sla_status = SLACalculator.get_sla_status(db_session, chamado)
+            print(f"[PAINEL MÊS] Recalculando {len(chamados)} chamados do mês ({mes_inicio.date()} a {agora.date()})")
 
-                # Extrai métricas de resposta e resolução
-                resposta_metric = sla_status.get("resposta_metric")
-                resolucao_metric = sla_status.get("resolucao_metric")
+            for idx, chamado in enumerate(chamados):
+                try:
+                    if idx % 100 == 0 and idx > 0:
+                        print(f"[PAINEL MÊS] Processados {idx}/{len(chamados)} chamados...")
 
-                tempo_resposta_horas = resposta_metric.get("tempo_decorrido_horas") if resposta_metric else None
-                limite_sla_resposta_horas = resposta_metric.get("tempo_limite_horas") if resposta_metric else None
-                tempo_resolucao_horas = resolucao_metric.get("tempo_decorrido_horas") if resolucao_metric else None
-                limite_sla_horas = resolucao_metric.get("tempo_limite_horas") if resolucao_metric else None
+                    sla_status = SLACalculator.get_sla_status(db_session, chamado)
 
-                # Atualiza ou cria histórico com cálculo atual
-                existing = db_session.query(HistoricoSLA).filter(
-                    HistoricoSLA.chamado_id == chamado.id
-                ).order_by(HistoricoSLA.criado_em.desc()).first()
+                    # Extrai métricas de resposta e resolução
+                    resposta_metric = sla_status.get("resposta_metric")
+                    resolucao_metric = sla_status.get("resolucao_metric")
 
-                if existing:
-                    existing.tempo_resposta_horas = tempo_resposta_horas
-                    existing.limite_sla_resposta_horas = limite_sla_resposta_horas
-                    existing.tempo_resolucao_horas = tempo_resolucao_horas
-                    existing.limite_sla_horas = limite_sla_horas
-                    existing.status_sla = sla_status.get("status_geral")
-                    db_session.add(existing)
-                else:
-                    historico = HistoricoSLA(
-                        chamado_id=chamado.id,
-                        usuario_id=None,
-                        acao="recalculo_painel",
-                        status_novo=chamado.status,
-                        tempo_resposta_horas=tempo_resposta_horas,
-                        limite_sla_resposta_horas=limite_sla_resposta_horas,
-                        tempo_resolucao_horas=tempo_resolucao_horas,
-                        limite_sla_horas=limite_sla_horas,
-                        status_sla=sla_status.get("status_geral"),
-                        criado_em=now_brazil_naive(),
-                    )
-                    db_session.add(historico)
+                    tempo_resposta_horas = resposta_metric.get("tempo_decorrido_horas") if resposta_metric else None
+                    limite_sla_resposta_horas = resposta_metric.get("tempo_limite_horas") if resposta_metric else None
+                    tempo_resolucao_horas = resolucao_metric.get("tempo_decorrido_horas") if resolucao_metric else None
+                    limite_sla_horas = resolucao_metric.get("tempo_limite_horas") if resolucao_metric else None
 
-                stats["total_recalculados"] += 1
+                    # Atualiza histórico com cálculo atual
+                    existing = db_session.query(HistoricoSLA).filter(
+                        HistoricoSLA.chamado_id == chamado.id
+                    ).order_by(HistoricoSLA.criado_em.desc()).first()
 
-                status_sla = sla_status.get("status_geral", "sem_sla")
-                if status_sla in ["cumprido", "dentro_prazo"]:
-                    stats["em_dia"] += 1
-                elif status_sla in ["violado", "vencido_ativo"]:
-                    stats["vencidos"] += 1
-                elif status_sla == "proximo_vencer":
-                    stats["em_andamento"] += 1
-                elif status_sla == "pausado":
-                    stats["congelados"] += 1
+                    if existing:
+                        existing.tempo_resposta_horas = tempo_resposta_horas
+                        existing.limite_sla_resposta_horas = limite_sla_resposta_horas
+                        existing.tempo_resolucao_horas = tempo_resolucao_horas
+                        existing.limite_sla_horas = limite_sla_horas
+                        existing.status_sla = sla_status.get("status_geral")
+                        db_session.add(existing)
+                    else:
+                        historico = HistoricoSLA(
+                            chamado_id=chamado.id,
+                            usuario_id=None,
+                            acao="recalculo_painel_mes",
+                            status_novo=chamado.status,
+                            tempo_resposta_horas=tempo_resposta_horas,
+                            limite_sla_resposta_horas=limite_sla_resposta_horas,
+                            tempo_resolucao_horas=tempo_resolucao_horas,
+                            limite_sla_horas=limite_sla_horas,
+                            status_sla=sla_status.get("status_geral"),
+                            criado_em=chamado.data_abertura or now_brazil_naive(),
+                        )
+                        db_session.add(historico)
 
+                    stats["total_recalculados"] += 1
+
+                    # Classifica status
+                    status_sla = sla_status.get("status_geral", "sem_sla")
+                    if status_sla in ["cumprido", "dentro_prazo"]:
+                        stats["em_dia"] += 1
+                    elif status_sla in ["violado", "vencido_ativo"]:
+                        stats["vencidos"] += 1
+                    elif status_sla == "proximo_vencer":
+                        stats["em_andamento"] += 1
+                    elif status_sla == "pausado":
+                        stats["congelados"] += 1
+
+                except Exception as e:
+                    stats["erros"] += 1
+                    print(f"[PAINEL MÊS] Erro ao processar chamado {chamado.id}: {e}")
+                    continue
+
+            # Persiste alterações
+            db_session.commit()
+            print(f"[PAINEL MÊS] ✅ Recalcule concluído: {stats['total_recalculados']} chamados processados")
             return stats
 
         # Executa com transação atômica
         result = SLATransactionManager.execute_with_lock(
             db,
-            "historico_sla",
-            _recalcular_impl
+            "historico_sla_mes",
+            _recalcular_mes_impl
         )
 
         if result.success:
             # LIMPA CACHE DE MÉTRICAS PARA FORÇAR RECALCULAR
-            print(f"[PAINEL RECALC] Invalidando cache de métricas...")
+            print(f"[PAINEL MÊS] Invalidando cache de métricas...")
             try:
                 from ti.services.cache_manager_incremental import IncrementalMetricsCache
+                from ti.services.sla_cache import SLACacheManager
+
                 IncrementalMetricsCache.invalidate_all()
+                SLACacheManager.invalidate_all_sla(db)
             except Exception as e:
-                print(f"[PAINEL RECALC] Aviso ao invalidar cache: {e}")
+                print(f"[PAINEL MÊS] Aviso ao invalidar cache: {e}")
 
             # EMITE ATUALIZAÇÃO PARA O FRONTEND
             try:
@@ -511,11 +542,12 @@ def recalcular_sla_painel(db: Session = Depends(get_db)):
                     "vencidos": stats.get("vencidos"),
                     "em_andamento": stats.get("em_andamento"),
                     "congelados": stats.get("congelados"),
+                    "periodo": stats.get("periodo"),
                     "timestamp": now_brazil_naive().isoformat(),
                 })
-                print(f"[PAINEL RECALC] ✅ Evento WebSocket emitido para frontend")
+                print(f"[PAINEL MÊS] ✅ Evento WebSocket emitido para frontend")
             except Exception as e:
-                print(f"[PAINEL RECALC] ⚠️  Erro ao emitir evento WebSocket: {e}")
+                print(f"[PAINEL MÊS] ⚠️  Erro ao emitir evento WebSocket: {e}")
                 pass
 
             return result.data
