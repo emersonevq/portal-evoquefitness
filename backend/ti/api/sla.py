@@ -725,8 +725,7 @@ def resetar_sla_completo(db: Session = Depends(get_db)):
 
         # EMITE ATUALIZAÇÃO PARA O FRONTEND
         try:
-            import anyio
-            anyio.from_thread.run(sio.emit, "sla:reset", {
+            sio.emit("sla:reset", {
                 "reset_em": agora.isoformat(),
                 "configuracoes_atualizadas": len(configs),
                 "timestamp": agora.isoformat(),
@@ -734,7 +733,8 @@ def resetar_sla_completo(db: Session = Depends(get_db)):
             print(f"[SLA RESET] ✅ Evento WebSocket emitido para frontend")
         except Exception as e:
             print(f"[SLA RESET] ⚠️  Erro ao emitir evento WebSocket: {e}")
-            pass
+            import traceback
+            traceback.print_exc()
 
         return {
             "ok": True,
