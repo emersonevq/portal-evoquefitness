@@ -317,16 +317,21 @@ def criar_chamado_com_anexos(
     internetItem: str | None = Form(None),
     visita: str | None = Form(None),
     descricao: str | None = Form(None),
-    files: list[UploadFile] = File(default=[]),
+    files: list[UploadFile] | None = File(None),
     autor_email: str | None = Form(None),
     db: Session = Depends(get_db),
 ):
     try:
+        # Normalizar files: None -> []
+        if files is None:
+            files = []
+
         try:
             Chamado.__table__.create(bind=engine, checkfirst=True)
             ChamadoAnexo.__table__.create(bind=engine, checkfirst=True)
             _ensure_column("chamado_anexo", "conteudo", "MEDIUMBLOB NULL")
-        except Exception:
+        except Exception as e:
+            print(f"[CRIAR CHAMADO] Erro ao criar tabelas: {e}")
             pass
         payload = ChamadoCreate(
             solicitante=solicitante,
@@ -339,12 +344,17 @@ def criar_chamado_com_anexos(
             visita=visita,
             descricao=descricao,
         )
+        print(f"[CRIAR CHAMADO] Iniciando criação com payload: {payload}")
         ch = service_criar(db, payload)
+        print(f"[CRIAR CHAMADO] Chamado criado com sucesso: id={ch.id}, codigo={ch.codigo}")
 
         # Sincroniza o chamado com a tabela de SLA
+        print(f"[CRIAR CHAMADO] Sincronizando SLA...")
         _sincronizar_sla(db, ch)
+        print(f"[CRIAR CHAMADO] SLA sincronizado com sucesso")
 
         if files:
+            print(f"[CRIAR CHAMADO] Processando {len(files)} anexo(s)...")
             user_id = None
             if autor_email:
                 try:
@@ -357,6 +367,7 @@ def criar_chamado_com_anexos(
             for f in files:
                 try:
                     safe_name = (f.filename or "arquivo")
+                    print(f"[CRIAR CHAMADO] Processando arquivo: {safe_name}")
                     content = f.file.read()
                     ext = safe_name.rsplit(".", 1)[-1].lower() if "." in safe_name else None
                     sha = hashlib.sha256(content).hexdigest()
@@ -382,13 +393,17 @@ def criar_chamado_com_anexos(
                     if rid:
                         _update_path(db, "chamado_anexo", rid, f"api/chamados/anexos/chamado/{rid}")
                         saved += 1
-                except Exception:
+                        print(f"[CRIAR CHAMADO] Arquivo salvo com sucesso: id={rid}")
+                except Exception as e:
+                    print(f"[CRIAR CHAMADO] Erro ao salvar arquivo {f.filename}: {e}")
                     continue
             db.commit()
+            print(f"[CRIAR CHAMADO] {saved} de {len(files)} arquivo(s) salvos com sucesso")
             if files and saved == 0:
                 raise HTTPException(status_code=500, detail="Falha ao salvar anexos da abertura")
             # Try to gather saved attachments and send them with the opening email
             try:
+                print(f"[CRIAR CHAMADO] Preparando para enviar email com anexos...")
                 attach_rows = db.execute(text("SELECT id, nome_original, tipo_mime FROM chamado_anexo WHERE chamado_id=:i"), {"i": ch.id}).fetchall()
                 attachments_payload = []
                 import base64
@@ -406,51 +421,70 @@ def criar_chamado_com_anexos(
                                 "contentType": mime,
                                 "contentBytes": b64,
                             })
-                    except Exception:
+                    except Exception as e:
+                        print(f"[CRIAR CHAMADO] Erro ao processar anexo para email: {e}")
                         continue
                 # send async email with attachments
                 try:
                     if attachments_payload:
+                        print(f"[CRIAR CHAMADO] Enviando email com {len(attachments_payload)} anexo(s)...")
                         send_async(send_chamado_abertura, ch, attachments_payload)
                     else:
+                        print(f"[CRIAR CHAMADO] Enviando email sem anexos...")
                         send_async(send_chamado_abertura, ch)
-                except Exception:
+                except Exception as e:
+                    print(f"[CRIAR CHAMADO] Erro ao enviar email: {e}")
                     pass
-            except Exception:
+            except Exception as e:
+                print(f"[CRIAR CHAMADO] Erro ao preparar email: {e}")
                 pass
         else:
             # No files: still send the opening email
             try:
+                print(f"[CRIAR CHAMADO] Enviando email de abertura sem anexos...")
                 send_async(send_chamado_abertura, ch)
-            except Exception:
+            except Exception as e:
+                print(f"[CRIAR CHAMADO] Erro ao enviar email de abertura: {e}")
                 pass
 
         # REFRESH e EXPUNGE ANTES de qualquer operação async para evitar estado transitório
         try:
+            print(f"[CRIAR CHAMADO] Fazendo refresh no chamado...")
             db.refresh(ch)
             db.expunge(ch)
+            print(f"[CRIAR CHAMADO] Refresh e expunge concluído com sucesso")
         except Exception as e:
-            print(f"[REFRESH] Erro ao refresh chamado: {e}")
+            print(f"[CRIAR CHAMADO] Erro ao refresh/expunge chamado: {e}")
             # Mesmo com erro, continue com o resto da operação
             pass
 
         # EMITE ATUALIZAÇÃO DE MÉTRICAS EM TEMPO REAL (sem dependência de db após refresh)
         try:
+            print(f"[CRIAR CHAMADO] Atualizando métricas...")
             from ti.services.cache_manager_incremental import IncrementalMetricsCache
             metricas = IncrementalMetricsCache.get_metrics(db)
             import anyio
+            print(f"[CRIAR CHAMADO] Emitindo evento de métricas atualizadas...")
             anyio.from_thread.run(sio.emit, "metrics:updated", {
                 "chamados_hoje": 1,
                 "sla_metrics": metricas,
                 "timestamp": now_brazil_naive().isoformat(),
             })
+            print(f"[CRIAR CHAMADO] Eventos de métricas emitidos com sucesso")
         except Exception as e:
-            print(f"[WebSocket] Erro ao emitir eventos de métricas: {e}")
+            print(f"[CRIAR CHAMADO] Erro ao atualizar métricas: {e}")
+            import traceback
+            print(f"[CRIAR CHAMADO] Traceback: {traceback.format_exc()}")
             pass
 
+        print(f"[CRIAR CHAMADO] Retornando chamado criado com sucesso")
         return ch
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erro ao criar chamado com anexos: {e}")
+        import traceback
+        error_msg = f"Erro ao criar chamado com anexos: {e}"
+        print(f"[CRIAR CHAMADO] {error_msg}")
+        print(f"[CRIAR CHAMADO] Traceback completo: {traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=error_msg)
 
 
 @router.post("/{chamado_id}/ticket")
@@ -460,10 +494,13 @@ def enviar_ticket(
     mensagem: str = Form(...),
     destinatarios: str = Form(...),
     autor_email: str | None = Form(None),
-    files: list[UploadFile] = File(default=[]),
+    files: list[UploadFile] | None = File(None),
     db: Session = Depends(get_db),
 ):
     try:
+        # Normalizar files: None -> []
+        if files is None:
+            files = []
         # Verificar se o chamado existe e não foi deletado
         chamado = db.query(Chamado).filter(
             (Chamado.id == chamado_id) & (Chamado.deletado_em.is_(None))

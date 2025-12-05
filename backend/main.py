@@ -4,6 +4,7 @@ from fastapi.responses import StreamingResponse, Response, FileResponse
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
 from io import BytesIO
 from ti.api import chamados_router, unidades_router, problemas_router, notifications_router, alerts_router, email_debug_router, sla_router, powerbi_router, metrics_router
 from ti.api.usuarios import router as usuarios_router
@@ -93,6 +94,23 @@ _http.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+class RequestLoggingMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        method = request.method
+        path = request.url.path
+        if method == "POST" or "/chamados" in path:
+            print(f"[REQUEST] {method} {path}")
+        try:
+            response = await call_next(request)
+            if method == "POST" or "/chamados" in path:
+                print(f"[RESPONSE] {method} {path} -> {response.status_code}")
+            return response
+        except Exception as e:
+            print(f"[ERROR] {method} {path} -> {e}")
+            raise
+
+_http.add_middleware(RequestLoggingMiddleware)
 
 @_http.get("/api/ping")
 def ping():
