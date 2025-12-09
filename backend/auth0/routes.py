@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Body
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from core.db import get_db
 from auth0.validator import verify_auth0_token
@@ -10,8 +11,12 @@ import traceback
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 
+class Auth0LoginRequest(BaseModel):
+    token: str
+
+
 @router.post("/auth0-login")
-def auth0_login(token: str, db: Session = Depends(get_db)):
+def auth0_login(request: Auth0LoginRequest, db: Session = Depends(get_db)):
     """
     Validate Auth0 JWT token and authenticate user
     
