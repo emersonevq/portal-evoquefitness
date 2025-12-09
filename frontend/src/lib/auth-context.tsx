@@ -23,6 +23,7 @@ interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  authError: string | null;
   login: (email?: string, password?: string) => Promise<any>;
   logout: () => void;
   loginWithAuth0: () => Promise<void>;
