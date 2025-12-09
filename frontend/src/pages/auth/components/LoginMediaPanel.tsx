@@ -42,6 +42,15 @@ export default function LoginMediaPanel() {
       if (list.length > 0) {
         console.log("Media loaded:", list);
         setItems(list);
+      } else {
+        // Fallback: usar uma imagem padrão se nenhuma mídia estiver configurada
+        setItems([
+          {
+            id: "placeholder",
+            type: "image",
+            url: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1600&h=900&fit=crop",
+          },
+        ]);
       }
     });
     return () => controller.abort();
