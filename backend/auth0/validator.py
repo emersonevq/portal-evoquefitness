@@ -73,8 +73,16 @@ def verify_auth0_token(token: str) -> dict:
         key = jwt.algorithms.RSAAlgorithm.from_jwk(signing_key)
 
         # First, decode without verification to see what we're dealing with
-        unverified_payload = jwt.get_unverified_claims(token)
-        print(f"[AUTH0] Unverified payload: {unverified_payload}")
+        try:
+            unverified_payload = jwt.decode(
+                token,
+                options={"verify_signature": False}
+            )
+            print(f"[AUTH0] Unverified payload: {unverified_payload}")
+            print(f"[AUTH0] Token aud claim: {unverified_payload.get('aud')}")
+            print(f"[AUTH0] Token iss claim: {unverified_payload.get('iss')}")
+        except Exception as debug_e:
+            print(f"[AUTH0] Could not decode unverified payload: {debug_e}")
         print(f"[AUTH0] Expected audience: {AUTH0_AUDIENCE}")
         print(f"[AUTH0] Expected issuer: {AUTH0_ISSUER}")
 
