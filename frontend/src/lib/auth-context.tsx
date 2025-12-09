@@ -118,7 +118,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const errorMsg = "Erro ao trocar código por token. Tente fazer login novamente.";
         setAuthError(errorMsg);
         console.error("Failed to exchange code for token:", response.status);
-        navigate("/auth0/login?error=token_exchange_failed", { replace: true });
+        navigate("/auth0/error?error=token_exchange_failed", { replace: true });
         return;
       }
 
