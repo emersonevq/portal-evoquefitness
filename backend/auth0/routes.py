@@ -31,8 +31,8 @@ def auth0_login(request: Auth0LoginRequest, db: Session = Depends(get_db)):
     """
     try:
         # Verify token
-        payload = verify_auth0_token(token)
-        
+        payload = verify_auth0_token(request.token)
+
         # Get email from token
         email = payload.get("email")
         if not email:
@@ -40,22 +40,22 @@ def auth0_login(request: Auth0LoginRequest, db: Session = Depends(get_db)):
                 status_code=400,
                 detail="Email not found in token"
             )
-        
+
         # Find user in database
         user = db.query(User).filter(User.email == email).first()
-        
+
         if not user:
             raise HTTPException(
                 status_code=403,
                 detail=f"User with email '{email}' not found in system. Contact administrator."
             )
-        
+
         if getattr(user, "bloqueado", False):
             raise HTTPException(
                 status_code=403,
                 detail="User is blocked. Contact administrator."
             )
-        
+
         # Parse user sectors
         setores_list = []
         if getattr(user, "_setores", None):
@@ -63,7 +63,7 @@ def auth0_login(request: Auth0LoginRequest, db: Session = Depends(get_db)):
                 setores_list = json.loads(getattr(user, "_setores", "[]"))
             except Exception:
                 setores_list = []
-        
+
         # Parse BI subcategories
         bi_subcategories_list = None
         if getattr(user, "_bi_subcategories", None):
@@ -73,7 +73,7 @@ def auth0_login(request: Auth0LoginRequest, db: Session = Depends(get_db)):
                 )
             except Exception:
                 bi_subcategories_list = None
-        
+
         return {
             "id": user.id,
             "nome": user.nome,
