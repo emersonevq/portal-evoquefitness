@@ -89,7 +89,12 @@ _http.mount("/uploads", StaticFiles(directory=str(_uploads), html=False), name="
 
 _http.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "http://localhost:3005",
+        "http://127.0.0.1:3005",
+        "http://localhost:5173",  # Vite default dev port
+        "http://127.0.0.1:5173",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
