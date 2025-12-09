@@ -1,6 +1,7 @@
 import requests
 from functools import lru_cache
-from jose import jwt, JWTError, JWTClaimsError
+from jose import jwt, JWTError
+from jose.exceptions import JWTClaimsError
 from fastapi import HTTPException, Depends
 from fastapi.security import HTTPBearer, HTTPAuthCredentials
 from .config import (
