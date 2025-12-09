@@ -157,7 +157,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const validateAndSyncUser = async (accessToken: string) => {
+  const validateAndSyncUser = async (accessToken: string): Promise<User | null> => {
     try {
       // Call backend to validate token and get user data
       const response = await fetch("/api/auth/auth0-login", {
@@ -205,6 +205,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (autoRedirect) {
         sessionStorage.setItem("auth0_redirect_after_login", autoRedirect);
       }
+
+      return userData;
     } catch (error) {
       console.error("Error syncing user:", error);
       throw error;
