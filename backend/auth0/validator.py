@@ -98,11 +98,11 @@ def verify_auth0_token(token: str) -> dict:
                 detail="Invalid token claims"
             )
         else:
-        print(f"❌ JWT validation failed: {str(e)}")
-        raise HTTPException(
-            status_code=401,
-            detail="Invalid token"
-        )
+            print(f"❌ JWT validation failed: {str(e)}")
+            raise HTTPException(
+                status_code=401,
+                detail="Invalid token"
+            )
     except Exception as e:
         print(f"❌ Token verification error: {str(e)}")
         raise HTTPException(
