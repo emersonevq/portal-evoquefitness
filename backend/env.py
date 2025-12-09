@@ -32,10 +32,15 @@ PASSWORD_MIN_LENGTH=6
 LOG_LEVEL=INFO
 LOG_FILE_PATH=logs/app.log
 
-# Configurações do Auth0 (Microsoft Office 365)
+# Configurações do Auth0
 AUTH0_DOMAIN=evoqueacademia.us.auth0.com
 AUTH0_AUDIENCE=https://erp-api.evoquefitness.com.br
-AUTH0_ISSUER_BASE_URL=https://evoqueacademia.us.auth0.com
+AUTH0_CLIENT_ID=
+AUTH0_CLIENT_SECRET=
+
+# Machine-to-Machine (M2M) Credentials para Management API
+AUTH0_M2M_CLIENT_ID=XzX8v2bRdjMufvVFcFbrtZXmbn2xBgdE
+AUTH0_M2M_CLIENT_SECRET=GiSRQOv7Vyh2Fb2mWz6_dbo5NYBKZO9qBTeQPOwH-erwzjqF3EGyWR861-p-GYKb
 
 # Configurações de Backup
 BACKUP_PATH=backups/

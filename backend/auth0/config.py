@@ -1,0 +1,21 @@
+import os
+
+# Auth0 Configuration
+AUTH0_DOMAIN = os.getenv("AUTH0_DOMAIN", "evoqueacademia.us.auth0.com")
+AUTH0_AUDIENCE = os.getenv("AUTH0_AUDIENCE", "https://erp-api.evoquefitness.com.br")
+AUTH0_CLIENT_ID = os.getenv("AUTH0_CLIENT_ID", "")
+AUTH0_CLIENT_SECRET = os.getenv("AUTH0_CLIENT_SECRET", "")
+
+# Machine-to-Machine (M2M) Credentials for Management API
+AUTH0_M2M_CLIENT_ID = os.getenv("AUTH0_M2M_CLIENT_ID", "")
+AUTH0_M2M_CLIENT_SECRET = os.getenv("AUTH0_M2M_CLIENT_SECRET", "")
+
+# Auth0 URLs
+AUTH0_ISSUER = f"https://{AUTH0_DOMAIN}/"
+AUTH0_JWKS_URL = f"https://{AUTH0_DOMAIN}/.well-known/jwks.json"
+AUTH0_TOKEN_URL = f"https://{AUTH0_DOMAIN}/oauth/token"
+AUTH0_MANAGEMENT_API_URL = f"https://{AUTH0_DOMAIN}/api/v2/"
+
+# Validate configuration
+if not AUTH0_M2M_CLIENT_ID or not AUTH0_M2M_CLIENT_SECRET:
+    print("⚠️  WARNING: Auth0 M2M credentials not configured. Management API operations will fail.")

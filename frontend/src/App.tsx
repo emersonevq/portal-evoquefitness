@@ -8,6 +8,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/auth/Login";
+import Callback from "./pages/auth/Callback";
 import ForgotPassword from "./pages/auth/ForgotPassword";
 import ResetPasswordSuccess from "./pages/auth/ResetPasswordSuccess";
 import ChangePassword from "./pages/auth/ChangePassword";
@@ -63,6 +64,7 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/auth0/login" element={<Login />} />
+          <Route path="/auth/callback" element={<Callback />} />
           <Route path="/auth/forgot-password" element={<ForgotPassword />} />
           <Route path="/auth/change-password" element={<ChangePassword />} />
           <Route path="/access-denied" element={<AccessDenied />} />

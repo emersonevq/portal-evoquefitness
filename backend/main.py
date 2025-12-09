@@ -8,6 +8,7 @@ from io import BytesIO
 from ti.api import chamados_router, unidades_router, problemas_router, notifications_router, alerts_router, email_debug_router, sla_router, powerbi_router, metrics_router
 from ti.api.usuarios import router as usuarios_router
 from ti.api.dashboard_permissions import router as dashboard_permissions_router
+from auth0.routes import router as auth0_router
 from core.realtime import mount_socketio
 import json
 from typing import Any, List, Dict
@@ -368,6 +369,7 @@ async def delete_login_media(item_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=f"Erro ao remover mídia: {e}")
 
 # Primary mount under /api
+_http.include_router(auth0_router)
 _http.include_router(chamados_router, prefix="/api")
 _http.include_router(usuarios_router, prefix="/api")
 _http.include_router(unidades_router, prefix="/api")
@@ -381,6 +383,7 @@ _http.include_router(metrics_router, prefix="/api")
 _http.include_router(dashboard_permissions_router, prefix="")
 
 # Compatibility mount without prefix, in case the server is run without proxy
+_http.include_router(auth0_router)
 _http.include_router(chamados_router)
 _http.include_router(usuarios_router)
 _http.include_router(unidades_router)
