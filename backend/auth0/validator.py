@@ -9,6 +9,11 @@ from .config import (
     AUTH0_ISSUER,
     AUTH0_JWKS_URL,
 )
+from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.backends import default_backend
+import json
+import base64
 
 security = HTTPBearer()
 
