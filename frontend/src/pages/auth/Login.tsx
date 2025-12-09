@@ -45,6 +45,30 @@ export default function Login() {
         >
           {/* Card de Login */}
           <div className="card-surface rounded-xl p-6 sm:p-8 shadow-2xl border">
+            {/* Error Alert */}
+            {showError && (
+              <div className="mb-6 flex gap-3 p-4 rounded-lg bg-destructive/10 border border-destructive/30">
+                <AlertCircle className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-destructive mb-1">
+                    Erro na autenticação
+                  </p>
+                  <p className="text-xs text-destructive/90 leading-relaxed">
+                    {decodeURIComponent(searchParams.get("error") || "Ocorreu um erro ao processar sua autenticação.")}
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    setShowError(false);
+                    setSearchParams({});
+                  }}
+                  className="flex-shrink-0 text-destructive/70 hover:text-destructive transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+
             {/* Header */}
             <div className="mb-6">
               <div className="flex items-center gap-4 mb-4">
