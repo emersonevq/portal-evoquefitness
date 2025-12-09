@@ -120,12 +120,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Store token
       localStorage.setItem("auth0_access_token", accessToken);
 
-      // Validate token with backend
-      await validateAndSyncUser(accessToken);
+      // Validate token with backend e obter dados do usuário
+      const userData = await validateAndSyncUser(accessToken);
 
-      // Get redirect URL
-      const redirectUrl =
-        sessionStorage.getItem("auth0_redirect_after_login") || "/";
+      // Get redirect URL - usar a que foi armazenada ou gerar automática
+      let redirectUrl = sessionStorage.getItem("auth0_redirect_after_login");
+      if (!redirectUrl && userData) {
+        // Se não houver redirecionamento armazenado, usar o automático baseado no nível de acesso
+        redirectUrl = getAutoRedirectUrl(userData) || "/";
+      }
+      redirectUrl = redirectUrl || "/";
+
       sessionStorage.removeItem("auth0_redirect_after_login");
 
       navigate(redirectUrl, { replace: true });
