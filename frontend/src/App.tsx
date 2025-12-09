@@ -65,6 +65,7 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/auth0/login" element={<Login />} />
+          <Route path="/auth0/error" element={<Auth0Error />} />
           <Route path="/auth/callback" element={<Callback />} />
           <Route path="/auth/forgot-password" element={<ForgotPassword />} />
           <Route path="/auth/change-password" element={<ChangePassword />} />
