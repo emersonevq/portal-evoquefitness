@@ -112,7 +112,7 @@ def verify_auth0_token(token: str) -> dict:
         signing_key = get_signing_key(unverified_header["kid"])
 
         # Build the key for verification (convert JWK to PEM)
-        key = jwt.algorithms.RSAAlgorithm.from_jwk(signing_key)
+        key = jwk_to_pem(signing_key)
 
         # First, decode without verification to see what we're dealing with
         try:
