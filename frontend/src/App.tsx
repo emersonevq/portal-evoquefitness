@@ -9,6 +9,7 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/auth/Login";
 import Callback from "./pages/auth/Callback";
+import Auth0Error from "./pages/auth/Auth0Error";
 import ForgotPassword from "./pages/auth/ForgotPassword";
 import ResetPasswordSuccess from "./pages/auth/ResetPasswordSuccess";
 import ChangePassword from "./pages/auth/ChangePassword";
