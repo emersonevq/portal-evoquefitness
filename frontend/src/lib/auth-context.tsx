@@ -168,6 +168,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       // Store in sessionStorage
       sessionStorage.setItem("evoque-fitness-auth", JSON.stringify(userData));
+
+      // Determinar redirecionamento automático baseado no nível de acesso
+      const autoRedirect = getAutoRedirectUrl(userData);
+      if (autoRedirect) {
+        sessionStorage.setItem("auth0_redirect_after_login", autoRedirect);
+      }
     } catch (error) {
       console.error("Error syncing user:", error);
       throw error;
