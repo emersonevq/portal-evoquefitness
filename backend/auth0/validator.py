@@ -2,7 +2,7 @@ import requests
 from functools import lru_cache
 from jose import jwt, JWTError
 from fastapi import HTTPException, Depends
-from fastapi.security import HTTPBearer, HTTPAuthCredentials
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from .config import (
     AUTH0_DOMAIN,
     AUTH0_AUDIENCE,
@@ -110,7 +110,7 @@ def verify_auth0_token(token: str) -> dict:
         )
 
 
-async def get_current_user(credentials: HTTPAuthCredentials = Depends(security)) -> dict:
+async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)) -> dict:
     """
     Dependency to verify Auth0 token in protected routes
     
