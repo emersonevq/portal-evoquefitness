@@ -146,7 +146,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const errorMessage = error instanceof Error ? error.message : "Erro desconhecido na autenticação";
       setAuthError(errorMessage);
       console.error("Error handling Auth0 callback:", error);
-      navigate("/auth0/login?error=" + encodeURIComponent(errorMessage), { replace: true });
+      navigate("/auth0/error?error=" + encodeURIComponent(errorMessage), { replace: true });
     }
   };
 
