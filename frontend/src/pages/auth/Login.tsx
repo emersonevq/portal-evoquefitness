@@ -1,17 +1,24 @@
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
 import { useAuthContext } from "@/lib/auth-context";
+import { useSearchParams } from "react-router-dom";
 import LoginMediaPanel from "./components/LoginMediaPanel";
-import { Shield, Zap, Clock, LogIn, AlertCircle } from "lucide-react";
+import { Shield, Zap, Clock, LogIn, AlertCircle, X } from "lucide-react";
 
 export default function Login() {
   const { loginWithAuth0 } = useAuthContext();
   const [isLoading, setIsLoading] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [showError, setShowError] = useState(false);
 
   useEffect(() => {
     setMounted(true);
-  }, []);
+    const error = searchParams.get("error");
+    if (error) {
+      setShowError(true);
+    }
+  }, [searchParams]);
 
   const handleAuth0Login = async () => {
     setIsLoading(true);
