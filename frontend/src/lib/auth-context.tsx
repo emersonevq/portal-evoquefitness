@@ -93,6 +93,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const handleAuth0Callback = async (code: string, state: string) => {
     try {
+      setAuthError(null);
+
       // Exchange code for token with Auth0
       const response = await fetch(
         "https://" + import.meta.env.VITE_AUTH0_DOMAIN + "/oauth/token",
@@ -113,7 +115,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       );
 
       if (!response.ok) {
-        throw new Error("Failed to exchange code for token");
+        const errorMsg = "Erro ao trocar código por token. Tente fazer login novamente.";
+        setAuthError(errorMsg);
+        console.error("Failed to exchange code for token:", response.status);
+        navigate("/auth0/login?error=token_exchange_failed", { replace: true });
+        return;
       }
 
       const data = await response.json();
@@ -137,8 +143,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       navigate(redirectUrl, { replace: true });
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Erro desconhecido na autenticação";
+      setAuthError(errorMessage);
       console.error("Error handling Auth0 callback:", error);
-      throw error;
+      navigate("/auth0/login?error=" + encodeURIComponent(errorMessage), { replace: true });
     }
   };
 
