@@ -118,6 +118,7 @@ def verify_auth0_token(token: str) -> dict:
         try:
             unverified_payload = jwt.decode(
                 token,
+                "",
                 options={"verify_signature": False}
             )
             print(f"[AUTH0] Unverified payload: {unverified_payload}")
