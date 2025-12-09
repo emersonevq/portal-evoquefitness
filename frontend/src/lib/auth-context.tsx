@@ -157,7 +157,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const validateAndSyncUser = async (accessToken: string): Promise<User | null> => {
+  const validateAndSyncUser = async (
+    accessToken: string,
+  ): Promise<User | null> => {
     try {
       // Call backend to validate token and get user data
       const response = await fetch("/api/auth/auth0-login", {
