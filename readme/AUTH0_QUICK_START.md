@@ -15,6 +15,7 @@ Implementação completa do Auth0 OAuth2 no projeto:
 ### 1. Verifique as variáveis de ambiente
 
 **Backend** (backend/env.py já está configurado):
+
 ```
 AUTH0_DOMAIN=evoqueacademia.us.auth0.com
 AUTH0_AUDIENCE=https://erp-api.evoquefitness.com.br
@@ -23,6 +24,7 @@ AUTH0_M2M_CLIENT_SECRET=GiSRQOv7Vyh2Fb2mWz6_dbo5NYBKZO9qBTeQPOwH-erwzjqF3EGyWR86
 ```
 
 **Frontend** (criar arquivo `frontend/.env.local`):
+
 ```env
 VITE_AUTH0_DOMAIN=evoqueacademia.us.auth0.com
 VITE_AUTH0_CLIENT_ID=uvLK21vRoW9NMK7EsI46OosLyi9bPK2z
@@ -55,16 +57,19 @@ npm run dev
 ## 📋 Rotas Implementadas
 
 ### Frontend
+
 - `GET /auth0/login` - Página de login
 - `GET /auth/callback` - Callback do Auth0
 
 ### Backend
+
 - `POST /api/auth/auth0-login` - Validar token JWT
 - `GET /api/auth/auth0-user` - Obter usuário autenticado
 
 ## 🔐 Segurança
 
 O fluxo usa:
+
 - ✅ OAuth2 Authorization Code Flow
 - ✅ JWT com assinatura RS256
 - ✅ JWKS validation (chaves públicas)
@@ -87,8 +92,8 @@ O fluxo usa:
 
 ```javascript
 // Console do navegador (F12)
-localStorage.getItem('auth0_access_token')
-JSON.parse(sessionStorage.getItem('evoque-fitness-auth'))
+localStorage.getItem("auth0_access_token");
+JSON.parse(sessionStorage.getItem("evoque-fitness-auth"));
 ```
 
 ## 📂 Arquivos Modificados
@@ -112,13 +117,13 @@ Configuração:
 
 ## ❓ Problemas?
 
-| Erro | Verificar |
-|------|-----------|
-| Login não funciona | Variáveis de ambiente |
-| Callback 404 | Rota `/auth/callback` em App.tsx e main.tsx |
-| Token inválido | AUTH0_AUDIENCE no backend |
-| CORS error | CORS configuration no backend |
-| User not found | Usuário no banco com email correto |
+| Erro               | Verificar                                   |
+| ------------------ | ------------------------------------------- |
+| Login não funciona | Variáveis de ambiente                       |
+| Callback 404       | Rota `/auth/callback` em App.tsx e main.tsx |
+| Token inválido     | AUTH0_AUDIENCE no backend                   |
+| CORS error         | CORS configuration no backend               |
+| User not found     | Usuário no banco com email correto          |
 
 ## 📚 Documentação Completa
 

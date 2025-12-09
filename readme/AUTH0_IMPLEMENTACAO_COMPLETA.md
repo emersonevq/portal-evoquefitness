@@ -1,6 +1,7 @@
 # Implementação Completa do Auth0 no Portal Evoque
 
 ## Índice
+
 1. [Criação de Conta no Auth0](#criação-de-conta-no-auth0)
 2. [Configuração da Aplicação](#configuração-da-aplicação)
 3. [Criação de Usuários](#criação-de-usuários)
@@ -16,11 +17,13 @@
 ## 1. Criação de Conta no Auth0
 
 ### Passo 1: Acessar Auth0
+
 1. Acesse **https://auth0.com**
 2. Clique em **"Sign Up"** (ou **"Get Started"** se já tem conta)
 3. Escolha sua preferência de login (email, Google, GitHub, Microsoft)
 
 ### Passo 2: Criar Tenant
+
 1. Após login, você será direcionado para criar um **Tenant** (seu espaço de trabalho)
 2. Preencha os dados:
    - **Tenant Name**: `evoque-portal` (ou similar)
@@ -30,6 +33,7 @@
 3. Clique em **"Create"**
 
 ### Passo 3: Acessar Dashboard
+
 1. Após criação, você será automaticamente levado ao **Auth0 Dashboard**
 2. Salve a URL do seu tenant: `https://YOUR_TENANT_NAME.us.auth0.com`
    - Exemplo: `https://evoque-portal.us.auth0.com`
@@ -39,6 +43,7 @@
 ## 2. Configuração da Aplicação
 
 ### Passo 1: Criar Aplicação
+
 1. No Dashboard, acesse **Applications → Applications** (menu esquerdo)
 2. Clique em **"Create Application"**
 3. Preencha:
@@ -47,6 +52,7 @@
    - Clique em **"Create"**
 
 ### Passo 2: Obter Credenciais
+
 Na página da aplicação, você verá:
 
 ```
@@ -62,18 +68,21 @@ Client Secret: YOUR_CLIENT_SECRET_HERE
 Ainda na página da aplicação, acesse a aba **"Settings"** e procure por:
 
 **Allowed Callback URLs:**
+
 ```
 http://localhost:5173/auth/callback
 https://seu-dominio-producao.com/auth/callback
 ```
 
 **Allowed Logout URLs:**
+
 ```
 http://localhost:5173/
 https://seu-dominio-producao.com/
 ```
 
 **Allowed Web Origins:**
+
 ```
 http://localhost:5173
 https://seu-dominio-producao.com
@@ -224,6 +233,7 @@ Description: Gerenciar usuários
 5. Associe as permissões apropriadas para cada role
 
 Exemplo:
+
 - **ADMIN**: Todas as permissões
 - **TI**: read:chamados, create:chamado, update:chamado, read:dashboard
 - **FINANCEIRO**: read:dashboard, read:chamados
@@ -265,17 +275,26 @@ No Auth0 Dashboard:
 
 ```javascript
 exports.onExecutePostLogin = async (event, api) => {
-  const namespace = 'https://erp-api.evoquefitness.com.br';
-  
+  const namespace = "https://erp-api.evoquefitness.com.br";
+
   // Adicionar roles como claims customizados
   if (event.authorization) {
     api.idToken.setCustomClaim(`${namespace}/roles`, event.authorization.roles);
-    api.idToken.setCustomClaim(`${namespace}/permissions`, event.authorization.permissions);
+    api.idToken.setCustomClaim(
+      `${namespace}/permissions`,
+      event.authorization.permissions,
+    );
   }
-  
+
   // Adicionar dados customizados do usuário
-  api.idToken.setCustomClaim(`${namespace}/nome`, event.user.user_metadata?.nome || '');
-  api.idToken.setCustomClaim(`${namespace}/sobrenome`, event.user.user_metadata?.sobrenome || '');
+  api.idToken.setCustomClaim(
+    `${namespace}/nome`,
+    event.user.user_metadata?.nome || "",
+  );
+  api.idToken.setCustomClaim(
+    `${namespace}/sobrenome`,
+    event.user.user_metadata?.sobrenome || "",
+  );
 };
 ```
 
@@ -296,15 +315,15 @@ npm install @auth0/auth0-react
 ### Passo 2: Criar Auth0 Context (frontend/src/lib/auth0-config.ts)
 
 ```typescript
-import { Auth0Client } from '@auth0/auth0-spa-js';
+import { Auth0Client } from "@auth0/auth0-spa-js";
 
 const auth0Config = {
   domain: import.meta.env.VITE_AUTH0_DOMAIN,
   clientId: import.meta.env.VITE_AUTH0_CLIENT_ID,
   authorizationParams: {
-    redirect_uri: window.location.origin + '/auth/callback',
+    redirect_uri: window.location.origin + "/auth/callback",
     audience: import.meta.env.VITE_AUTH0_AUDIENCE,
-    scope: 'openid profile email offline_access',
+    scope: "openid profile email offline_access",
   },
 };
 
@@ -387,7 +406,7 @@ def verify_token(token: str) -> dict:
         # Obter header do token
         unverified_header = jwt.get_unverified_header(token)
         kid = unverified_header.get('kid')
-        
+
         # Obter chaves públicas
         jwks = get_public_keys()
         key = None
@@ -395,10 +414,10 @@ def verify_token(token: str) -> dict:
             if k.get('kid') == kid:
                 key = k
                 break
-        
+
         if not key:
             raise HTTPException(status_code=401, detail='Token inválido')
-        
+
         # Decodificar e validar token
         payload = jwt.decode(
             token,
@@ -408,7 +427,7 @@ def verify_token(token: str) -> dict:
             issuer=AUTH0_ISSUER,
         )
         return payload
-        
+
     except JWTError:
         raise HTTPException(status_code=401, detail='Token inválido')
 
@@ -437,26 +456,26 @@ def auth0_login(
     try:
         email = token_payload.get('email') or token_payload.get('sub')
         name = token_payload.get('name', '')
-        
+
         if not email:
             raise HTTPException(status_code=400, detail='Email não fornecido')
-        
+
         # Buscar usuário no banco
         from ti.models import User
         user = db.query(User).filter(User.email == email).first()
-        
+
         if not user:
             raise HTTPException(
                 status_code=403,
                 detail=f"Usuário com email '{email}' não encontrado no sistema."
             )
-        
+
         if user.bloqueado:
             raise HTTPException(
                 status_code=403,
                 detail='Usuário bloqueado. Contate o administrador.'
             )
-        
+
         # Preparar resposta
         setores_list = []
         if getattr(user, "_setores", None):
@@ -464,7 +483,7 @@ def auth0_login(
                 setores_list = json.loads(getattr(user, "_setores", "[]"))
             except:
                 setores_list = []
-        
+
         bi_subcategories_list = None
         if getattr(user, "_bi_subcategories", None):
             try:
@@ -473,7 +492,7 @@ def auth0_login(
                 )
             except:
                 bi_subcategories_list = None
-        
+
         return {
             'id': user.id,
             'nome': user.nome,
@@ -483,7 +502,7 @@ def auth0_login(
             'setores': setores_list,
             'bi_subcategories': bi_subcategories_list,
         }
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -524,12 +543,14 @@ AUTH0_CLIENT_SECRET=YOUR_CLIENT_SECRET_HERE
 ### Teste Local
 
 1. **Inicie o backend:**
+
    ```bash
    cd backend
    python main.py
    ```
 
 2. **Inicie o frontend:**
+
    ```bash
    cd frontend
    npm run dev
@@ -549,22 +570,22 @@ No console do navegador (F12 → Console):
 
 ```javascript
 // Obter token do localStorage
-const token = localStorage.getItem('auth0.access_token');
+const token = localStorage.getItem("auth0.access_token");
 console.log(token);
 
 // Decodificar (para debug apenas)
-const decoded = JSON.parse(atob(token.split('.')[1]));
+const decoded = JSON.parse(atob(token.split(".")[1]));
 console.log(decoded);
 ```
 
 ### Troubleshooting
 
-| Erro | Solução |
-|------|---------|
-| "Invalid Redirect URI" | Verifique as URLs de callback nas settings do Auth0 |
-| "Invalid Audience" | Certifique que `AUTH0_AUDIENCE` é igual ao identificador da API |
-| "User not found" | O usuário não está registrado. Crie via dashboard do Auth0 ou via API |
-| "CORS Error" | Configure CORS no backend para aceitar origem do frontend |
+| Erro                   | Solução                                                               |
+| ---------------------- | --------------------------------------------------------------------- |
+| "Invalid Redirect URI" | Verifique as URLs de callback nas settings do Auth0                   |
+| "Invalid Audience"     | Certifique que `AUTH0_AUDIENCE` é igual ao identificador da API       |
+| "User not found"       | O usuário não está registrado. Crie via dashboard do Auth0 ou via API |
+| "CORS Error"           | Configure CORS no backend para aceitar origem do frontend             |
 
 ---
 
@@ -591,4 +612,3 @@ console.log(decoded);
 - **Auth0 React SDK:** https://github.com/auth0/auth0-react
 - **JWKS Endpoint:** `https://YOUR_TENANT.us.auth0.com/.well-known/jwks.json`
 - **User Management API:** https://auth0.com/docs/api/management/v2
-

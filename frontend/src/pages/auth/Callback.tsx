@@ -26,7 +26,9 @@ export default function Callback() {
       <div className="text-center">
         <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
         <p className="text-muted-foreground font-medium">Autenticando...</p>
-        <p className="text-xs text-muted-foreground mt-2">Aguarde enquanto redirecionamos você</p>
+        <p className="text-xs text-muted-foreground mt-2">
+          Aguarde enquanto redirecionamos você
+        </p>
       </div>
     </div>
   );

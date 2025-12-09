@@ -100,8 +100,8 @@ export default function Login() {
                   Autenticação com Auth0
                 </p>
                 <p className="text-xs text-blue-800 leading-relaxed">
-                  O acesso ao portal agora é realizado através do Auth0. 
-                  Utilize suas credenciais cadastradas no sistema para fazer login.
+                  O acesso ao portal agora é realizado através do Auth0. Utilize
+                  suas credenciais cadastradas no sistema para fazer login.
                 </p>
               </div>
             </div>

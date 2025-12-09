@@ -1,4 +1,10 @@
-import { createContext, useContext, ReactNode, useEffect, useState } from "react";
+import {
+  createContext,
+  useContext,
+  ReactNode,
+  useEffect,
+  useState,
+} from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
 interface User {
@@ -60,20 +66,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const handleAuth0Callback = async (code: string, state: string) => {
     try {
       // Exchange code for token with Auth0
-      const response = await fetch("https://" + import.meta.env.VITE_AUTH0_DOMAIN + "/oauth/token", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+      const response = await fetch(
+        "https://" + import.meta.env.VITE_AUTH0_DOMAIN + "/oauth/token",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            client_id: import.meta.env.VITE_AUTH0_CLIENT_ID,
+            client_secret: import.meta.env.VITE_AUTH0_CLIENT_SECRET,
+            code: code,
+            grant_type: "authorization_code",
+            redirect_uri: import.meta.env.VITE_AUTH0_REDIRECT_URI,
+            state: state,
+          }),
         },
-        body: JSON.stringify({
-          client_id: import.meta.env.VITE_AUTH0_CLIENT_ID,
-          client_secret: import.meta.env.VITE_AUTH0_CLIENT_SECRET,
-          code: code,
-          grant_type: "authorization_code",
-          redirect_uri: import.meta.env.VITE_AUTH0_REDIRECT_URI,
-          state: state,
-        }),
-      });
+      );
 
       if (!response.ok) {
         throw new Error("Failed to exchange code for token");
@@ -89,7 +98,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await validateAndSyncUser(accessToken);
 
       // Get redirect URL
-      const redirectUrl = sessionStorage.getItem("auth0_redirect_after_login") || "/";
+      const redirectUrl =
+        sessionStorage.getItem("auth0_redirect_after_login") || "/";
       sessionStorage.removeItem("auth0_redirect_after_login");
 
       navigate(redirectUrl, { replace: true });
@@ -206,7 +216,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       return {
         ...data,
-        alterar_senha_primeiro_acesso: data.alterar_senha_primeiro_acesso || false,
+        alterar_senha_primeiro_acesso:
+          data.alterar_senha_primeiro_acesso || false,
       };
     } catch (error: any) {
       throw new Error(error?.message || "Authentication failed");
@@ -217,12 +228,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const loginWithAuth0 = async () => {
     try {
       // Get redirect URL from current location
-      const redirect = new URLSearchParams(window.location.search).get("redirect") || "/";
+      const redirect =
+        new URLSearchParams(window.location.search).get("redirect") || "/";
       sessionStorage.setItem("auth0_redirect_after_login", redirect);
 
       // Build Auth0 login URL
       const authorizationUrl = new URL(
-        `https://${import.meta.env.VITE_AUTH0_DOMAIN}/authorize`
+        `https://${import.meta.env.VITE_AUTH0_DOMAIN}/authorize`,
       );
 
       const params = {
@@ -258,13 +270,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       // Redirect to Auth0 logout
       const logoutUrl = new URL(
-        `https://${import.meta.env.VITE_AUTH0_DOMAIN}/v2/logout`
+        `https://${import.meta.env.VITE_AUTH0_DOMAIN}/v2/logout`,
       );
       logoutUrl.searchParams.append(
         "returnTo",
-        import.meta.env.VITE_AUTH0_LOGOUT_URI || window.location.origin
+        import.meta.env.VITE_AUTH0_LOGOUT_URI || window.location.origin,
       );
-      logoutUrl.searchParams.append("client_id", import.meta.env.VITE_AUTH0_CLIENT_ID);
+      logoutUrl.searchParams.append(
+        "client_id",
+        import.meta.env.VITE_AUTH0_CLIENT_ID,
+      );
 
       window.location.href = logoutUrl.toString();
     } catch (error) {

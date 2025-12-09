@@ -3,6 +3,7 @@
 ## ✅ Implementação Completa
 
 ### Backend ✅
+
 - [x] Pasta `/auth0/` criada com 4 módulos:
   - `config.py` - Configurações Auth0
   - `validator.py` - Validação JWT
@@ -22,6 +23,7 @@
   ```
 
 ### Frontend ✅
+
 - [x] Context Auth0 atualizado (`frontend/src/lib/auth-context.tsx`)
   - Suporte a OAuth2 Authorization Code Flow
   - Exchange de código por token
@@ -55,6 +57,7 @@ VITE_AUTH0_LOGOUT_URI=http://localhost:5173
 ```
 
 **Para produção:**
+
 ```env
 VITE_AUTH0_REDIRECT_URI=https://seu-dominio.com/auth/callback
 VITE_AUTH0_LOGOUT_URI=https://seu-dominio.com
@@ -76,11 +79,13 @@ AUTH0_M2M_CLIENT_SECRET=GiSRQOv7Vyh2Fb2mWz6_dbo5NYBKZO9qBTeQPOwH-erwzjqF3EGyWR86
 Certifique-se que no Auth0 Dashboard estão configurados:
 
 **Application Settings:**
+
 - Allowed Callback URLs: `http://localhost:5173/auth/callback`
 - Allowed Logout URLs: `http://localhost:5173`
 - Allowed Web Origins: `http://localhost:5173`
 
 **Para produção:**
+
 - Allowed Callback URLs: `https://seu-dominio.com/auth/callback`
 - Allowed Logout URLs: `https://seu-dominio.com`
 - Allowed Web Origins: `https://seu-dominio.com`
@@ -88,18 +93,21 @@ Certifique-se que no Auth0 Dashboard estão configurados:
 ## 🧪 Teste Local
 
 ### 1. Inicie o backend:
+
 ```bash
 cd backend
 python main.py
 ```
 
 ### 2. Inicie o frontend:
+
 ```bash
 cd frontend
 npm run dev
 ```
 
 ### 3. Teste o fluxo:
+
 1. Acesse `http://localhost:5173`
 2. Clique em um setor ou "Fazer login"
 3. Você será redirecionado para `/auth0/login`
@@ -115,11 +123,11 @@ npm run dev
 
 ```javascript
 // Console do navegador (F12)
-console.log(localStorage.getItem('auth0_access_token'));
+console.log(localStorage.getItem("auth0_access_token"));
 
 // Decodificar token (para debug)
-const token = localStorage.getItem('auth0_access_token');
-const decoded = JSON.parse(atob(token.split('.')[1]));
+const token = localStorage.getItem("auth0_access_token");
+const decoded = JSON.parse(atob(token.split(".")[1]));
 console.log(decoded);
 ```
 
@@ -145,13 +153,13 @@ console.log(decoded);
 
 ## 🆘 Troubleshooting
 
-| Erro | Solução |
-|------|---------|
-| "Invalid Redirect URI" | Verifique URLs no Auth0 Dashboard |
-| "Client not found" | Verifique VITE_AUTH0_CLIENT_ID |
-| "User not found" | Usuário não está no banco de dados |
-| "CORS Error" | Configure CORS no backend ou use proxy |
-| "Token invalid" | Verifique AUTH0_AUDIENCE no backend |
+| Erro                   | Solução                                |
+| ---------------------- | -------------------------------------- |
+| "Invalid Redirect URI" | Verifique URLs no Auth0 Dashboard      |
+| "Client not found"     | Verifique VITE_AUTH0_CLIENT_ID         |
+| "User not found"       | Usuário não está no banco de dados     |
+| "CORS Error"           | Configure CORS no backend ou use proxy |
+| "Token invalid"        | Verifique AUTH0_AUDIENCE no backend    |
 
 ## Referências
 

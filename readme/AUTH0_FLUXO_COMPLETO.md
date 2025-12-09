@@ -147,17 +147,17 @@ VITE_AUTH0_LOGOUT_URI=http://localhost:5173
 
 ### Frontend
 
-| Rota | Componente | Descrição |
-|------|-----------|-----------|
-| `/auth0/login` | Login.tsx | Página de login com botão Auth0 |
+| Rota             | Componente   | Descrição                                  |
+| ---------------- | ------------ | ------------------------------------------ |
+| `/auth0/login`   | Login.tsx    | Página de login com botão Auth0            |
 | `/auth/callback` | Callback.tsx | Callback do Auth0 com tratamento de código |
 
 ### Backend
 
-| Rota | Método | Descrição |
-|------|--------|-----------|
-| `/api/auth/auth0-login` | POST | Valida token e faz login |
-| `/api/auth/auth0-user` | GET | Obtém usuário autenticado |
+| Rota                    | Método | Descrição                 |
+| ----------------------- | ------ | ------------------------- |
+| `/api/auth/auth0-login` | POST   | Valida token e faz login  |
+| `/api/auth/auth0-user`  | GET    | Obtém usuário autenticado |
 
 ## 🔄 Contexto de Autenticação (auth-context.tsx)
 
@@ -165,13 +165,13 @@ VITE_AUTH0_LOGOUT_URI=http://localhost:5173
 
 ```typescript
 const {
-  user,                    // Usuário autenticado
-  isAuthenticated,         // Boolean
-  isLoading,              // Boolean
-  login,                  // (email, password) => Promise
-  logout,                 // () => Promise
-  loginWithAuth0,         // () => Promise (redireciona para Auth0)
-  getAccessToken,         // () => string | null
+  user, // Usuário autenticado
+  isAuthenticated, // Boolean
+  isLoading, // Boolean
+  login, // (email, password) => Promise
+  logout, // () => Promise
+  loginWithAuth0, // () => Promise (redireciona para Auth0)
+  getAccessToken, // () => string | null
 } = useAuthContext();
 ```
 
@@ -222,15 +222,15 @@ No console do navegador (F12):
 
 ```javascript
 // Ver token
-console.log(localStorage.getItem('auth0_access_token'));
+console.log(localStorage.getItem("auth0_access_token"));
 
 // Decodificar (para debug)
-const token = localStorage.getItem('auth0_access_token');
-const decoded = JSON.parse(atob(token.split('.')[1]));
+const token = localStorage.getItem("auth0_access_token");
+const decoded = JSON.parse(atob(token.split(".")[1]));
 console.log(decoded);
 
 // Ver dados do usuário
-console.log(JSON.parse(sessionStorage.getItem('evoque-fitness-auth')));
+console.log(JSON.parse(sessionStorage.getItem("evoque-fitness-auth")));
 ```
 
 ## 🔒 Segurança
@@ -276,14 +276,14 @@ console.log(JSON.parse(sessionStorage.getItem('evoque-fitness-auth')));
 
 ## 🆘 Problemas Comuns
 
-| Problema | Solução |
-|----------|---------|
-| "Invalid Redirect URI" | Verifique URLs no Auth0 Dashboard |
-| "undefined is not a function" | Verifique import de `useAuthContext` |
-| "JWKS fetch failed" | Verifique conexão com Auth0 |
-| "Token verification failed" | Verifique AUTH0_AUDIENCE |
-| "User not found" | Crie usuário no banco ou Auth0 |
-| "Callback não funciona" | Verifique rota `/auth/callback` existe |
+| Problema                      | Solução                                |
+| ----------------------------- | -------------------------------------- |
+| "Invalid Redirect URI"        | Verifique URLs no Auth0 Dashboard      |
+| "undefined is not a function" | Verifique import de `useAuthContext`   |
+| "JWKS fetch failed"           | Verifique conexão com Auth0            |
+| "Token verification failed"   | Verifique AUTH0_AUDIENCE               |
+| "User not found"              | Crie usuário no banco ou Auth0         |
+| "Callback não funciona"       | Verifique rota `/auth/callback` existe |
 
 ## 📚 Referências
 
