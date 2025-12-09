@@ -358,6 +358,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     user,
     isAuthenticated: !!user,
     isLoading,
+    authError,
     login,
     logout,
     loginWithAuth0,
