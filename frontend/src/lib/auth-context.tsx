@@ -31,6 +31,32 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Helper function: determina para onde redirecionar baseado no nível de acesso
+function getAutoRedirectUrl(user: User): string | null {
+  if (!user.nivel_acesso) return null;
+
+  const accessLevel = user.nivel_acesso.toLowerCase();
+
+  // Administradores vão para o painel administrativo
+  if (accessLevel === "administrador") {
+    return "/setor/ti/admin";
+  }
+
+  // Agentes vão para a página de chamados
+  if (accessLevel.includes("agente")) {
+    return "/setor/ti";
+  }
+
+  // Usuários comuns vão para a página inicial dos setores
+  if (user.setores && user.setores.length > 0) {
+    const firstSector = user.setores[0].toLowerCase();
+    return `/setor/${firstSector}`;
+  }
+
+  // Fallback: página principal
+  return "/";
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -94,12 +120,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Store token
       localStorage.setItem("auth0_access_token", accessToken);
 
-      // Validate token with backend
-      await validateAndSyncUser(accessToken);
+      // Validate token with backend e obter dados do usuário
+      const userData = await validateAndSyncUser(accessToken);
 
-      // Get redirect URL
-      const redirectUrl =
-        sessionStorage.getItem("auth0_redirect_after_login") || "/";
+      // Get redirect URL - usar a que foi armazenada ou gerar automática
+      let redirectUrl = sessionStorage.getItem("auth0_redirect_after_login");
+      if (!redirectUrl && userData) {
+        // Se não houver redirecionamento armazenado, usar o automático baseado no nível de acesso
+        redirectUrl = getAutoRedirectUrl(userData) || "/";
+      }
+      redirectUrl = redirectUrl || "/";
+
       sessionStorage.removeItem("auth0_redirect_after_login");
 
       navigate(redirectUrl, { replace: true });
@@ -126,7 +157,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const validateAndSyncUser = async (accessToken: string) => {
+  const validateAndSyncUser = async (
+    accessToken: string,
+  ): Promise<User | null> => {
     try {
       // Call backend to validate token and get user data
       const response = await fetch("/api/auth/auth0-login", {
@@ -168,6 +201,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       // Store in sessionStorage
       sessionStorage.setItem("evoque-fitness-auth", JSON.stringify(userData));
+
+      // Determinar redirecionamento automático baseado no nível de acesso
+      const autoRedirect = getAutoRedirectUrl(userData);
+      if (autoRedirect) {
+        sessionStorage.setItem("auth0_redirect_after_login", autoRedirect);
+      }
+
+      return userData;
     } catch (error) {
       console.error("Error syncing user:", error);
       throw error;
