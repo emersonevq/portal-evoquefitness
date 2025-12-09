@@ -88,13 +88,16 @@ def verify_auth0_token(token: str) -> dict:
         
         return payload
         
-    except JWTClaimsError as e:
-        print(f"❌ Token claims validation failed: {str(e)}")
-        raise HTTPException(
-            status_code=401,
-            detail="Invalid token claims"
-        )
     except JWTError as e:
+        # Catch all JWT errors including claims validation
+        error_msg = str(e).lower()
+        if "claims" in error_msg or "aud" in error_msg or "iss" in error_msg:
+            print(f"❌ Token claims validation failed: {str(e)}")
+            raise HTTPException(
+                status_code=401,
+                detail="Invalid token claims"
+            )
+        else:
         print(f"❌ JWT validation failed: {str(e)}")
         raise HTTPException(
             status_code=401,
