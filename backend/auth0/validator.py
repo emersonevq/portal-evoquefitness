@@ -45,32 +45,39 @@ def get_signing_key(kid: str) -> dict:
 def verify_auth0_token(token: str) -> dict:
     """
     Verify and decode Auth0 JWT token
-    
+
     Args:
         token: The JWT token from Authorization header
-        
+
     Returns:
         dict: Decoded token payload
-        
+
     Raises:
         HTTPException: If token is invalid
     """
     try:
         # Get the unverified header to extract the key ID
         unverified_header = jwt.get_unverified_header(token)
-        
+        print(f"[AUTH0] Token header: {unverified_header}")
+
         if "kid" not in unverified_header:
             raise HTTPException(
                 status_code=401,
                 detail="Invalid token header"
             )
-        
+
         # Get the signing key
         signing_key = get_signing_key(unverified_header["kid"])
-        
+
         # Build the key for verification (convert JWK to PEM)
         key = jwt.algorithms.RSAAlgorithm.from_jwk(signing_key)
-        
+
+        # First, decode without verification to see what we're dealing with
+        unverified_payload = jwt.get_unverified_claims(token)
+        print(f"[AUTH0] Unverified payload: {unverified_payload}")
+        print(f"[AUTH0] Expected audience: {AUTH0_AUDIENCE}")
+        print(f"[AUTH0] Expected issuer: {AUTH0_ISSUER}")
+
         # Decode and verify the token
         payload = jwt.decode(
             token,
@@ -84,12 +91,14 @@ def verify_auth0_token(token: str) -> dict:
                 "verify_iss": True,
             }
         )
-        
+
+        print(f"[AUTH0] ✓ Token verified successfully for user: {payload.get('email')}")
         return payload
-        
+
     except JWTError as e:
         # Catch all JWT errors including claims validation
         error_msg = str(e).lower()
+        print(f"[AUTH0] JWT Error: {str(e)}")
         if "claims" in error_msg or "aud" in error_msg or "iss" in error_msg:
             print(f"❌ Token claims validation failed: {str(e)}")
             raise HTTPException(
@@ -104,6 +113,8 @@ def verify_auth0_token(token: str) -> dict:
             )
     except Exception as e:
         print(f"❌ Token verification error: {str(e)}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(
             status_code=401,
             detail="Token verification failed"
