@@ -36,15 +36,52 @@ def get_jwks():
 def get_signing_key(kid: str) -> dict:
     """Get the signing key from JWKS by key ID"""
     jwks = get_jwks()
-    
+
     for key in jwks.get("keys", []):
         if key.get("kid") == kid:
             return key
-    
+
     raise HTTPException(
         status_code=401,
         detail="Unable to find a signing key that matches"
     )
+
+
+def jwk_to_pem(jwk: dict) -> str:
+    """Convert JWK (JSON Web Key) to PEM format for use with python-jose"""
+    try:
+        # Extract the key components
+        e = jwk.get("e")
+        n = jwk.get("n")
+
+        if not e or not n:
+            raise ValueError("Missing required JWK components")
+
+        # Decode the base64url encoded values
+        e_bytes = base64.urlsafe_b64decode(e + "==")
+        n_bytes = base64.urlsafe_b64decode(n + "==")
+
+        # Convert bytes to integers
+        e_int = int.from_bytes(e_bytes, byteorder="big")
+        n_int = int.from_bytes(n_bytes, byteorder="big")
+
+        # Create RSA public key
+        public_numbers = rsa.RSAPublicNumbers(e_int, n_int)
+        public_key = public_numbers.public_key(default_backend())
+
+        # Serialize to PEM format
+        pem = public_key.public_key_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PublicFormat.SubjectPublicKeyInfo
+        )
+
+        return pem.decode("utf-8")
+    except Exception as e:
+        print(f"❌ Error converting JWK to PEM: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to process signing key"
+        )
 
 
 def verify_auth0_token(token: str) -> dict:
