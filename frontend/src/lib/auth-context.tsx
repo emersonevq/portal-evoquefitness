@@ -182,12 +182,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
 
       if (!response.ok) {
-        if (response.status === 403) {
-          console.error("User not authorized");
-        } else {
-          console.error("Error validating with backend:", response.status);
+        let errorMessage = "Erro ao autenticar com o banco de dados";
+
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.detail || errorMessage;
+        } catch {
+          // Fallback if response isn't JSON
         }
-        throw new Error("Validation failed");
+
+        if (response.status === 403) {
+          throw new Error(errorMessage || "Usuário não encontrado no banco de dados. Entre em contato com o administrador.");
+        } else if (response.status === 400) {
+          throw new Error(errorMessage || "Email não encontrado no token de autenticação");
+        } else {
+          throw new Error(errorMessage);
+        }
       }
 
       const data = await response.json();
