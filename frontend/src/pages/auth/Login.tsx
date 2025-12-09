@@ -54,7 +54,10 @@ export default function Login() {
                     Erro na autenticação
                   </p>
                   <p className="text-xs text-destructive/90 leading-relaxed">
-                    {decodeURIComponent(searchParams.get("error") || "Ocorreu um erro ao processar sua autenticação.")}
+                    {decodeURIComponent(
+                      searchParams.get("error") ||
+                        "Ocorreu um erro ao processar sua autenticação.",
+                    )}
                   </p>
                 </div>
                 <button

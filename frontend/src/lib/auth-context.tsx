@@ -115,7 +115,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       );
 
       if (!response.ok) {
-        const errorMsg = "Erro ao trocar código por token. Tente fazer login novamente.";
+        const errorMsg =
+          "Erro ao trocar código por token. Tente fazer login novamente.";
         setAuthError(errorMsg);
         console.error("Failed to exchange code for token:", response.status);
         navigate("/auth0/error?error=token_exchange_failed", { replace: true });
@@ -143,10 +144,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       navigate(redirectUrl, { replace: true });
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Erro desconhecido na autenticação";
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Erro desconhecido na autenticação";
       setAuthError(errorMessage);
       console.error("Error handling Auth0 callback:", error);
-      navigate("/auth0/error?error=" + encodeURIComponent(errorMessage), { replace: true });
+      navigate("/auth0/error?error=" + encodeURIComponent(errorMessage), {
+        replace: true,
+      });
     }
   };
 
@@ -192,9 +198,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
 
         if (response.status === 403) {
-          throw new Error(errorMessage || "Usuário não encontrado no banco de dados. Entre em contato com o administrador.");
+          throw new Error(
+            errorMessage ||
+              "Usuário não encontrado no banco de dados. Entre em contato com o administrador.",
+          );
         } else if (response.status === 400) {
-          throw new Error(errorMessage || "Email não encontrado no token de autenticação");
+          throw new Error(
+            errorMessage || "Email não encontrado no token de autenticação",
+          );
         } else {
           throw new Error(errorMessage);
         }
