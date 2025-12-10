@@ -152,6 +152,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.debug("[AUTH] User email:", data.email);
       console.debug("[AUTH] User level:", data.nivel_acesso);
 
+      if (!data.email) {
+        throw new Error("Email not found in response");
+      }
+
       const accessToken = data.access_token;
 
       // Store token
@@ -191,9 +195,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       sessionStorage.removeItem("auth0_redirect_after_login");
 
       console.debug("[AUTH] ✓ Redirecting to:", redirectUrl);
-      navigate(redirectUrl, { replace: true });
+      console.log("[AUTH] ✓ Auth success, navigating to:", redirectUrl);
+
+      // Use setTimeout to ensure state update completes before navigation
+      setTimeout(() => {
+        navigate(redirectUrl, { replace: true });
+      }, 0);
     } catch (error) {
       console.error("[AUTH] ✗ Error handling Auth0 callback:", error);
+      console.error("[AUTH] Error details:", (error as any)?.message || error);
       setUser(null);
       throw error;
     }
