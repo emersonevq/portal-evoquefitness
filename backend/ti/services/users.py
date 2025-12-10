@@ -73,6 +73,28 @@ def criar_usuario(db: Session, payload: UserCreate) -> UserCreatedOut:
     if payload.bi_subcategories and len(payload.bi_subcategories) > 0:
         bi_subcategories_json = json.dumps(payload.bi_subcategories)
 
+    auth0_user = None
+    auth0_id = None
+    try:
+        # Create user in Auth0
+        auth0_client = get_auth0_client()
+        auth0_user = auth0_client.create_user(
+            email=str(payload.email),
+            password=generated_password,
+            given_name=payload.nome,
+            family_name=payload.sobrenome,
+            user_metadata={
+                "nivel_acesso": payload.nivel_acesso,
+                "usuario": payload.usuario,
+            }
+        )
+        auth0_id = auth0_user.get("user_id")
+        print(f"[criar_usuario] ✓ Auth0 user created: {auth0_id}")
+    except Exception as e:
+        print(f"[criar_usuario] ⚠️ Failed to create Auth0 user: {str(e)}")
+        # Continue with local user creation even if Auth0 fails
+        # This allows graceful degradation
+
     novo = User(
         nome=payload.nome,
         sobrenome=payload.sobrenome,
@@ -85,6 +107,8 @@ def criar_usuario(db: Session, payload: UserCreate) -> UserCreatedOut:
         _setores=setores_json,
         _bi_subcategories=bi_subcategories_json,
         bloqueado=payload.bloqueado,
+        auth0_id=auth0_id,
+        email_verified=False,
     )
     db.add(novo)
     db.commit()
