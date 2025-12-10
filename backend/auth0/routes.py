@@ -244,36 +244,54 @@ def auth0_login(request: Auth0LoginRequest, db: Session = Depends(get_db)):
         db: Database session
     """
     try:
+        print(f"\n{'='*60}")
+        print(f"[AUTH0-LOGIN] ✓ Endpoint called")
+        print(f"[AUTH0-LOGIN] Token (first 50 chars): {request.token[:50]}...")
+
         # Verify token
+        print(f"[AUTH0-LOGIN] Verifying token...")
         payload = verify_auth0_token(request.token)
+        print(f"[AUTH0-LOGIN] ✓ Token verified")
 
         # Get email from token
         email = payload.get("email")
         email_verified = payload.get("email_verified", False)
         auth0_user_id = payload.get("sub")
 
+        print(f"[AUTH0-LOGIN] Email: {email}")
+        print(f"[AUTH0-LOGIN] Email verified: {email_verified}")
+        print(f"[AUTH0-LOGIN] Auth0 user ID: {auth0_user_id}")
+
         if not email:
+            print(f"[AUTH0-LOGIN] ✗ Email not found in token")
             raise HTTPException(
                 status_code=400,
                 detail="Email not found in token"
             )
 
         if not email_verified:
+            print(f"[AUTH0-LOGIN] ✗ Email not verified in Auth0")
             raise HTTPException(
                 status_code=403,
                 detail="Email not verified. Please verify your email in Auth0 before accessing the system."
             )
 
         # Find user in database
+        print(f"[AUTH0-LOGIN] Looking up user by email: {email}")
         user = db.query(User).filter(User.email == email).first()
 
         if not user:
+            print(f"[AUTH0-LOGIN] ✗ User not found in database")
+            print(f"[AUTH0-LOGIN] Total users in DB: {db.query(User).count()}")
             raise HTTPException(
                 status_code=403,
                 detail=f"User with email '{email}' not found in system. Contact administrator."
             )
 
+        print(f"[AUTH0-LOGIN] ✓ User found: {user.nome} {user.sobrenome}")
+
         if getattr(user, "bloqueado", False):
+            print(f"[AUTH0-LOGIN] ✗ User is blocked")
             raise HTTPException(
                 status_code=403,
                 detail="User is blocked. Contact administrator."
@@ -285,8 +303,9 @@ def auth0_login(request: Auth0LoginRequest, db: Session = Depends(get_db)):
             user.email_verified = email_verified
             db.commit()
             db.refresh(user)
+            print(f"[AUTH0-LOGIN] ✓ User synced with Auth0")
         except Exception as e:
-            print(f"⚠️ Failed to sync user: {str(e)}")
+            print(f"[AUTH0-LOGIN] ⚠️ Failed to sync user: {str(e)}")
             db.rollback()
         
         # Parse user sectors
