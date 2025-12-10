@@ -94,13 +94,25 @@ def auth0_exchange(code: str, redirect_uri: str, db: Session = Depends(get_db)):
         print(f"[AUTH0-EXCHANGE] Token payload keys: {list(payload.keys())}")
 
         email = payload.get("email")
+        email_verified = payload.get("email_verified", False)
+        auth0_user_id = payload.get("sub")
+
         print(f"[AUTH0-EXCHANGE] Email from token: {email}")
+        print(f"[AUTH0-EXCHANGE] Email verified: {email_verified}")
+        print(f"[AUTH0-EXCHANGE] Auth0 user ID: {auth0_user_id}")
 
         if not email:
             print(f"[AUTH0-EXCHANGE] ✗ Email not found in token")
             raise HTTPException(
                 status_code=400,
                 detail="Email not found in token"
+            )
+
+        if not email_verified:
+            print(f"[AUTH0-EXCHANGE] ✗ Email not verified in Auth0")
+            raise HTTPException(
+                status_code=403,
+                detail="Email not verified. Please verify your email in Auth0 before accessing the system."
             )
 
         # Find user in database
