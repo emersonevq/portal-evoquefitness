@@ -43,7 +43,16 @@ def auth0_exchange(code: str, redirect_uri: str, db: Session = Depends(get_db)):
         db: Database session
     """
     try:
+        print(f"\n{'='*60}")
+        print(f"[AUTH0-EXCHANGE] ✓ Endpoint called")
+        print(f"[AUTH0-EXCHANGE] Code: {code[:20]}...")
+        print(f"[AUTH0-EXCHANGE] Redirect URI: {redirect_uri}")
+
         # Exchange code for token with Auth0 (done on backend for security)
+        print(f"[AUTH0-EXCHANGE] Exchanging code with Auth0...")
+        print(f"[AUTH0-EXCHANGE] Token URL: {AUTH0_TOKEN_URL}")
+        print(f"[AUTH0-EXCHANGE] Client ID: {AUTH0_CLIENT_ID[:10]}...")
+
         token_response = requests.post(
             AUTH0_TOKEN_URL,
             json={
@@ -56,43 +65,60 @@ def auth0_exchange(code: str, redirect_uri: str, db: Session = Depends(get_db)):
             timeout=10,
         )
 
+        print(f"[AUTH0-EXCHANGE] Token response status: {token_response.status_code}")
+
         if not token_response.ok:
             error_data = token_response.json()
-            print(f"❌ Auth0 token exchange failed: {error_data}")
+            print(f"[AUTH0-EXCHANGE] ✗ Token exchange failed: {error_data}")
             raise HTTPException(
                 status_code=400,
-                detail="Failed to exchange code for token"
+                detail=f"Auth0 token exchange failed: {error_data.get('error_description', 'Unknown error')}"
             )
 
         token_data = token_response.json()
         access_token = token_data.get("access_token")
 
         if not access_token:
+            print(f"[AUTH0-EXCHANGE] ✗ No access token in response")
             raise HTTPException(
                 status_code=400,
                 detail="No access token in response"
             )
 
+        print(f"[AUTH0-EXCHANGE] ✓ Got access token: {access_token[:20]}...")
+
         # Verify token and extract payload
+        print(f"[AUTH0-EXCHANGE] Verifying token...")
         payload = verify_auth0_token(access_token)
+        print(f"[AUTH0-EXCHANGE] ✓ Token verified")
+        print(f"[AUTH0-EXCHANGE] Token payload keys: {list(payload.keys())}")
+
         email = payload.get("email")
+        print(f"[AUTH0-EXCHANGE] Email from token: {email}")
 
         if not email:
+            print(f"[AUTH0-EXCHANGE] ✗ Email not found in token")
             raise HTTPException(
                 status_code=400,
                 detail="Email not found in token"
             )
 
         # Find user in database
+        print(f"[AUTH0-EXCHANGE] Looking up user by email: {email}")
         user = db.query(User).filter(User.email == email).first()
 
         if not user:
+            print(f"[AUTH0-EXCHANGE] ✗ User not found in database")
+            print(f"[AUTH0-EXCHANGE] Total users in DB: {db.query(User).count()}")
             raise HTTPException(
                 status_code=403,
                 detail=f"User with email '{email}' not found in system. Contact administrator."
             )
 
+        print(f"[AUTH0-EXCHANGE] ✓ User found: {user.nome} {user.sobrenome}")
+
         if getattr(user, "bloqueado", False):
+            print(f"[AUTH0-EXCHANGE] ✗ User is blocked")
             raise HTTPException(
                 status_code=403,
                 detail="User is blocked. Contact administrator."
@@ -116,6 +142,11 @@ def auth0_exchange(code: str, redirect_uri: str, db: Session = Depends(get_db)):
             except Exception:
                 bi_subcategories_list = None
 
+        print(f"[AUTH0-EXCHANGE] ✓ Authentication successful")
+        print(f"[AUTH0-EXCHANGE] User sectors: {setores_list}")
+        print(f"[AUTH0-EXCHANGE] User access level: {user.nivel_acesso}")
+        print(f"{'='*60}\n")
+
         return {
             "id": user.id,
             "nome": user.nome,
@@ -130,8 +161,9 @@ def auth0_exchange(code: str, redirect_uri: str, db: Session = Depends(get_db)):
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Auth0 exchange error: {str(e)}")
+        print(f"[AUTH0-EXCHANGE] ✗ Error: {str(e)}")
         traceback.print_exc()
+        print(f"{'='*60}\n")
         raise HTTPException(
             status_code=500,
             detail=f"Authentication error: {str(e)}"
