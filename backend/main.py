@@ -1,4 +1,10 @@
 from __future__ import annotations
+import os
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
+
 from fastapi import FastAPI, UploadFile, File, HTTPException, Depends, Request
 from fastapi.responses import StreamingResponse, Response, FileResponse
 from fastapi.staticfiles import StaticFiles

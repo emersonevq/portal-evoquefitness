@@ -71,15 +71,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const code = searchParams.get("code");
         const state = searchParams.get("state");
 
+        console.debug(
+          "[AUTH] Init - searchParams keys:",
+          Array.from(searchParams.keys()),
+        );
+        console.debug("[AUTH] Init - code:", code ? "present" : "missing");
+        console.debug("[AUTH] Init - state:", state ? "present" : "missing");
+        console.debug("[AUTH] Current pathname:", window.location.pathname);
+        console.debug("[AUTH] Current search:", window.location.search);
+
         if (code && state) {
+          console.debug(
+            "[AUTH] ✓ Code and state found, initiating Auth0 callback",
+          );
           // Handle Auth0 redirect - exchange code for token
           await handleAuth0Callback(code, state);
         } else {
+          console.debug("[AUTH] No code/state, checking existing session");
           // Check for existing session
           await checkExistingSession();
         }
       } catch (error) {
-        console.error("Error initializing auth:", error);
+        console.error("[AUTH] ✗ Error initializing auth:", error);
         setUser(null);
       } finally {
         setIsLoading(false);
@@ -91,41 +104,69 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const handleAuth0Callback = async (code: string, state: string) => {
     try {
-      // Exchange code for token with Auth0
-      const response = await fetch(
-        "https://" + import.meta.env.VITE_AUTH0_DOMAIN + "/oauth/token",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            client_id: import.meta.env.VITE_AUTH0_CLIENT_ID,
-            client_secret: import.meta.env.VITE_AUTH0_CLIENT_SECRET,
-            code: code,
-            grant_type: "authorization_code",
-            redirect_uri: import.meta.env.VITE_AUTH0_REDIRECT_URI,
-            state: state,
-          }),
-        },
+      console.debug("[AUTH] Starting Auth0 code exchange...");
+      console.debug("[AUTH] Code:", code.substring(0, 20) + "...");
+      console.debug(
+        "[AUTH] Redirect URI:",
+        import.meta.env.VITE_AUTH0_REDIRECT_URI,
       );
 
+      // Exchange code for token with backend (more secure than client-side exchange)
+      const response = await fetch("/api/auth/auth0-exchange", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          code: code,
+          redirect_uri: import.meta.env.VITE_AUTH0_REDIRECT_URI,
+        }),
+      });
+
+      console.debug("[AUTH] Exchange response status:", response.status);
+
       if (!response.ok) {
-        throw new Error("Failed to exchange code for token");
+        const error = await response.json().catch(() => ({}));
+        console.error("[AUTH] ✗ Exchange failed:", error);
+        throw new Error(error.detail || "Failed to exchange code for token");
       }
 
       const data = await response.json();
+      console.debug("[AUTH] ✓ Exchange successful, got user data");
+      console.debug("[AUTH] User email:", data.email);
+      console.debug("[AUTH] User level:", data.nivel_acesso);
+
       const accessToken = data.access_token;
 
       // Store token
       localStorage.setItem("auth0_access_token", accessToken);
 
-      // Validate token with backend e obter dados do usuário
-      const userData = await validateAndSyncUser(accessToken);
+      // Create user object from response
+      const now = Date.now();
+      const userData: User = {
+        id: data.id,
+        email: data.email,
+        name: `${data.nome} ${data.sobrenome}`,
+        firstName: data.nome,
+        lastName: data.sobrenome,
+        nivel_acesso: data.nivel_acesso,
+        setores: Array.isArray(data.setores) ? data.setores : [],
+        bi_subcategories: Array.isArray(data.bi_subcategories)
+          ? data.bi_subcategories
+          : null,
+        loginTime: now,
+      };
+
+      // Set user in state
+      setUser(userData);
+      console.debug("[AUTH] ✓ User state updated");
+
+      // Store in sessionStorage
+      sessionStorage.setItem("evoque-fitness-auth", JSON.stringify(userData));
 
       // Get redirect URL - usar a que foi armazenada ou gerar automática
       let redirectUrl = sessionStorage.getItem("auth0_redirect_after_login");
-      if (!redirectUrl && userData) {
+      if (!redirectUrl) {
         // Se não houver redirecionamento armazenado, usar o automático baseado no nível de acesso
         redirectUrl = getAutoRedirectUrl(userData) || "/";
       }
@@ -133,9 +174,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       sessionStorage.removeItem("auth0_redirect_after_login");
 
+      console.debug("[AUTH] ✓ Redirecting to:", redirectUrl);
       navigate(redirectUrl, { replace: true });
     } catch (error) {
-      console.error("Error handling Auth0 callback:", error);
+      console.error("[AUTH] ✗ Error handling Auth0 callback:", error);
+      setUser(null);
       throw error;
     }
   };

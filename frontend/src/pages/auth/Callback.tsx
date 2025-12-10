@@ -8,11 +8,29 @@ export default function Callback() {
   const { isLoading } = useAuthContext();
 
   useEffect(() => {
+    const code = searchParams.get("code");
+    const state = searchParams.get("state");
+    const error = searchParams.get("error");
+    const errorDescription = searchParams.get("error_description");
+
+    console.debug("[CALLBACK] Auth0 callback received");
+    console.debug("[CALLBACK] Code:", code ? "✓ present" : "✗ missing");
+    console.debug("[CALLBACK] State:", state ? "✓ present" : "✗ missing");
+
+    if (error) {
+      console.error("[CALLBACK] ✗ Auth0 error:", error);
+      console.error("[CALLBACK] Error description:", errorDescription);
+    }
+
     // Get redirect URL from query param or default to home
     const redirect = searchParams.get("redirect") || "/";
 
     // Wait for auth to be ready, then redirect
     if (!isLoading) {
+      console.debug(
+        "[CALLBACK] Auth loading complete, redirecting to:",
+        redirect,
+      );
       const timer = setTimeout(() => {
         navigate(redirect, { replace: true });
       }, 500);
