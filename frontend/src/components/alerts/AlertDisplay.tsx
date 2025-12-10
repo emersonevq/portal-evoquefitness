@@ -117,7 +117,7 @@ export default function AlertDisplay() {
   const dismissAlert = (alertId: number) => {
     const newDismissed = [...dismissedAlerts, alertId];
     setDismissedAlerts(newDismissed);
-    localStorage.setItem("dismissedAlerts", JSON.stringify(newDismissed));
+    sessionStorage.setItem("dismissedAlerts", JSON.stringify(newDismissed));
     markAlertAsViewed(alertId);
   };
 
