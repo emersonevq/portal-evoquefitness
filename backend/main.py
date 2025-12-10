@@ -106,6 +106,35 @@ _http.add_middleware(
     allow_headers=["*"],
 )
 
+
+# Middleware para logar todas as requisições Auth0
+@_http.middleware("http")
+async def log_auth_requests(request: Request, call_next):
+    """Log all Auth0-related requests for debugging"""
+    if "/api/auth" in request.url.path:
+        print(f"\n[MIDDLEWARE] 📥 Incoming request")
+        print(f"[MIDDLEWARE] Method: {request.method}")
+        print(f"[MIDDLEWARE] Path: {request.url.path}")
+        print(f"[MIDDLEWARE] Full URL: {request.url}")
+        print(f"[MIDDLEWARE] Headers:")
+        for header, value in request.headers.items():
+            if header.lower() not in ["authorization"]:
+                print(f"[MIDDLEWARE]   - {header}: {value}")
+            else:
+                print(f"[MIDDLEWARE]   - {header}: ***[REDACTED]***")
+
+    try:
+        response = await call_next(request)
+
+        if "/api/auth" in request.url.path:
+            print(f"[MIDDLEWARE] 📤 Response status: {response.status_code}")
+            print(f"[MIDDLEWARE] Response headers: {dict(response.headers)}")
+
+        return response
+    except Exception as e:
+        print(f"[MIDDLEWARE] ❌ Exception occurred: {type(e).__name__}: {str(e)}")
+        raise
+
 @_http.get("/api/ping")
 def ping():
     return {"message": "pong"}

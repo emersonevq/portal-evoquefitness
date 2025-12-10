@@ -20,6 +20,8 @@ class User(Base):
     _setores: Mapped[str | None] = mapped_column("_setores", Text, nullable=True)
     _bi_subcategories: Mapped[str | None] = mapped_column("_bi_subcategories", Text, nullable=True)
     bloqueado: Mapped[bool] = mapped_column(Boolean, default=False)
+    email_verified: Mapped[bool] = mapped_column(Boolean, default=False)
+    auth0_id: Mapped[str | None] = mapped_column(String(255), nullable=True, unique=True)
     data_criacao: Mapped[datetime] = mapped_column(DateTime, default=now_brazil_naive)
     ultimo_acesso: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     tentativas_login: Mapped[int] = mapped_column(Integer, default=0)

@@ -1,15 +1,59 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from pydantic import BaseModel
 from core.db import get_db
 from auth0.validator import verify_auth0_token
 from auth0.management import get_auth0_client
-from auth0.config import AUTH0_DOMAIN, AUTH0_CLIENT_ID, AUTH0_CLIENT_SECRET, AUTH0_TOKEN_URL
+from auth0.config import AUTH0_DOMAIN, AUTH0_CLIENT_ID, AUTH0_CLIENT_SECRET, AUTH0_TOKEN_URL, AUTH0_AUDIENCE
 from ti.models import User
 import json
 import traceback
 import requests
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
+
+print("\n[AUTH0-ROUTES] 🔧 Initializing Auth0 routes...")
+print(f"[AUTH0-ROUTES] Router prefix: /api/auth")
+
+
+@router.options("/auth0-exchange")
+def auth0_exchange_options():
+    """CORS preflight for auth0-exchange"""
+    print(f"[CORS-PREFLIGHT] OPTIONS request to /auth0-exchange")
+    return {}
+
+
+@router.post("/debug-test")
+def debug_test_endpoint():
+    """Simple test endpoint to verify routing works"""
+    print(f"\n[DEBUG-TEST] Endpoint called successfully")
+    return {
+        "status": "ok",
+        "message": "Auth0 routes are registered and responding",
+        "timestamp": "test_successful"
+    }
+
+
+@router.options("/debug-test")
+def debug_test_options():
+    """CORS preflight for debug-test"""
+    return {}
+
+
+class Auth0ExchangeRequest(BaseModel):
+    """Request model for Auth0 code exchange"""
+    code: str
+    redirect_uri: str
+
+
+class Auth0LoginRequest(BaseModel):
+    """Request model for Auth0 login"""
+    token: str
+
+
+class Auth0UserRequest(BaseModel):
+    """Request model for getting Auth0 user"""
+    token: str
 
 
 @router.get("/debug/config")
@@ -27,7 +71,7 @@ def debug_config():
 
 
 @router.post("/auth0-exchange")
-def auth0_exchange(code: str, redirect_uri: str, db: Session = Depends(get_db)):
+def auth0_exchange(request: Auth0ExchangeRequest, db: Session = Depends(get_db)):
     """
     Exchange Auth0 authorization code for access token (backend does this for security)
 
@@ -38,34 +82,44 @@ def auth0_exchange(code: str, redirect_uri: str, db: Session = Depends(get_db)):
     4. Returns user data and permissions
 
     Args:
-        code: Auth0 authorization code from callback
-        redirect_uri: The redirect URI used in the initial auth request
+        request: Auth0ExchangeRequest with code and redirect_uri
         db: Database session
     """
+    print(f"\n{'='*70}")
+    print(f"[AUTH0-EXCHANGE] 🚀 ENDPOINT ENTRY - Starting auth0-exchange")
+    print(f"[AUTH0-EXCHANGE] Request object type: {type(request)}")
+    print(f"[AUTH0-EXCHANGE] Request fields:")
+    print(f"[AUTH0-EXCHANGE]   - code type: {type(request.code)}")
+    print(f"[AUTH0-EXCHANGE]   - code length: {len(request.code)}")
+    print(f"[AUTH0-EXCHANGE]   - code (first 30 chars): {request.code[:30]}...")
+    print(f"[AUTH0-EXCHANGE]   - redirect_uri: {request.redirect_uri}")
+
     try:
-        print(f"\n{'='*60}")
-        print(f"[AUTH0-EXCHANGE] ✓ Endpoint called")
-        print(f"[AUTH0-EXCHANGE] Code: {code[:20]}...")
-        print(f"[AUTH0-EXCHANGE] Redirect URI: {redirect_uri}")
+        print(f"\n[AUTH0-EXCHANGE] ✓ Endpoint called successfully")
+        print(f"[AUTH0-EXCHANGE] Code: {request.code[:20]}...")
+        print(f"[AUTH0-EXCHANGE] Redirect URI: {request.redirect_uri}")
 
         # Exchange code for token with Auth0 (done on backend for security)
         print(f"[AUTH0-EXCHANGE] Exchanging code with Auth0...")
         print(f"[AUTH0-EXCHANGE] Token URL: {AUTH0_TOKEN_URL}")
         print(f"[AUTH0-EXCHANGE] Client ID: {AUTH0_CLIENT_ID[:10]}...")
 
+        print(f"[AUTH0-EXCHANGE] Request body: code={request.code[:20]}..., redirect_uri={request.redirect_uri}")
+
         token_response = requests.post(
             AUTH0_TOKEN_URL,
             json={
                 "client_id": AUTH0_CLIENT_ID,
                 "client_secret": AUTH0_CLIENT_SECRET,
-                "code": code,
+                "code": request.code,
                 "grant_type": "authorization_code",
-                "redirect_uri": redirect_uri,
+                "redirect_uri": request.redirect_uri,
             },
             timeout=10,
         )
 
         print(f"[AUTH0-EXCHANGE] Token response status: {token_response.status_code}")
+        print(f"[AUTH0-EXCHANGE] Response headers: {dict(token_response.headers)}")
 
         if not token_response.ok:
             error_data = token_response.json()
@@ -76,16 +130,21 @@ def auth0_exchange(code: str, redirect_uri: str, db: Session = Depends(get_db)):
             )
 
         token_data = token_response.json()
+        print(f"[AUTH0-EXCHANGE] Token response keys: {list(token_data.keys())}")
+        print(f"[AUTH0-EXCHANGE] Full response: {token_data}")
+
         access_token = token_data.get("access_token")
 
         if not access_token:
             print(f"[AUTH0-EXCHANGE] ✗ No access token in response")
+            print(f"[AUTH0-EXCHANGE] Available keys: {list(token_data.keys())}")
             raise HTTPException(
                 status_code=400,
                 detail="No access token in response"
             )
 
         print(f"[AUTH0-EXCHANGE] ✓ Got access token: {access_token[:20]}...")
+        print(f"[AUTH0-EXCHANGE] Access token length: {len(access_token)}")
 
         # Verify token and extract payload
         print(f"[AUTH0-EXCHANGE] Verifying token...")
@@ -94,13 +153,25 @@ def auth0_exchange(code: str, redirect_uri: str, db: Session = Depends(get_db)):
         print(f"[AUTH0-EXCHANGE] Token payload keys: {list(payload.keys())}")
 
         email = payload.get("email")
+        email_verified = payload.get("email_verified", False)
+        auth0_user_id = payload.get("sub")
+
         print(f"[AUTH0-EXCHANGE] Email from token: {email}")
+        print(f"[AUTH0-EXCHANGE] Email verified: {email_verified}")
+        print(f"[AUTH0-EXCHANGE] Auth0 user ID: {auth0_user_id}")
 
         if not email:
             print(f"[AUTH0-EXCHANGE] ✗ Email not found in token")
             raise HTTPException(
                 status_code=400,
                 detail="Email not found in token"
+            )
+
+        if not email_verified:
+            print(f"[AUTH0-EXCHANGE] ✗ Email not verified in Auth0")
+            raise HTTPException(
+                status_code=403,
+                detail="Email not verified. Please verify your email in Auth0 before accessing the system."
             )
 
         # Find user in database
@@ -124,6 +195,17 @@ def auth0_exchange(code: str, redirect_uri: str, db: Session = Depends(get_db)):
                 detail="User is blocked. Contact administrator."
             )
 
+        # Sync Auth0 user ID and email verification status
+        try:
+            user.auth0_id = auth0_user_id
+            user.email_verified = email_verified
+            db.commit()
+            db.refresh(user)
+            print(f"[AUTH0-EXCHANGE] ✓ User auth0_id and email_verified synced")
+        except Exception as e:
+            print(f"[AUTH0-EXCHANGE] ⚠️ Failed to sync user: {str(e)}")
+            db.rollback()
+
         # Parse user sectors
         setores_list = []
         if getattr(user, "_setores", None):
@@ -145,9 +227,8 @@ def auth0_exchange(code: str, redirect_uri: str, db: Session = Depends(get_db)):
         print(f"[AUTH0-EXCHANGE] ✓ Authentication successful")
         print(f"[AUTH0-EXCHANGE] User sectors: {setores_list}")
         print(f"[AUTH0-EXCHANGE] User access level: {user.nivel_acesso}")
-        print(f"{'='*60}\n")
 
-        return {
+        response = {
             "id": user.id,
             "nome": user.nome,
             "sobrenome": user.sobrenome,
@@ -158,58 +239,116 @@ def auth0_exchange(code: str, redirect_uri: str, db: Session = Depends(get_db)):
             "access_token": access_token,
         }
 
-    except HTTPException:
+        print(f"[AUTH0-EXCHANGE] ✓ Returning response:")
+        print(f"[AUTH0-EXCHANGE]   - User ID: {response['id']}")
+        print(f"[AUTH0-EXCHANGE]   - Name: {response['nome']} {response['sobrenome']}")
+        print(f"[AUTH0-EXCHANGE]   - Email: {response['email']}")
+        print(f"[AUTH0-EXCHANGE]   - Access level: {response['nivel_acesso']}")
+        print(f"[AUTH0-EXCHANGE]   - Access token (first 30 chars): {response['access_token'][:30]}...")
+        print(f"{'='*60}\n")
+
+        return response
+
+    except HTTPException as http_ex:
+        print(f"\n[AUTH0-EXCHANGE] ❌ HTTPException raised")
+        print(f"[AUTH0-EXCHANGE] Status code: {http_ex.status_code}")
+        print(f"[AUTH0-EXCHANGE] Detail: {http_ex.detail}")
+        print(f"{'='*70}\n")
         raise
     except Exception as e:
-        print(f"[AUTH0-EXCHANGE] ✗ Error: {str(e)}")
+        print(f"\n[AUTH0-EXCHANGE] ❌ UNEXPECTED ERROR")
+        print(f"[AUTH0-EXCHANGE] Error type: {type(e).__name__}")
+        print(f"[AUTH0-EXCHANGE] Error message: {str(e)}")
+        print(f"[AUTH0-EXCHANGE] Full traceback:")
         traceback.print_exc()
-        print(f"{'='*60}\n")
+        print(f"{'='*70}\n")
+
+        # Return 500 with detailed error
         raise HTTPException(
             status_code=500,
-            detail=f"Authentication error: {str(e)}"
+            detail=f"Backend error: {str(e)}"
         )
 
 
 @router.post("/auth0-login")
-def auth0_login(token: str, db: Session = Depends(get_db)):
+def auth0_login(request: Auth0LoginRequest, db: Session = Depends(get_db)):
     """
     Validate Auth0 JWT token and authenticate user
-    
+
     This endpoint:
     1. Validates the Auth0 JWT token
-    2. Checks if user exists in the database
-    3. Returns user data and permissions
-    
+    2. Verifies email is confirmed in Auth0
+    3. Checks if user exists in the database
+    4. Returns user data and permissions
+
     Args:
-        token: Auth0 access token (from Bearer header in client)
+        request: Auth0LoginRequest with token
         db: Database session
     """
     try:
+        print(f"\n{'='*60}")
+        print(f"[AUTH0-LOGIN] ✓ Endpoint called")
+        print(f"[AUTH0-LOGIN] Token (first 50 chars): {request.token[:50]}...")
+
         # Verify token
-        payload = verify_auth0_token(token)
-        
+        print(f"[AUTH0-LOGIN] Verifying token...")
+        payload = verify_auth0_token(request.token)
+        print(f"[AUTH0-LOGIN] ✓ Token verified")
+
         # Get email from token
         email = payload.get("email")
+        email_verified = payload.get("email_verified", False)
+        auth0_user_id = payload.get("sub")
+
+        print(f"[AUTH0-LOGIN] Email: {email}")
+        print(f"[AUTH0-LOGIN] Email verified: {email_verified}")
+        print(f"[AUTH0-LOGIN] Auth0 user ID: {auth0_user_id}")
+
         if not email:
+            print(f"[AUTH0-LOGIN] ✗ Email not found in token")
             raise HTTPException(
                 status_code=400,
                 detail="Email not found in token"
             )
-        
+
+        if not email_verified:
+            print(f"[AUTH0-LOGIN] ✗ Email not verified in Auth0")
+            raise HTTPException(
+                status_code=403,
+                detail="Email not verified. Please verify your email in Auth0 before accessing the system."
+            )
+
         # Find user in database
+        print(f"[AUTH0-LOGIN] Looking up user by email: {email}")
         user = db.query(User).filter(User.email == email).first()
-        
+
         if not user:
+            print(f"[AUTH0-LOGIN] ✗ User not found in database")
+            print(f"[AUTH0-LOGIN] Total users in DB: {db.query(User).count()}")
             raise HTTPException(
                 status_code=403,
                 detail=f"User with email '{email}' not found in system. Contact administrator."
             )
-        
+
+        print(f"[AUTH0-LOGIN] ✓ User found: {user.nome} {user.sobrenome}")
+
         if getattr(user, "bloqueado", False):
+            print(f"[AUTH0-LOGIN] ✗ User is blocked")
             raise HTTPException(
                 status_code=403,
                 detail="User is blocked. Contact administrator."
             )
+
+        # Sync Auth0 user ID and email verification status
+        try:
+            user.auth0_id = auth0_user_id
+            user.email_verified = email_verified
+            db.commit()
+            db.refresh(user)
+            print(f"[AUTH0-LOGIN] ✓ User synced with Auth0")
+        except Exception as e:
+            print(f"[AUTH0-LOGIN] ⚠️ Failed to sync user: {str(e)}")
+            db.rollback()
         
         # Parse user sectors
         setores_list = []
@@ -218,7 +357,7 @@ def auth0_login(token: str, db: Session = Depends(get_db)):
                 setores_list = json.loads(getattr(user, "_setores", "[]"))
             except Exception:
                 setores_list = []
-        
+
         # Parse BI subcategories
         bi_subcategories_list = None
         if getattr(user, "_bi_subcategories", None):
@@ -228,8 +367,8 @@ def auth0_login(token: str, db: Session = Depends(get_db)):
                 )
             except Exception:
                 bi_subcategories_list = None
-        
-        return {
+
+        response = {
             "id": user.id,
             "nome": user.nome,
             "sobrenome": user.sobrenome,
@@ -238,47 +377,96 @@ def auth0_login(token: str, db: Session = Depends(get_db)):
             "setores": setores_list,
             "bi_subcategories": bi_subcategories_list,
         }
-        
+
+        print(f"[AUTH0-LOGIN] ✓ Authentication successful")
+        print(f"[AUTH0-LOGIN] ✓ Returning response:")
+        print(f"[AUTH0-LOGIN]   - User ID: {response['id']}")
+        print(f"[AUTH0-LOGIN]   - Name: {response['nome']} {response['sobrenome']}")
+        print(f"[AUTH0-LOGIN]   - Email: {response['email']}")
+        print(f"[AUTH0-LOGIN]   - Access level: {response['nivel_acesso']}")
+        print(f"{'='*60}\n")
+
+        return response
+
     except HTTPException:
+        print(f"[AUTH0-LOGIN] HTTPException raised")
         raise
     except Exception as e:
-        print(f"❌ Auth0 login error: {str(e)}")
+        print(f"\n[AUTH0-LOGIN] ✗ Unexpected error: {str(e)}")
+        print(f"[AUTH0-LOGIN] Error type: {type(e).__name__}")
         traceback.print_exc()
+        print(f"{'='*60}\n")
         raise HTTPException(
             status_code=500,
             detail=f"Authentication error: {str(e)}"
         )
 
 
-@router.get("/auth0-user")
-def get_auth0_user(token: str, db: Session = Depends(get_db)):
+@router.post("/auth0-user")
+def get_auth0_user(request: Auth0UserRequest, db: Session = Depends(get_db)):
     """
     Get current authenticated user information
-    
+
     Args:
-        token: Auth0 access token
+        request: Auth0UserRequest with token
         db: Database session
     """
     try:
+        print(f"\n{'='*60}")
+        print(f"[AUTH0-USER] ✓ Endpoint called")
+        print(f"[AUTH0-USER] Token (first 50 chars): {request.token[:50]}...")
+
         # Verify token
-        payload = verify_auth0_token(token)
+        print(f"[AUTH0-USER] Verifying token...")
+        payload = verify_auth0_token(request.token)
+        print(f"[AUTH0-USER] ✓ Token verified")
+
         email = payload.get("email")
-        
+        email_verified = payload.get("email_verified", False)
+        auth0_user_id = payload.get("sub")
+
+        print(f"[AUTH0-USER] Email: {email}")
+        print(f"[AUTH0-USER] Email verified: {email_verified}")
+        print(f"[AUTH0-USER] Auth0 user ID: {auth0_user_id}")
+
         if not email:
+            print(f"[AUTH0-USER] ✗ Email not found in token")
             raise HTTPException(
                 status_code=400,
                 detail="Email not found in token"
             )
-        
+
+        if not email_verified:
+            print(f"[AUTH0-USER] ✗ Email not verified in Auth0")
+            raise HTTPException(
+                status_code=403,
+                detail="Email not verified. Please verify your email in Auth0 before accessing the system."
+            )
+
         # Find user
+        print(f"[AUTH0-USER] Looking up user by email: {email}")
         user = db.query(User).filter(User.email == email).first()
-        
+
         if not user:
+            print(f"[AUTH0-USER] ✗ User not found in database")
             raise HTTPException(
                 status_code=404,
                 detail="User not found"
             )
-        
+
+        print(f"[AUTH0-USER] ✓ User found: {user.nome} {user.sobrenome}")
+
+        # Sync Auth0 user ID and email verification status
+        try:
+            user.auth0_id = auth0_user_id
+            user.email_verified = email_verified
+            db.commit()
+            db.refresh(user)
+            print(f"[AUTH0-USER] ✓ User synced with Auth0")
+        except Exception as e:
+            print(f"[AUTH0-USER] ⚠️ Failed to sync user: {str(e)}")
+            db.rollback()
+
         # Parse sectors
         setores_list = []
         if getattr(user, "_setores", None):
@@ -286,8 +474,8 @@ def get_auth0_user(token: str, db: Session = Depends(get_db)):
                 setores_list = json.loads(getattr(user, "_setores", "[]"))
             except Exception:
                 setores_list = []
-        
-        return {
+
+        response = {
             "id": user.id,
             "nome": user.nome,
             "sobrenome": user.sobrenome,
@@ -295,11 +483,23 @@ def get_auth0_user(token: str, db: Session = Depends(get_db)):
             "nivel_acesso": user.nivel_acesso,
             "setores": setores_list,
         }
-        
+
+        print(f"[AUTH0-USER] ✓ Returning user data")
+        print(f"[AUTH0-USER]   - User ID: {response['id']}")
+        print(f"[AUTH0-USER]   - Name: {response['nome']} {response['sobrenome']}")
+        print(f"[AUTH0-USER]   - Email: {response['email']}")
+        print(f"{'='*60}\n")
+
+        return response
+
     except HTTPException:
+        print(f"[AUTH0-USER] HTTPException raised")
         raise
     except Exception as e:
-        print(f"❌ Error getting user: {str(e)}")
+        print(f"\n[AUTH0-USER] ✗ Unexpected error: {str(e)}")
+        print(f"[AUTH0-USER] Error type: {type(e).__name__}")
+        traceback.print_exc()
+        print(f"{'='*60}\n")
         raise HTTPException(
             status_code=500,
             detail="Error retrieving user"
