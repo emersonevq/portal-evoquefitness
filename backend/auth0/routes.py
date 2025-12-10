@@ -210,7 +210,7 @@ def auth0_exchange(request: Auth0ExchangeRequest, db: Session = Depends(get_db))
 
 
 @router.post("/auth0-login")
-def auth0_login(token: str, db: Session = Depends(get_db)):
+def auth0_login(request: Auth0LoginRequest, db: Session = Depends(get_db)):
     """
     Validate Auth0 JWT token and authenticate user
 
@@ -221,12 +221,12 @@ def auth0_login(token: str, db: Session = Depends(get_db)):
     4. Returns user data and permissions
 
     Args:
-        token: Auth0 access token (from Bearer header in client)
+        request: Auth0LoginRequest with token
         db: Database session
     """
     try:
         # Verify token
-        payload = verify_auth0_token(token)
+        payload = verify_auth0_token(request.token)
 
         # Get email from token
         email = payload.get("email")
