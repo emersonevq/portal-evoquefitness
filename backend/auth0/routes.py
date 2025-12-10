@@ -152,7 +152,8 @@ def auth0_exchange(request: Auth0ExchangeRequest, db: Session = Depends(get_db))
         print(f"[AUTH0-EXCHANGE] ✓ Token verified")
         print(f"[AUTH0-EXCHANGE] Token payload keys: {list(payload.keys())}")
 
-        email = payload.get("email")
+        # Extract email from Auth0 namespaced claim or standard claim
+        email = payload.get("email") or payload.get("https://yourapp.com/email")
         email_verified = payload.get("email_verified", False)
         auth0_user_id = payload.get("sub")
 
