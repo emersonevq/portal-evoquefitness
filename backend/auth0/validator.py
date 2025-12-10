@@ -3,6 +3,7 @@ from functools import lru_cache
 from jose import jwt, JWTError, jwk
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import serialization
 import base64
 from fastapi import HTTPException, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
