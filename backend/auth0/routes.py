@@ -200,17 +200,6 @@ def auth0_exchange(request: Auth0ExchangeRequest, db: Session = Depends(get_db))
                 detail="User is blocked. Contact administrator."
             )
 
-        # Sync Auth0 user ID and email verification status
-        try:
-            user.auth0_id = auth0_user_id
-            user.email_verified = email_verified
-            db.commit()
-            db.refresh(user)
-            print(f"[AUTH0-EXCHANGE] ✓ User auth0_id and email_verified synced")
-        except Exception as e:
-            print(f"[AUTH0-EXCHANGE] ⚠️ Failed to sync user: {str(e)}")
-            db.rollback()
-
         # Parse user sectors
         setores_list = []
         if getattr(user, "_setores", None):
