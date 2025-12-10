@@ -17,12 +17,10 @@ interface AuthRecord extends AuthUser {
 }
 
 const AUTH_KEY = "evoque-fitness-auth";
-const REMEMBER_EXPIRY = 30 * 24 * 60 * 60 * 1000; // 30 dias
-const SESSION_EXPIRY = 24 * 60 * 60 * 1000; // 24 horas (fallback de segurança)
+const SESSION_EXPIRY = 24 * 60 * 60 * 1000; // 24 horas
 
 function readFromStorage(): AuthUser | null {
   const now = Date.now();
-  const LEGACY_EXPIRY = 24 * 60 * 60 * 1000; // compat 24h
 
   // Helper to validate required fields
   const isValidUser = (data: any): boolean => {
@@ -37,7 +35,7 @@ function readFromStorage(): AuthUser | null {
     );
   };
 
-  // 1) Preferir sessão atual (sessionStorage)
+  // Read only from sessionStorage (NO localStorage)
   const sessionRaw = sessionStorage.getItem(AUTH_KEY);
   if (sessionRaw) {
     try {
@@ -70,7 +68,7 @@ function readFromStorage(): AuthUser | null {
       }
       // Check legacy format
       else if (typeof data.loginTime === "number" && isValidUser(data)) {
-        if (now - data.loginTime < LEGACY_EXPIRY) {
+        if (now - data.loginTime < SESSION_EXPIRY) {
           const {
             email,
             name,
@@ -99,71 +97,6 @@ function readFromStorage(): AuthUser | null {
     } catch (e) {
       console.debug("[AUTH] Failed to parse sessionStorage:", e);
       sessionStorage.removeItem(AUTH_KEY);
-    }
-  }
-
-  // 2) Senão, usar persistência (localStorage)
-  const localRaw = localStorage.getItem(AUTH_KEY);
-  if (localRaw) {
-    try {
-      const data = JSON.parse(localRaw) as Partial<AuthRecord & AuthUser>;
-
-      // Check new format with expiresAt
-      if (typeof (data as AuthRecord).expiresAt === "number") {
-        if (now < (data as AuthRecord).expiresAt && isValidUser(data)) {
-          const {
-            email,
-            name,
-            loginTime,
-            nivel_acesso,
-            setores,
-            bi_subcategories,
-            alterar_senha_primeiro_acesso,
-            id,
-          } = data as AuthRecord & Partial<AuthUser>;
-          return {
-            id,
-            email,
-            name,
-            loginTime,
-            nivel_acesso,
-            setores,
-            bi_subcategories,
-            alterar_senha_primeiro_acesso,
-          } as AuthUser;
-        }
-      }
-      // Check legacy format
-      else if (typeof data.loginTime === "number" && isValidUser(data)) {
-        if (now - data.loginTime < LEGACY_EXPIRY) {
-          const {
-            email,
-            name,
-            loginTime,
-            nivel_acesso,
-            setores,
-            bi_subcategories,
-            alterar_senha_primeiro_acesso,
-            id,
-          } = data as AuthUser & Partial<AuthRecord>;
-          return {
-            id,
-            email,
-            name,
-            loginTime,
-            nivel_acesso,
-            setores,
-            bi_subcategories,
-            alterar_senha_primeiro_acesso,
-          } as AuthUser;
-        }
-      }
-
-      // Data is expired or invalid, remove it
-      localStorage.removeItem(AUTH_KEY);
-    } catch (e) {
-      console.debug("[AUTH] Failed to parse localStorage:", e);
-      localStorage.removeItem(AUTH_KEY);
     }
   }
 
@@ -226,7 +159,6 @@ export function useAuth() {
               // force local logout
               setUser(null);
               sessionStorage.removeItem(AUTH_KEY);
-              localStorage.removeItem(AUTH_KEY);
               window.dispatchEvent(new CustomEvent("auth:revoked"));
 
               // As a fallback, redirect immediately to the login page preserving current path
@@ -364,23 +296,16 @@ export function useAuth() {
         };
         const record: AuthRecord = {
           ...base,
-          expiresAt: now + REMEMBER_EXPIRY,
+          expiresAt: now + SESSION_EXPIRY,
         };
         console.debug("[AUTH] ✓ Updating user state with new data");
         setUser(base);
 
         try {
-          // prefer preserving existing storage choice
-          const sessionRaw = sessionStorage.getItem(AUTH_KEY);
-          if (sessionRaw) {
-            console.debug("[AUTH] Updating sessionStorage");
-            sessionStorage.setItem(AUTH_KEY, JSON.stringify(record));
-          } else {
-            console.debug("[AUTH] Updating localStorage");
-            localStorage.setItem(AUTH_KEY, JSON.stringify(record));
-          }
+          console.debug("[AUTH] Updating sessionStorage");
+          sessionStorage.setItem(AUTH_KEY, JSON.stringify(record));
         } catch (e) {
-          console.error("[AUTH] Failed to update storage:", e);
+          console.error("[AUTH] Failed to update sessionStorage:", e);
         }
 
         // re-identify socket on refresh
@@ -484,7 +409,6 @@ export function useAuth() {
   const login = async (
     identifier: string,
     password: string,
-    remember = true,
   ) => {
     try {
       const res = await fetch("/api/usuarios/login", {
@@ -515,18 +439,12 @@ export function useAuth() {
       };
       const record: AuthRecord = {
         ...base,
-        expiresAt: now + (remember ? REMEMBER_EXPIRY : SESSION_EXPIRY),
+        expiresAt: now + SESSION_EXPIRY,
       };
       setUser(base);
       try {
         const payload = JSON.stringify(record);
-        if (remember) {
-          sessionStorage.removeItem(AUTH_KEY);
-          localStorage.setItem(AUTH_KEY, payload);
-        } else {
-          localStorage.removeItem(AUTH_KEY);
-          sessionStorage.setItem(AUTH_KEY, payload);
-        }
+        sessionStorage.setItem(AUTH_KEY, payload);
       } catch {}
       // identify socket if present
       try {
@@ -544,7 +462,6 @@ export function useAuth() {
   const logout = () => {
     setUser(null);
     sessionStorage.removeItem(AUTH_KEY);
-    localStorage.removeItem(AUTH_KEY);
   };
 
   const isAuthenticated = !!user;

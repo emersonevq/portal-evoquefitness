@@ -75,22 +75,22 @@ export default function Index() {
   const dismissed =
     typeof window !== "undefined"
       ? (JSON.parse(
-          localStorage.getItem("dismissedAlerts") || "[]",
+          sessionStorage.getItem("dismissedAlerts") || "[]",
         ) as number[])
       : [];
   const dismiss = (id: number) => {
     try {
       const arr = JSON.parse(
-        localStorage.getItem("dismissedAlerts") || "[]",
+        sessionStorage.getItem("dismissedAlerts") || "[]",
       ) as number[];
       if (!Array.isArray(arr)) {
-        localStorage.setItem("dismissedAlerts", JSON.stringify([id]));
+        sessionStorage.setItem("dismissedAlerts", JSON.stringify([id]));
       } else {
         if (!arr.includes(id)) arr.push(id);
-        localStorage.setItem("dismissedAlerts", JSON.stringify(arr));
+        sessionStorage.setItem("dismissedAlerts", JSON.stringify(arr));
       }
     } catch {
-      localStorage.setItem("dismissedAlerts", JSON.stringify([id]));
+      sessionStorage.setItem("dismissedAlerts", JSON.stringify([id]));
     }
     setAlerts((cur) => cur.filter((a) => a.id !== id));
   };

@@ -65,7 +65,7 @@ export default function AlertDisplay() {
 
   useEffect(() => {
     loadAlerts();
-    const dismissed = localStorage.getItem("dismissedAlerts");
+    const dismissed = sessionStorage.getItem("dismissedAlerts");
     if (dismissed) {
       try {
         setDismissedAlerts(JSON.parse(dismissed));
@@ -117,7 +117,7 @@ export default function AlertDisplay() {
   const dismissAlert = (alertId: number) => {
     const newDismissed = [...dismissedAlerts, alertId];
     setDismissedAlerts(newDismissed);
-    localStorage.setItem("dismissedAlerts", JSON.stringify(newDismissed));
+    sessionStorage.setItem("dismissedAlerts", JSON.stringify(newDismissed));
     markAlertAsViewed(alertId);
   };
 
