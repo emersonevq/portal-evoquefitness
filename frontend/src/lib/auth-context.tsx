@@ -71,15 +71,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const code = searchParams.get("code");
         const state = searchParams.get("state");
 
+        console.debug("[AUTH] Init - searchParams keys:", Array.from(searchParams.keys()));
+        console.debug("[AUTH] Init - code:", code ? "present" : "missing");
+        console.debug("[AUTH] Init - state:", state ? "present" : "missing");
+        console.debug("[AUTH] Current pathname:", window.location.pathname);
+        console.debug("[AUTH] Current search:", window.location.search);
+
         if (code && state) {
+          console.debug("[AUTH] ✓ Code and state found, initiating Auth0 callback");
           // Handle Auth0 redirect - exchange code for token
           await handleAuth0Callback(code, state);
         } else {
+          console.debug("[AUTH] No code/state, checking existing session");
           // Check for existing session
           await checkExistingSession();
         }
       } catch (error) {
-        console.error("Error initializing auth:", error);
+        console.error("[AUTH] ✗ Error initializing auth:", error);
         setUser(null);
       } finally {
         setIsLoading(false);
