@@ -197,12 +197,13 @@ def auth0_exchange(code: str, redirect_uri: str, db: Session = Depends(get_db)):
 def auth0_login(token: str, db: Session = Depends(get_db)):
     """
     Validate Auth0 JWT token and authenticate user
-    
+
     This endpoint:
     1. Validates the Auth0 JWT token
-    2. Checks if user exists in the database
-    3. Returns user data and permissions
-    
+    2. Verifies email is confirmed in Auth0
+    3. Checks if user exists in the database
+    4. Returns user data and permissions
+
     Args:
         token: Auth0 access token (from Bearer header in client)
         db: Database session
@@ -210,29 +211,48 @@ def auth0_login(token: str, db: Session = Depends(get_db)):
     try:
         # Verify token
         payload = verify_auth0_token(token)
-        
+
         # Get email from token
         email = payload.get("email")
+        email_verified = payload.get("email_verified", False)
+        auth0_user_id = payload.get("sub")
+
         if not email:
             raise HTTPException(
                 status_code=400,
                 detail="Email not found in token"
             )
-        
+
+        if not email_verified:
+            raise HTTPException(
+                status_code=403,
+                detail="Email not verified. Please verify your email in Auth0 before accessing the system."
+            )
+
         # Find user in database
         user = db.query(User).filter(User.email == email).first()
-        
+
         if not user:
             raise HTTPException(
                 status_code=403,
                 detail=f"User with email '{email}' not found in system. Contact administrator."
             )
-        
+
         if getattr(user, "bloqueado", False):
             raise HTTPException(
                 status_code=403,
                 detail="User is blocked. Contact administrator."
             )
+
+        # Sync Auth0 user ID and email verification status
+        try:
+            user.auth0_id = auth0_user_id
+            user.email_verified = email_verified
+            db.commit()
+            db.refresh(user)
+        except Exception as e:
+            print(f"⚠️ Failed to sync user: {str(e)}")
+            db.rollback()
         
         # Parse user sectors
         setores_list = []
