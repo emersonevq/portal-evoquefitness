@@ -58,9 +58,17 @@ def auth0_exchange(request: Auth0ExchangeRequest, db: Session = Depends(get_db))
         request: Auth0ExchangeRequest with code and redirect_uri
         db: Database session
     """
+    print(f"\n{'='*70}")
+    print(f"[AUTH0-EXCHANGE] 🚀 ENDPOINT ENTRY - Starting auth0-exchange")
+    print(f"[AUTH0-EXCHANGE] Request object type: {type(request)}")
+    print(f"[AUTH0-EXCHANGE] Request fields:")
+    print(f"[AUTH0-EXCHANGE]   - code type: {type(request.code)}")
+    print(f"[AUTH0-EXCHANGE]   - code length: {len(request.code)}")
+    print(f"[AUTH0-EXCHANGE]   - code (first 30 chars): {request.code[:30]}...")
+    print(f"[AUTH0-EXCHANGE]   - redirect_uri: {request.redirect_uri}")
+
     try:
-        print(f"\n{'='*60}")
-        print(f"[AUTH0-EXCHANGE] ✓ Endpoint called")
+        print(f"\n[AUTH0-EXCHANGE] ✓ Endpoint called successfully")
         print(f"[AUTH0-EXCHANGE] Code: {request.code[:20]}...")
         print(f"[AUTH0-EXCHANGE] Redirect URI: {request.redirect_uri}")
 
