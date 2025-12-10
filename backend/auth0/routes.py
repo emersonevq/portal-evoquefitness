@@ -309,18 +309,18 @@ def auth0_login(request: Auth0LoginRequest, db: Session = Depends(get_db)):
         )
 
 
-@router.get("/auth0-user")
-def get_auth0_user(token: str, db: Session = Depends(get_db)):
+@router.post("/auth0-user")
+def get_auth0_user(request: Auth0UserRequest, db: Session = Depends(get_db)):
     """
     Get current authenticated user information
 
     Args:
-        token: Auth0 access token
+        request: Auth0UserRequest with token
         db: Database session
     """
     try:
         # Verify token
-        payload = verify_auth0_token(token)
+        payload = verify_auth0_token(request.token)
         email = payload.get("email")
         email_verified = payload.get("email_verified", False)
         auth0_user_id = payload.get("sub")
