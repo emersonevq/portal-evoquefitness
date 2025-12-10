@@ -90,7 +90,11 @@ def verify_auth0_token(token: str) -> dict:
                 cert_data = base64.b64decode(signing_key_dict["x5c"][0])
                 cert = x509.load_der_x509_certificate(cert_data, default_backend())
                 public_key = cert.public_key()
-                key = public_key
+                # Convert to PEM format for python-jose
+                key = public_key.public_bytes(
+                    encoding=serialization.Encoding.PEM,
+                    format=serialization.PublicFormat.SubjectPublicKeyInfo
+                )
                 print(f"[JWT-VALIDATOR] ✓ RSA key extracted from X.509 certificate")
             else:
                 # Fallback: try to construct from JWK
