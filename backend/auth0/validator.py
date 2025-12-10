@@ -74,13 +74,21 @@ def verify_auth0_token(token: str) -> dict:
 
         # Get the signing key
         print(f"[JWT-VALIDATOR] Fetching signing key with kid: {unverified_header['kid']}")
-        signing_key = get_signing_key(unverified_header["kid"])
+        signing_key_dict = get_signing_key(unverified_header["kid"])
         print(f"[JWT-VALIDATOR] ✓ Signing key obtained")
+        print(f"[JWT-VALIDATOR] Signing key data: {signing_key_dict.get('kty')}, kid={signing_key_dict.get('kid')}")
 
-        # Build the key for verification (convert JWK to PEM)
+        # Build the key for verification (convert JWK to RSA key using python-jose)
         print(f"[JWT-VALIDATOR] Converting JWK to RSA key...")
-        key = jwt.algorithms.RSAAlgorithm.from_jwk(signing_key)
-        print(f"[JWT-VALIDATOR] ✓ RSA key created")
+        try:
+            key = jwk.construct(signing_key_dict, 'RSA')
+            print(f"[JWT-VALIDATOR] ✓ RSA key created successfully")
+        except Exception as e:
+            print(f"[JWT-VALIDATOR] ❌ Failed to construct RSA key: {str(e)}")
+            raise HTTPException(
+                status_code=401,
+                detail="Failed to construct RSA key from JWK"
+            )
 
         # Decode and verify the token
         print(f"[JWT-VALIDATOR] Verifying token with:")
