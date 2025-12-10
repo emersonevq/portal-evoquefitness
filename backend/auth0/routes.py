@@ -74,9 +74,9 @@ def auth0_exchange(request: Auth0ExchangeRequest, db: Session = Depends(get_db))
             json={
                 "client_id": AUTH0_CLIENT_ID,
                 "client_secret": AUTH0_CLIENT_SECRET,
-                "code": code,
+                "code": request.code,
                 "grant_type": "authorization_code",
-                "redirect_uri": redirect_uri,
+                "redirect_uri": request.redirect_uri,
             },
             timeout=10,
         )
