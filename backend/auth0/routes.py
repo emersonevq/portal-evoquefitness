@@ -16,6 +16,13 @@ print("\n[AUTH0-ROUTES] 🔧 Initializing Auth0 routes...")
 print(f"[AUTH0-ROUTES] Router prefix: /api/auth")
 
 
+@router.options("/auth0-exchange")
+def auth0_exchange_options():
+    """CORS preflight for auth0-exchange"""
+    print(f"[CORS-PREFLIGHT] OPTIONS request to /auth0-exchange")
+    return {}
+
+
 @router.post("/debug-test")
 def debug_test_endpoint():
     """Simple test endpoint to verify routing works"""
@@ -25,6 +32,12 @@ def debug_test_endpoint():
         "message": "Auth0 routes are registered and responding",
         "timestamp": "test_successful"
     }
+
+
+@router.options("/debug-test")
+def debug_test_options():
+    """CORS preflight for debug-test"""
+    return {}
 
 
 class Auth0ExchangeRequest(BaseModel):
