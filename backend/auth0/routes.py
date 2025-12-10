@@ -12,6 +12,20 @@ import requests
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
+print("\n[AUTH0-ROUTES] 🔧 Initializing Auth0 routes...")
+print(f"[AUTH0-ROUTES] Router prefix: /api/auth")
+
+
+@router.post("/debug-test")
+def debug_test_endpoint():
+    """Simple test endpoint to verify routing works"""
+    print(f"\n[DEBUG-TEST] Endpoint called successfully")
+    return {
+        "status": "ok",
+        "message": "Auth0 routes are registered and responding",
+        "timestamp": "test_successful"
+    }
+
 
 class Auth0ExchangeRequest(BaseModel):
     """Request model for Auth0 code exchange"""
