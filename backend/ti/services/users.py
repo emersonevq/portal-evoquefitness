@@ -9,6 +9,7 @@ from ti.models import User
 from core.db import engine
 from core.utils import now_brazil_naive
 from ti.schemas.user import UserCreate, UserCreatedOut, UserAvailability
+from auth0.management import get_auth0_client
 
 
 def _generate_password(length: int = 6) -> str:
