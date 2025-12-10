@@ -94,13 +94,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } catch (error) {
         console.error("[AUTH] ✗ Error initializing auth:", error);
         setUser(null);
+        // If callback failed, redirect to login page
+        if (window.location.pathname === "/auth/callback") {
+          console.debug("[AUTH] Redirecting to login due to callback error");
+          navigate("/auth0/login", { replace: true });
+        }
       } finally {
         setIsLoading(false);
       }
     };
 
+    // Set timeout to prevent infinite loading
+    const timeoutId = setTimeout(() => {
+      if (window.location.pathname === "/auth/callback") {
+        console.error("[AUTH] Callback timeout - redirecting to login");
+        setIsLoading(false);
+        navigate("/auth0/login", { replace: true });
+      }
+    }, 10000); // 10 second timeout
+
     initAuth0();
-  }, [searchParams]);
+
+    return () => clearTimeout(timeoutId);
+  }, [searchParams, navigate]);
 
   const handleAuth0Callback = async (code: string, state: string) => {
     try {
