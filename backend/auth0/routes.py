@@ -485,3 +485,210 @@ def get_auth0_user(request: Auth0UserRequest, db: Session = Depends(get_db)):
             status_code=500,
             detail="Error retrieving user"
         )
+
+
+class CreateSessionRequest(BaseModel):
+    """Request model for creating a session"""
+    user_id: int
+    access_token: str
+    expires_in: int = 86400  # 24 hours
+
+
+class SessionValidationRequest(BaseModel):
+    """Request model for validating a session"""
+    session_token: str
+
+
+class RevokeSessionRequest(BaseModel):
+    """Request model for revoking a session"""
+    session_token: str
+
+
+@router.post("/session/create")
+def create_session(
+    request: CreateSessionRequest,
+    http_request: Request,
+    db: Session = Depends(get_db),
+):
+    """
+    Create a new session in the database
+
+    This endpoint:
+    1. Creates a new session record in the database
+    2. Stores the JWT token reference
+    3. Returns the session token for the client
+
+    Args:
+        request: CreateSessionRequest with user_id and access_token
+        http_request: HTTP request to extract IP and User-Agent
+        db: Database session
+    """
+    try:
+        print(f"\n{'='*60}")
+        print(f"[SESSION-CREATE] ✓ Endpoint called")
+        print(f"[SESSION-CREATE] User ID: {request.user_id}")
+        print(f"[SESSION-CREATE] Expires in: {request.expires_in} seconds")
+
+        # Extract client IP
+        ip_address = http_request.client.host if http_request.client else None
+        user_agent = http_request.headers.get("user-agent", None)
+
+        print(f"[SESSION-CREATE] IP: {ip_address}")
+        print(f"[SESSION-CREATE] User-Agent: {user_agent[:50] if user_agent else 'None'}...")
+
+        # Create session in database
+        session = SessionService.create_session(
+            db=db,
+            user_id=request.user_id,
+            access_token=request.access_token,
+            expires_in=request.expires_in,
+            ip_address=ip_address,
+            user_agent=user_agent,
+        )
+
+        print(f"[SESSION-CREATE] ✓ Session created")
+        print(f"[SESSION-CREATE] Session ID: {session.id}")
+        print(f"[SESSION-CREATE] Session token (first 20 chars): {session.session_token[:20]}...")
+        print(f"[SESSION-CREATE] Expires at: {session.access_token_expires_at}")
+
+        response = {
+            "session_id": session.id,
+            "session_token": session.session_token,
+            "expires_at": session.access_token_expires_at.isoformat(),
+        }
+
+        print(f"[SESSION-CREATE] ✓ Returning response")
+        print(f"{'='*60}\n")
+
+        return response
+
+    except Exception as e:
+        print(f"\n[SESSION-CREATE] ✗ Unexpected error: {str(e)}")
+        print(f"[SESSION-CREATE] Error type: {type(e).__name__}")
+        traceback.print_exc()
+        print(f"{'='*60}\n")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error creating session: {str(e)}"
+        )
+
+
+@router.post("/session/validate")
+def validate_session(
+    request: SessionValidationRequest,
+    db: Session = Depends(get_db),
+):
+    """
+    Validate if a session is active and not expired
+
+    Args:
+        request: SessionValidationRequest with session_token
+        db: Database session
+    """
+    try:
+        print(f"\n{'='*60}")
+        print(f"[SESSION-VALIDATE] ✓ Endpoint called")
+        print(f"[SESSION-VALIDATE] Session token (first 20 chars): {request.session_token[:20]}...")
+
+        is_valid = SessionService.validate_session(db, request.session_token)
+
+        print(f"[SESSION-VALIDATE] Result: {'Valid' if is_valid else 'Invalid'}")
+        print(f"{'='*60}\n")
+
+        return {
+            "is_valid": is_valid,
+            "message": "Session is active" if is_valid else "Session is invalid or expired",
+        }
+
+    except Exception as e:
+        print(f"\n[SESSION-VALIDATE] ✗ Unexpected error: {str(e)}")
+        print(f"[SESSION-VALIDATE] Error type: {type(e).__name__}")
+        traceback.print_exc()
+        print(f"{'='*60}\n")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error validating session: {str(e)}"
+        )
+
+
+@router.post("/session/revoke")
+def revoke_session(
+    request: RevokeSessionRequest,
+    db: Session = Depends(get_db),
+):
+    """
+    Revoke a session
+
+    Args:
+        request: RevokeSessionRequest with session_token
+        db: Database session
+    """
+    try:
+        print(f"\n{'='*60}")
+        print(f"[SESSION-REVOKE] ✓ Endpoint called")
+        print(f"[SESSION-REVOKE] Session token (first 20 chars): {request.session_token[:20]}...")
+
+        success = SessionService.revoke_session(db, request.session_token)
+
+        print(f"[SESSION-REVOKE] Result: {'Revoked' if success else 'Not found'}")
+        print(f"{'='*60}\n")
+
+        return {
+            "success": success,
+            "message": "Session revoked" if success else "Session not found",
+        }
+
+    except Exception as e:
+        print(f"\n[SESSION-REVOKE] ✗ Unexpected error: {str(e)}")
+        print(f"[SESSION-REVOKE] Error type: {type(e).__name__}")
+        traceback.print_exc()
+        print(f"{'='*60}\n")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error revoking session: {str(e)}"
+        )
+
+
+@router.post("/session/revoke-all")
+def revoke_all_sessions(
+    request: BaseModel,
+    db: Session = Depends(get_db),
+):
+    """
+    Revoke all sessions for a user
+
+    Request body should contain:
+    {
+        "user_id": <int>
+    }
+    """
+    try:
+        print(f"\n{'='*60}")
+        print(f"[SESSION-REVOKE-ALL] ✓ Endpoint called")
+
+        user_id = getattr(request, "user_id", None)
+        if not user_id:
+            raise ValueError("user_id is required")
+
+        print(f"[SESSION-REVOKE-ALL] User ID: {user_id}")
+
+        count = SessionService.revoke_all_user_sessions(db, user_id)
+
+        print(f"[SESSION-REVOKE-ALL] Revoked {count} sessions")
+        print(f"{'='*60}\n")
+
+        return {
+            "success": True,
+            "revoked_count": count,
+            "message": f"Revoked {count} session(s)",
+        }
+
+    except Exception as e:
+        print(f"\n[SESSION-REVOKE-ALL] ✗ Unexpected error: {str(e)}")
+        print(f"[SESSION-REVOKE-ALL] Error type: {type(e).__name__}")
+        traceback.print_exc()
+        print(f"{'='*60}\n")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error revoking sessions: {str(e)}"
+        )
