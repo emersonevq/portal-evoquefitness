@@ -370,32 +370,49 @@ def get_auth0_user(request: Auth0UserRequest, db: Session = Depends(get_db)):
         db: Database session
     """
     try:
+        print(f"\n{'='*60}")
+        print(f"[AUTH0-USER] ✓ Endpoint called")
+        print(f"[AUTH0-USER] Token (first 50 chars): {request.token[:50]}...")
+
         # Verify token
+        print(f"[AUTH0-USER] Verifying token...")
         payload = verify_auth0_token(request.token)
+        print(f"[AUTH0-USER] ✓ Token verified")
+
         email = payload.get("email")
         email_verified = payload.get("email_verified", False)
         auth0_user_id = payload.get("sub")
 
+        print(f"[AUTH0-USER] Email: {email}")
+        print(f"[AUTH0-USER] Email verified: {email_verified}")
+        print(f"[AUTH0-USER] Auth0 user ID: {auth0_user_id}")
+
         if not email:
+            print(f"[AUTH0-USER] ✗ Email not found in token")
             raise HTTPException(
                 status_code=400,
                 detail="Email not found in token"
             )
 
         if not email_verified:
+            print(f"[AUTH0-USER] ✗ Email not verified in Auth0")
             raise HTTPException(
                 status_code=403,
                 detail="Email not verified. Please verify your email in Auth0 before accessing the system."
             )
 
         # Find user
+        print(f"[AUTH0-USER] Looking up user by email: {email}")
         user = db.query(User).filter(User.email == email).first()
 
         if not user:
+            print(f"[AUTH0-USER] ✗ User not found in database")
             raise HTTPException(
                 status_code=404,
                 detail="User not found"
             )
+
+        print(f"[AUTH0-USER] ✓ User found: {user.nome} {user.sobrenome}")
 
         # Sync Auth0 user ID and email verification status
         try:
@@ -403,10 +420,11 @@ def get_auth0_user(request: Auth0UserRequest, db: Session = Depends(get_db)):
             user.email_verified = email_verified
             db.commit()
             db.refresh(user)
+            print(f"[AUTH0-USER] ✓ User synced with Auth0")
         except Exception as e:
-            print(f"⚠️ Failed to sync user: {str(e)}")
+            print(f"[AUTH0-USER] ⚠️ Failed to sync user: {str(e)}")
             db.rollback()
-        
+
         # Parse sectors
         setores_list = []
         if getattr(user, "_setores", None):
@@ -414,8 +432,8 @@ def get_auth0_user(request: Auth0UserRequest, db: Session = Depends(get_db)):
                 setores_list = json.loads(getattr(user, "_setores", "[]"))
             except Exception:
                 setores_list = []
-        
-        return {
+
+        response = {
             "id": user.id,
             "nome": user.nome,
             "sobrenome": user.sobrenome,
@@ -423,11 +441,23 @@ def get_auth0_user(request: Auth0UserRequest, db: Session = Depends(get_db)):
             "nivel_acesso": user.nivel_acesso,
             "setores": setores_list,
         }
-        
+
+        print(f"[AUTH0-USER] ✓ Returning user data")
+        print(f"[AUTH0-USER]   - User ID: {response['id']}")
+        print(f"[AUTH0-USER]   - Name: {response['nome']} {response['sobrenome']}")
+        print(f"[AUTH0-USER]   - Email: {response['email']}")
+        print(f"{'='*60}\n")
+
+        return response
+
     except HTTPException:
+        print(f"[AUTH0-USER] HTTPException raised")
         raise
     except Exception as e:
-        print(f"❌ Error getting user: {str(e)}")
+        print(f"\n[AUTH0-USER] ✗ Unexpected error: {str(e)}")
+        print(f"[AUTH0-USER] Error type: {type(e).__name__}")
+        traceback.print_exc()
+        print(f"{'='*60}\n")
         raise HTTPException(
             status_code=500,
             detail="Error retrieving user"
