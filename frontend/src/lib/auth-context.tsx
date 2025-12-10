@@ -99,6 +99,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const handleAuth0Callback = async (code: string, state: string) => {
     try {
+      console.debug("[AUTH] Starting Auth0 code exchange...");
+      console.debug("[AUTH] Code:", code.substring(0, 20) + "...");
+      console.debug("[AUTH] Redirect URI:", import.meta.env.VITE_AUTH0_REDIRECT_URI);
+
       // Exchange code for token with backend (more secure than client-side exchange)
       const response = await fetch("/api/auth/auth0-exchange", {
         method: "POST",
@@ -111,12 +115,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }),
       });
 
+      console.debug("[AUTH] Exchange response status:", response.status);
+
       if (!response.ok) {
         const error = await response.json().catch(() => ({}));
+        console.error("[AUTH] ✗ Exchange failed:", error);
         throw new Error(error.detail || "Failed to exchange code for token");
       }
 
       const data = await response.json();
+      console.debug("[AUTH] ✓ Exchange successful, got user data");
+      console.debug("[AUTH] User email:", data.email);
+      console.debug("[AUTH] User level:", data.nivel_acesso);
+
       const accessToken = data.access_token;
 
       // Store token
@@ -140,6 +151,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       // Set user in state
       setUser(userData);
+      console.debug("[AUTH] ✓ User state updated");
 
       // Store in sessionStorage
       sessionStorage.setItem("evoque-fitness-auth", JSON.stringify(userData));
@@ -154,9 +166,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       sessionStorage.removeItem("auth0_redirect_after_login");
 
+      console.debug("[AUTH] ✓ Redirecting to:", redirectUrl);
       navigate(redirectUrl, { replace: true });
     } catch (error) {
-      console.error("Error handling Auth0 callback:", error);
+      console.error("[AUTH] ✗ Error handling Auth0 callback:", error);
       setUser(null);
       throw error;
     }
