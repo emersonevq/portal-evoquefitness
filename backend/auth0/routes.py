@@ -422,7 +422,7 @@ def get_auth0_user(request: Auth0UserRequest, db: Session = Depends(get_db)):
         payload = verify_auth0_token(request.token)
         print(f"[AUTH0-USER] ✓ Token verified")
 
-        email = payload.get("email")
+        email = payload.get("email") or payload.get("https://yourapp.com/email")
         email_verified = payload.get("email_verified", False)
         auth0_user_id = payload.get("sub")
 
