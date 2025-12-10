@@ -4,7 +4,7 @@ from pydantic import BaseModel
 from core.db import get_db
 from auth0.validator import verify_auth0_token
 from auth0.management import get_auth0_client
-from auth0.config import AUTH0_DOMAIN, AUTH0_CLIENT_ID, AUTH0_CLIENT_SECRET, AUTH0_TOKEN_URL, AUTH0_AUDIENCE
+from auth0.config import AUTH0_DOMAIN, AUTH0_CLIENT_ID, AUTH0_CLIENT_SECRET, AUTH0_TOKEN_URL, AUTH0_AUDIENCE, AUTH0_REQUIRE_EMAIL_VERIFIED
 from ti.models import User
 import json
 import traceback
