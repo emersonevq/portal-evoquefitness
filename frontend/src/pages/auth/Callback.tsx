@@ -27,7 +27,10 @@ export default function Callback() {
 
     // Wait for auth to be ready, then redirect
     if (!isLoading) {
-      console.debug("[CALLBACK] Auth loading complete, redirecting to:", redirect);
+      console.debug(
+        "[CALLBACK] Auth loading complete, redirecting to:",
+        redirect,
+      );
       const timer = setTimeout(() => {
         navigate(redirect, { replace: true });
       }, 500);

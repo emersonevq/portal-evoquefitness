@@ -71,14 +71,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const code = searchParams.get("code");
         const state = searchParams.get("state");
 
-        console.debug("[AUTH] Init - searchParams keys:", Array.from(searchParams.keys()));
+        console.debug(
+          "[AUTH] Init - searchParams keys:",
+          Array.from(searchParams.keys()),
+        );
         console.debug("[AUTH] Init - code:", code ? "present" : "missing");
         console.debug("[AUTH] Init - state:", state ? "present" : "missing");
         console.debug("[AUTH] Current pathname:", window.location.pathname);
         console.debug("[AUTH] Current search:", window.location.search);
 
         if (code && state) {
-          console.debug("[AUTH] ✓ Code and state found, initiating Auth0 callback");
+          console.debug(
+            "[AUTH] ✓ Code and state found, initiating Auth0 callback",
+          );
           // Handle Auth0 redirect - exchange code for token
           await handleAuth0Callback(code, state);
         } else {
@@ -101,7 +106,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       console.debug("[AUTH] Starting Auth0 code exchange...");
       console.debug("[AUTH] Code:", code.substring(0, 20) + "...");
-      console.debug("[AUTH] Redirect URI:", import.meta.env.VITE_AUTH0_REDIRECT_URI);
+      console.debug(
+        "[AUTH] Redirect URI:",
+        import.meta.env.VITE_AUTH0_REDIRECT_URI,
+      );
 
       // Exchange code for token with backend (more secure than client-side exchange)
       const response = await fetch("/api/auth/auth0-exchange", {
