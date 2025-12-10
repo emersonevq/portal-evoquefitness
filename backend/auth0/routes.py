@@ -192,9 +192,8 @@ def auth0_exchange(request: Auth0ExchangeRequest, db: Session = Depends(get_db))
         print(f"[AUTH0-EXCHANGE] ✓ Authentication successful")
         print(f"[AUTH0-EXCHANGE] User sectors: {setores_list}")
         print(f"[AUTH0-EXCHANGE] User access level: {user.nivel_acesso}")
-        print(f"{'='*60}\n")
 
-        return {
+        response = {
             "id": user.id,
             "nome": user.nome,
             "sobrenome": user.sobrenome,
@@ -205,10 +204,22 @@ def auth0_exchange(request: Auth0ExchangeRequest, db: Session = Depends(get_db))
             "access_token": access_token,
         }
 
+        print(f"[AUTH0-EXCHANGE] ✓ Returning response:")
+        print(f"[AUTH0-EXCHANGE]   - User ID: {response['id']}")
+        print(f"[AUTH0-EXCHANGE]   - Name: {response['nome']} {response['sobrenome']}")
+        print(f"[AUTH0-EXCHANGE]   - Email: {response['email']}")
+        print(f"[AUTH0-EXCHANGE]   - Access level: {response['nivel_acesso']}")
+        print(f"[AUTH0-EXCHANGE]   - Access token (first 30 chars): {response['access_token'][:30]}...")
+        print(f"{'='*60}\n")
+
+        return response
+
     except HTTPException:
+        print(f"[AUTH0-EXCHANGE] HTTPException raised")
         raise
     except Exception as e:
-        print(f"[AUTH0-EXCHANGE] ✗ Error: {str(e)}")
+        print(f"\n[AUTH0-EXCHANGE] ✗ Unexpected error: {str(e)}")
+        print(f"[AUTH0-EXCHANGE] Error type: {type(e).__name__}")
         traceback.print_exc()
         print(f"{'='*60}\n")
         raise HTTPException(
