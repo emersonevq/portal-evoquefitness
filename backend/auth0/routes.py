@@ -12,6 +12,20 @@ import requests
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 
+@router.get("/debug/config")
+def debug_config():
+    """
+    Debug endpoint to check Auth0 configuration (remove in production!)
+    """
+    return {
+        "auth0_domain": AUTH0_DOMAIN,
+        "auth0_audience": AUTH0_AUDIENCE,
+        "auth0_client_id": AUTH0_CLIENT_ID[:10] + "..." if AUTH0_CLIENT_ID else "NOT SET",
+        "auth0_client_secret_set": bool(AUTH0_CLIENT_SECRET),
+        "auth0_token_url": AUTH0_TOKEN_URL,
+    }
+
+
 @router.post("/auth0-exchange")
 def auth0_exchange(code: str, redirect_uri: str, db: Session = Depends(get_db)):
     """
