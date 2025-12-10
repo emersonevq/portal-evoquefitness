@@ -44,7 +44,7 @@ def debug_config():
 
 
 @router.post("/auth0-exchange")
-def auth0_exchange(code: str, redirect_uri: str, db: Session = Depends(get_db)):
+def auth0_exchange(request: Auth0ExchangeRequest, db: Session = Depends(get_db)):
     """
     Exchange Auth0 authorization code for access token (backend does this for security)
 
@@ -55,15 +55,14 @@ def auth0_exchange(code: str, redirect_uri: str, db: Session = Depends(get_db)):
     4. Returns user data and permissions
 
     Args:
-        code: Auth0 authorization code from callback
-        redirect_uri: The redirect URI used in the initial auth request
+        request: Auth0ExchangeRequest with code and redirect_uri
         db: Database session
     """
     try:
         print(f"\n{'='*60}")
         print(f"[AUTH0-EXCHANGE] ✓ Endpoint called")
-        print(f"[AUTH0-EXCHANGE] Code: {code[:20]}...")
-        print(f"[AUTH0-EXCHANGE] Redirect URI: {redirect_uri}")
+        print(f"[AUTH0-EXCHANGE] Code: {request.code[:20]}...")
+        print(f"[AUTH0-EXCHANGE] Redirect URI: {request.redirect_uri}")
 
         # Exchange code for token with Auth0 (done on backend for security)
         print(f"[AUTH0-EXCHANGE] Exchanging code with Auth0...")
