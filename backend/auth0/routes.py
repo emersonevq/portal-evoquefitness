@@ -1,15 +1,32 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from pydantic import BaseModel
 from core.db import get_db
 from auth0.validator import verify_auth0_token
 from auth0.management import get_auth0_client
-from auth0.config import AUTH0_DOMAIN, AUTH0_CLIENT_ID, AUTH0_CLIENT_SECRET, AUTH0_TOKEN_URL
+from auth0.config import AUTH0_DOMAIN, AUTH0_CLIENT_ID, AUTH0_CLIENT_SECRET, AUTH0_TOKEN_URL, AUTH0_AUDIENCE
 from ti.models import User
 import json
 import traceback
 import requests
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
+
+
+class Auth0ExchangeRequest(BaseModel):
+    """Request model for Auth0 code exchange"""
+    code: str
+    redirect_uri: str
+
+
+class Auth0LoginRequest(BaseModel):
+    """Request model for Auth0 login"""
+    token: str
+
+
+class Auth0UserRequest(BaseModel):
+    """Request model for getting Auth0 user"""
+    token: str
 
 
 @router.get("/debug/config")
