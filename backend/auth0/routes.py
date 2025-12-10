@@ -249,17 +249,24 @@ def auth0_exchange(request: Auth0ExchangeRequest, db: Session = Depends(get_db))
 
         return response
 
-    except HTTPException:
-        print(f"[AUTH0-EXCHANGE] HTTPException raised")
+    except HTTPException as http_ex:
+        print(f"\n[AUTH0-EXCHANGE] ❌ HTTPException raised")
+        print(f"[AUTH0-EXCHANGE] Status code: {http_ex.status_code}")
+        print(f"[AUTH0-EXCHANGE] Detail: {http_ex.detail}")
+        print(f"{'='*70}\n")
         raise
     except Exception as e:
-        print(f"\n[AUTH0-EXCHANGE] ✗ Unexpected error: {str(e)}")
+        print(f"\n[AUTH0-EXCHANGE] ❌ UNEXPECTED ERROR")
         print(f"[AUTH0-EXCHANGE] Error type: {type(e).__name__}")
+        print(f"[AUTH0-EXCHANGE] Error message: {str(e)}")
+        print(f"[AUTH0-EXCHANGE] Full traceback:")
         traceback.print_exc()
-        print(f"{'='*60}\n")
+        print(f"{'='*70}\n")
+
+        # Return 500 with detailed error
         raise HTTPException(
             status_code=500,
-            detail=f"Authentication error: {str(e)}"
+            detail=f"Backend error: {str(e)}"
         )
 
 
