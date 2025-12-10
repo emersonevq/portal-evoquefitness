@@ -297,7 +297,7 @@ def auth0_login(token: str, db: Session = Depends(get_db)):
 def get_auth0_user(token: str, db: Session = Depends(get_db)):
     """
     Get current authenticated user information
-    
+
     Args:
         token: Auth0 access token
         db: Database session
@@ -306,21 +306,39 @@ def get_auth0_user(token: str, db: Session = Depends(get_db)):
         # Verify token
         payload = verify_auth0_token(token)
         email = payload.get("email")
-        
+        email_verified = payload.get("email_verified", False)
+        auth0_user_id = payload.get("sub")
+
         if not email:
             raise HTTPException(
                 status_code=400,
                 detail="Email not found in token"
             )
-        
+
+        if not email_verified:
+            raise HTTPException(
+                status_code=403,
+                detail="Email not verified. Please verify your email in Auth0 before accessing the system."
+            )
+
         # Find user
         user = db.query(User).filter(User.email == email).first()
-        
+
         if not user:
             raise HTTPException(
                 status_code=404,
                 detail="User not found"
             )
+
+        # Sync Auth0 user ID and email verification status
+        try:
+            user.auth0_id = auth0_user_id
+            user.email_verified = email_verified
+            db.commit()
+            db.refresh(user)
+        except Exception as e:
+            print(f"⚠️ Failed to sync user: {str(e)}")
+            db.rollback()
         
         # Parse sectors
         setores_list = []
