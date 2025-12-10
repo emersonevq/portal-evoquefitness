@@ -315,7 +315,7 @@ def auth0_login(request: Auth0LoginRequest, db: Session = Depends(get_db)):
                 setores_list = json.loads(getattr(user, "_setores", "[]"))
             except Exception:
                 setores_list = []
-        
+
         # Parse BI subcategories
         bi_subcategories_list = None
         if getattr(user, "_bi_subcategories", None):
@@ -325,8 +325,8 @@ def auth0_login(request: Auth0LoginRequest, db: Session = Depends(get_db)):
                 )
             except Exception:
                 bi_subcategories_list = None
-        
-        return {
+
+        response = {
             "id": user.id,
             "nome": user.nome,
             "sobrenome": user.sobrenome,
@@ -335,12 +335,25 @@ def auth0_login(request: Auth0LoginRequest, db: Session = Depends(get_db)):
             "setores": setores_list,
             "bi_subcategories": bi_subcategories_list,
         }
-        
+
+        print(f"[AUTH0-LOGIN] ✓ Authentication successful")
+        print(f"[AUTH0-LOGIN] ✓ Returning response:")
+        print(f"[AUTH0-LOGIN]   - User ID: {response['id']}")
+        print(f"[AUTH0-LOGIN]   - Name: {response['nome']} {response['sobrenome']}")
+        print(f"[AUTH0-LOGIN]   - Email: {response['email']}")
+        print(f"[AUTH0-LOGIN]   - Access level: {response['nivel_acesso']}")
+        print(f"{'='*60}\n")
+
+        return response
+
     except HTTPException:
+        print(f"[AUTH0-LOGIN] HTTPException raised")
         raise
     except Exception as e:
-        print(f"❌ Auth0 login error: {str(e)}")
+        print(f"\n[AUTH0-LOGIN] ✗ Unexpected error: {str(e)}")
+        print(f"[AUTH0-LOGIN] Error type: {type(e).__name__}")
         traceback.print_exc()
+        print(f"{'='*60}\n")
         raise HTTPException(
             status_code=500,
             detail=f"Authentication error: {str(e)}"
