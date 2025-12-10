@@ -447,17 +447,6 @@ def get_auth0_user(request: Auth0UserRequest, db: Session = Depends(get_db)):
 
         print(f"[AUTH0-USER] ✓ User found: {user.nome} {user.sobrenome}")
 
-        # Sync Auth0 user ID and email verification status
-        try:
-            user.auth0_id = auth0_user_id
-            user.email_verified = email_verified
-            db.commit()
-            db.refresh(user)
-            print(f"[AUTH0-USER] ✓ User synced with Auth0")
-        except Exception as e:
-            print(f"[AUTH0-USER] ⚠️ Failed to sync user: {str(e)}")
-            db.rollback()
-
         # Parse sectors
         setores_list = []
         if getattr(user, "_setores", None):
