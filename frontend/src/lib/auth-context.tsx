@@ -88,7 +88,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           await handleAuth0Callback(code, state);
         } else {
           console.debug("[AUTH] No code/state, checking existing session");
-          // Check for existing session
+          // Check for existing session in sessionStorage
           await checkExistingSession();
         }
       } catch (error) {
@@ -158,9 +158,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const accessToken = data.access_token;
 
-      // Store token
-      localStorage.setItem("auth0_access_token", accessToken);
-
       // Create user object from response
       const now = Date.now();
       const userData: User = {
@@ -177,11 +174,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loginTime: now,
       };
 
+      // Create session in database via backend
+      console.debug("[AUTH] Creating session in database...");
+      const sessionResponse = await fetch("/api/auth/session/create", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          user_id: data.id,
+          access_token: accessToken,
+          expires_in: 86400, // 24 hours
+        }),
+      });
+
+      if (!sessionResponse.ok) {
+        const error = await sessionResponse.json().catch(() => ({}));
+        console.error("[AUTH] ✗ Session creation failed:", error);
+        throw new Error(error.detail || "Failed to create session");
+      }
+
+      const sessionData = await sessionResponse.json();
+      console.debug("[AUTH] ✓ Session created in database");
+      console.debug("[AUTH] Session token:", sessionData.session_token.substring(0, 20) + "...");
+
+      // Store session token in sessionStorage (NOT localStorage)
+      sessionStorage.setItem("auth_session_token", sessionData.session_token);
+      sessionStorage.setItem("auth_expires_at", sessionData.expires_at);
+
       // Set user in state
       setUser(userData);
       console.debug("[AUTH] ✓ User state updated");
 
-      // Store in sessionStorage
+      // Store user data in sessionStorage
       sessionStorage.setItem("evoque-fitness-auth", JSON.stringify(userData));
 
       // Get redirect URL - usar a que foi armazenada ou gerar automática
@@ -211,76 +236,74 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const checkExistingSession = async () => {
     try {
-      const token = localStorage.getItem("auth0_access_token");
-      if (!token) {
+      const sessionToken = sessionStorage.getItem("auth_session_token");
+      const expiresAt = sessionStorage.getItem("auth_expires_at");
+
+      if (!sessionToken || !expiresAt) {
+        console.debug("[AUTH] No session found in sessionStorage");
         setUser(null);
         return;
       }
 
-      // Validate token with backend
-      await validateAndSyncUser(token);
-    } catch (error) {
-      console.error("Error checking session:", error);
-      localStorage.removeItem("auth0_access_token");
-      setUser(null);
-    }
-  };
+      // Check if session is expired
+      const now = new Date();
+      const expiration = new Date(expiresAt);
+      if (now >= expiration) {
+        console.debug("[AUTH] Session expired");
+        sessionStorage.removeItem("auth_session_token");
+        sessionStorage.removeItem("auth_expires_at");
+        sessionStorage.removeItem("evoque-fitness-auth");
+        setUser(null);
+        return;
+      }
 
-  const validateAndSyncUser = async (
-    accessToken: string,
-  ): Promise<User | null> => {
-    try {
-      // Call backend to validate token and get user data
-      const response = await fetch("/api/auth/auth0-login", {
+      // Validate session with backend
+      const response = await fetch("/api/auth/session/validate", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
         },
-        body: JSON.stringify({ token: accessToken }),
+        body: JSON.stringify({
+          session_token: sessionToken,
+        }),
       });
 
       if (!response.ok) {
-        if (response.status === 403) {
-          console.error("User not authorized");
-        } else {
-          console.error("Error validating with backend:", response.status);
+        console.error("[AUTH] Session validation failed");
+        sessionStorage.removeItem("auth_session_token");
+        sessionStorage.removeItem("auth_expires_at");
+        sessionStorage.removeItem("evoque-fitness-auth");
+        setUser(null);
+        return;
+      }
+
+      const validationData = await response.json();
+
+      if (!validationData.is_valid) {
+        console.debug("[AUTH] Session is invalid");
+        sessionStorage.removeItem("auth_session_token");
+        sessionStorage.removeItem("auth_expires_at");
+        sessionStorage.removeItem("evoque-fitness-auth");
+        setUser(null);
+        return;
+      }
+
+      // Restore user from sessionStorage
+      const userDataRaw = sessionStorage.getItem("evoque-fitness-auth");
+      if (userDataRaw) {
+        try {
+          const userData = JSON.parse(userDataRaw) as User;
+          setUser(userData);
+          console.debug("[AUTH] ✓ Session restored from sessionStorage");
+        } catch (e) {
+          console.error("[AUTH] Failed to parse user data from sessionStorage:", e);
+          sessionStorage.removeItem("evoque-fitness-auth");
+          setUser(null);
         }
-        throw new Error("Validation failed");
       }
-
-      const data = await response.json();
-      const now = Date.now();
-
-      const userData: User = {
-        id: data.id,
-        email: data.email,
-        name: `${data.nome} ${data.sobrenome}`,
-        firstName: data.nome,
-        lastName: data.sobrenome,
-        nivel_acesso: data.nivel_acesso,
-        setores: Array.isArray(data.setores) ? data.setores : [],
-        bi_subcategories: Array.isArray(data.bi_subcategories)
-          ? data.bi_subcategories
-          : null,
-        loginTime: now,
-      };
-
-      setUser(userData);
-
-      // Store in sessionStorage
-      sessionStorage.setItem("evoque-fitness-auth", JSON.stringify(userData));
-
-      // Determinar redirecionamento automático baseado no nível de acesso
-      const autoRedirect = getAutoRedirectUrl(userData);
-      if (autoRedirect) {
-        sessionStorage.setItem("auth0_redirect_after_login", autoRedirect);
-      }
-
-      return userData;
     } catch (error) {
-      console.error("Error syncing user:", error);
-      throw error;
+      console.error("[AUTH] Error checking session:", error);
+      setUser(null);
     }
   };
 
@@ -371,8 +394,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Logout
   const logout = async () => {
     try {
-      // Clear local storage
-      localStorage.removeItem("auth0_access_token");
+      // Get session token before clearing
+      const sessionToken = sessionStorage.getItem("auth_session_token");
+
+      // Revoke session in database if it exists
+      if (sessionToken) {
+        try {
+          await fetch("/api/auth/session/revoke", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              session_token: sessionToken,
+            }),
+          }).catch((e) => console.error("[AUTH] Failed to revoke session:", e));
+        } catch (e) {
+          console.error("[AUTH] Failed to revoke session:", e);
+        }
+      }
+
+      // Clear sessionStorage
+      sessionStorage.removeItem("auth_session_token");
+      sessionStorage.removeItem("auth_expires_at");
       sessionStorage.removeItem("evoque-fitness-auth");
       sessionStorage.removeItem("auth0_redirect_after_login");
 
@@ -400,7 +444,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const getAccessToken = () => {
-    return localStorage.getItem("auth0_access_token");
+    return sessionStorage.getItem("auth_session_token");
   };
 
   const contextValue: AuthContextType = {
