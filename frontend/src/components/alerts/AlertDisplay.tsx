@@ -65,7 +65,7 @@ export default function AlertDisplay() {
 
   useEffect(() => {
     loadAlerts();
-    const dismissed = localStorage.getItem("dismissedAlerts");
+    const dismissed = sessionStorage.getItem("dismissedAlerts");
     if (dismissed) {
       try {
         setDismissedAlerts(JSON.parse(dismissed));
