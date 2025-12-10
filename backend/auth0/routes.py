@@ -160,6 +160,7 @@ def auth0_exchange(request: Auth0ExchangeRequest, db: Session = Depends(get_db))
         print(f"[AUTH0-EXCHANGE] Email from token: {email}")
         print(f"[AUTH0-EXCHANGE] Email verified: {email_verified}")
         print(f"[AUTH0-EXCHANGE] Auth0 user ID: {auth0_user_id}")
+        print(f"[AUTH0-EXCHANGE] Require email verified: {AUTH0_REQUIRE_EMAIL_VERIFIED}")
 
         if not email:
             print(f"[AUTH0-EXCHANGE] ✗ Email not found in token")
@@ -168,12 +169,15 @@ def auth0_exchange(request: Auth0ExchangeRequest, db: Session = Depends(get_db))
                 detail="Email not found in token"
             )
 
-        if not email_verified:
+        if AUTH0_REQUIRE_EMAIL_VERIFIED and not email_verified:
             print(f"[AUTH0-EXCHANGE] ✗ Email not verified in Auth0")
             raise HTTPException(
                 status_code=403,
                 detail="Email not verified. Please verify your email in Auth0 before accessing the system."
             )
+
+        if not email_verified:
+            print(f"[AUTH0-EXCHANGE] ⚠️  Email not verified, but AUTH0_REQUIRE_EMAIL_VERIFIED is False - allowing login")
 
         # Find user in database
         print(f"[AUTH0-EXCHANGE] Looking up user by email: {email}")
