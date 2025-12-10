@@ -296,8 +296,8 @@ def auth0_login(request: Auth0LoginRequest, db: Session = Depends(get_db)):
         payload = verify_auth0_token(request.token)
         print(f"[AUTH0-LOGIN] ✓ Token verified")
 
-        # Get email from token
-        email = payload.get("email")
+        # Get email from token (try both standard and namespaced claims)
+        email = payload.get("email") or payload.get("https://yourapp.com/email")
         email_verified = payload.get("email_verified", False)
         auth0_user_id = payload.get("sub")
 
