@@ -69,6 +69,8 @@ def auth0_exchange(request: Auth0ExchangeRequest, db: Session = Depends(get_db))
         print(f"[AUTH0-EXCHANGE] Token URL: {AUTH0_TOKEN_URL}")
         print(f"[AUTH0-EXCHANGE] Client ID: {AUTH0_CLIENT_ID[:10]}...")
 
+        print(f"[AUTH0-EXCHANGE] Request body: code={request.code[:20]}..., redirect_uri={request.redirect_uri}")
+
         token_response = requests.post(
             AUTH0_TOKEN_URL,
             json={
@@ -82,6 +84,7 @@ def auth0_exchange(request: Auth0ExchangeRequest, db: Session = Depends(get_db))
         )
 
         print(f"[AUTH0-EXCHANGE] Token response status: {token_response.status_code}")
+        print(f"[AUTH0-EXCHANGE] Response headers: {dict(token_response.headers)}")
 
         if not token_response.ok:
             error_data = token_response.json()
@@ -92,16 +95,21 @@ def auth0_exchange(request: Auth0ExchangeRequest, db: Session = Depends(get_db))
             )
 
         token_data = token_response.json()
+        print(f"[AUTH0-EXCHANGE] Token response keys: {list(token_data.keys())}")
+        print(f"[AUTH0-EXCHANGE] Full response: {token_data}")
+
         access_token = token_data.get("access_token")
 
         if not access_token:
             print(f"[AUTH0-EXCHANGE] ✗ No access token in response")
+            print(f"[AUTH0-EXCHANGE] Available keys: {list(token_data.keys())}")
             raise HTTPException(
                 status_code=400,
                 detail="No access token in response"
             )
 
         print(f"[AUTH0-EXCHANGE] ✓ Got access token: {access_token[:20]}...")
+        print(f"[AUTH0-EXCHANGE] Access token length: {len(access_token)}")
 
         # Verify token and extract payload
         print(f"[AUTH0-EXCHANGE] Verifying token...")
