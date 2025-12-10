@@ -1,6 +1,10 @@
 import requests
 from functools import lru_cache
 from jose import jwt, JWTError, jwk
+from cryptography import x509
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import serialization
+import base64
 from fastapi import HTTPException, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from .config import (
@@ -78,11 +82,24 @@ def verify_auth0_token(token: str) -> dict:
         print(f"[JWT-VALIDATOR] ✓ Signing key obtained")
         print(f"[JWT-VALIDATOR] Signing key data: {signing_key_dict.get('kty')}, kid={signing_key_dict.get('kid')}")
 
-        # Build the key for verification (convert JWK to RSA key using python-jose)
+        # Build the key for verification using X.509 certificate
         print(f"[JWT-VALIDATOR] Converting JWK to RSA key...")
         try:
-            key = jwk.construct(signing_key_dict, 'RSA')
-            print(f"[JWT-VALIDATOR] ✓ RSA key created successfully")
+            # Try to extract public key from X.509 certificate (x5c[0])
+            if "x5c" in signing_key_dict and signing_key_dict["x5c"]:
+                cert_data = base64.b64decode(signing_key_dict["x5c"][0])
+                cert = x509.load_der_x509_certificate(cert_data, default_backend())
+                public_key = cert.public_key()
+                # Convert to PEM format for python-jose
+                key = public_key.public_bytes(
+                    encoding=serialization.Encoding.PEM,
+                    format=serialization.PublicFormat.SubjectPublicKeyInfo
+                )
+                print(f"[JWT-VALIDATOR] ✓ RSA key extracted from X.509 certificate")
+            else:
+                # Fallback: try to construct from JWK
+                key = jwk.construct(signing_key_dict, 'RSA')
+                print(f"[JWT-VALIDATOR] ✓ RSA key created successfully from JWK")
         except Exception as e:
             print(f"[JWT-VALIDATOR] ❌ Failed to construct RSA key: {str(e)}")
             raise HTTPException(

@@ -4,7 +4,7 @@ from pydantic import BaseModel
 from core.db import get_db
 from auth0.validator import verify_auth0_token
 from auth0.management import get_auth0_client
-from auth0.config import AUTH0_DOMAIN, AUTH0_CLIENT_ID, AUTH0_CLIENT_SECRET, AUTH0_TOKEN_URL, AUTH0_AUDIENCE
+from auth0.config import AUTH0_DOMAIN, AUTH0_CLIENT_ID, AUTH0_CLIENT_SECRET, AUTH0_TOKEN_URL, AUTH0_AUDIENCE, AUTH0_REQUIRE_EMAIL_VERIFIED
 from ti.models import User
 import json
 import traceback
@@ -152,13 +152,15 @@ def auth0_exchange(request: Auth0ExchangeRequest, db: Session = Depends(get_db))
         print(f"[AUTH0-EXCHANGE] ✓ Token verified")
         print(f"[AUTH0-EXCHANGE] Token payload keys: {list(payload.keys())}")
 
-        email = payload.get("email")
+        # Extract email from Auth0 namespaced claim or standard claim
+        email = payload.get("email") or payload.get("https://yourapp.com/email")
         email_verified = payload.get("email_verified", False)
         auth0_user_id = payload.get("sub")
 
         print(f"[AUTH0-EXCHANGE] Email from token: {email}")
         print(f"[AUTH0-EXCHANGE] Email verified: {email_verified}")
         print(f"[AUTH0-EXCHANGE] Auth0 user ID: {auth0_user_id}")
+        print(f"[AUTH0-EXCHANGE] Require email verified: {AUTH0_REQUIRE_EMAIL_VERIFIED}")
 
         if not email:
             print(f"[AUTH0-EXCHANGE] ✗ Email not found in token")
@@ -167,12 +169,15 @@ def auth0_exchange(request: Auth0ExchangeRequest, db: Session = Depends(get_db))
                 detail="Email not found in token"
             )
 
-        if not email_verified:
+        if AUTH0_REQUIRE_EMAIL_VERIFIED and not email_verified:
             print(f"[AUTH0-EXCHANGE] ✗ Email not verified in Auth0")
             raise HTTPException(
                 status_code=403,
                 detail="Email not verified. Please verify your email in Auth0 before accessing the system."
             )
+
+        if not email_verified:
+            print(f"[AUTH0-EXCHANGE] ⚠️  Email not verified, but AUTH0_REQUIRE_EMAIL_VERIFIED is False - allowing login")
 
         # Find user in database
         print(f"[AUTH0-EXCHANGE] Looking up user by email: {email}")
@@ -194,17 +199,6 @@ def auth0_exchange(request: Auth0ExchangeRequest, db: Session = Depends(get_db))
                 status_code=403,
                 detail="User is blocked. Contact administrator."
             )
-
-        # Sync Auth0 user ID and email verification status
-        try:
-            user.auth0_id = auth0_user_id
-            user.email_verified = email_verified
-            db.commit()
-            db.refresh(user)
-            print(f"[AUTH0-EXCHANGE] ✓ User auth0_id and email_verified synced")
-        except Exception as e:
-            print(f"[AUTH0-EXCHANGE] ⚠️ Failed to sync user: {str(e)}")
-            db.rollback()
 
         # Parse user sectors
         setores_list = []
@@ -295,14 +289,15 @@ def auth0_login(request: Auth0LoginRequest, db: Session = Depends(get_db)):
         payload = verify_auth0_token(request.token)
         print(f"[AUTH0-LOGIN] ✓ Token verified")
 
-        # Get email from token
-        email = payload.get("email")
+        # Get email from token (try both standard and namespaced claims)
+        email = payload.get("email") or payload.get("https://yourapp.com/email")
         email_verified = payload.get("email_verified", False)
         auth0_user_id = payload.get("sub")
 
         print(f"[AUTH0-LOGIN] Email: {email}")
         print(f"[AUTH0-LOGIN] Email verified: {email_verified}")
         print(f"[AUTH0-LOGIN] Auth0 user ID: {auth0_user_id}")
+        print(f"[AUTH0-LOGIN] Require email verified: {AUTH0_REQUIRE_EMAIL_VERIFIED}")
 
         if not email:
             print(f"[AUTH0-LOGIN] ✗ Email not found in token")
@@ -311,12 +306,15 @@ def auth0_login(request: Auth0LoginRequest, db: Session = Depends(get_db)):
                 detail="Email not found in token"
             )
 
-        if not email_verified:
+        if AUTH0_REQUIRE_EMAIL_VERIFIED and not email_verified:
             print(f"[AUTH0-LOGIN] ✗ Email not verified in Auth0")
             raise HTTPException(
                 status_code=403,
                 detail="Email not verified. Please verify your email in Auth0 before accessing the system."
             )
+
+        if not email_verified:
+            print(f"[AUTH0-LOGIN] ⚠️  Email not verified, but AUTH0_REQUIRE_EMAIL_VERIFIED is False - allowing login")
 
         # Find user in database
         print(f"[AUTH0-LOGIN] Looking up user by email: {email}")
@@ -338,17 +336,6 @@ def auth0_login(request: Auth0LoginRequest, db: Session = Depends(get_db)):
                 status_code=403,
                 detail="User is blocked. Contact administrator."
             )
-
-        # Sync Auth0 user ID and email verification status
-        try:
-            user.auth0_id = auth0_user_id
-            user.email_verified = email_verified
-            db.commit()
-            db.refresh(user)
-            print(f"[AUTH0-LOGIN] ✓ User synced with Auth0")
-        except Exception as e:
-            print(f"[AUTH0-LOGIN] ⚠️ Failed to sync user: {str(e)}")
-            db.rollback()
         
         # Parse user sectors
         setores_list = []
@@ -421,13 +408,14 @@ def get_auth0_user(request: Auth0UserRequest, db: Session = Depends(get_db)):
         payload = verify_auth0_token(request.token)
         print(f"[AUTH0-USER] ✓ Token verified")
 
-        email = payload.get("email")
+        email = payload.get("email") or payload.get("https://yourapp.com/email")
         email_verified = payload.get("email_verified", False)
         auth0_user_id = payload.get("sub")
 
         print(f"[AUTH0-USER] Email: {email}")
         print(f"[AUTH0-USER] Email verified: {email_verified}")
         print(f"[AUTH0-USER] Auth0 user ID: {auth0_user_id}")
+        print(f"[AUTH0-USER] Require email verified: {AUTH0_REQUIRE_EMAIL_VERIFIED}")
 
         if not email:
             print(f"[AUTH0-USER] ✗ Email not found in token")
@@ -436,12 +424,15 @@ def get_auth0_user(request: Auth0UserRequest, db: Session = Depends(get_db)):
                 detail="Email not found in token"
             )
 
-        if not email_verified:
+        if AUTH0_REQUIRE_EMAIL_VERIFIED and not email_verified:
             print(f"[AUTH0-USER] ✗ Email not verified in Auth0")
             raise HTTPException(
                 status_code=403,
                 detail="Email not verified. Please verify your email in Auth0 before accessing the system."
             )
+
+        if not email_verified:
+            print(f"[AUTH0-USER] ⚠️  Email not verified, but AUTH0_REQUIRE_EMAIL_VERIFIED is False - allowing login")
 
         # Find user
         print(f"[AUTH0-USER] Looking up user by email: {email}")
@@ -455,17 +446,6 @@ def get_auth0_user(request: Auth0UserRequest, db: Session = Depends(get_db)):
             )
 
         print(f"[AUTH0-USER] ✓ User found: {user.nome} {user.sobrenome}")
-
-        # Sync Auth0 user ID and email verification status
-        try:
-            user.auth0_id = auth0_user_id
-            user.email_verified = email_verified
-            db.commit()
-            db.refresh(user)
-            print(f"[AUTH0-USER] ✓ User synced with Auth0")
-        except Exception as e:
-            print(f"[AUTH0-USER] ⚠️ Failed to sync user: {str(e)}")
-            db.rollback()
 
         # Parse sectors
         setores_list = []

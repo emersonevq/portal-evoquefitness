@@ -94,13 +94,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } catch (error) {
         console.error("[AUTH] ✗ Error initializing auth:", error);
         setUser(null);
+        // If callback failed, redirect to login page
+        if (window.location.pathname === "/auth/callback") {
+          console.debug("[AUTH] Redirecting to login due to callback error");
+          navigate("/auth0/login", { replace: true });
+        }
       } finally {
         setIsLoading(false);
       }
     };
 
+    // Set timeout to prevent infinite loading
+    const timeoutId = setTimeout(() => {
+      if (window.location.pathname === "/auth/callback") {
+        console.error("[AUTH] Callback timeout - redirecting to login");
+        setIsLoading(false);
+        navigate("/auth0/login", { replace: true });
+      }
+    }, 10000); // 10 second timeout
+
     initAuth0();
-  }, [searchParams]);
+
+    return () => clearTimeout(timeoutId);
+  }, [searchParams, navigate]);
 
   const handleAuth0Callback = async (code: string, state: string) => {
     try {
@@ -135,6 +151,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.debug("[AUTH] ✓ Exchange successful, got user data");
       console.debug("[AUTH] User email:", data.email);
       console.debug("[AUTH] User level:", data.nivel_acesso);
+
+      if (!data.email) {
+        throw new Error("Email not found in response");
+      }
 
       const accessToken = data.access_token;
 
@@ -175,9 +195,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       sessionStorage.removeItem("auth0_redirect_after_login");
 
       console.debug("[AUTH] ✓ Redirecting to:", redirectUrl);
-      navigate(redirectUrl, { replace: true });
+      console.log("[AUTH] ✓ Auth success, navigating to:", redirectUrl);
+
+      // Use setTimeout to ensure state update completes before navigation
+      setTimeout(() => {
+        navigate(redirectUrl, { replace: true });
+      }, 0);
     } catch (error) {
       console.error("[AUTH] ✗ Error handling Auth0 callback:", error);
+      console.error("[AUTH] Error details:", (error as any)?.message || error);
       setUser(null);
       throw error;
     }
