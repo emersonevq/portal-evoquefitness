@@ -20,8 +20,8 @@ const msalConfig = {
     redirectUri: redirectUri || window.location.origin,
   },
   cache: {
-    cacheLocation: "localStorage",
-    storeAuthStateInCookie: false,
+    cacheLocation: "sessionStorage",
+    storeAuthStateInCookie: true,
   },
   system: {
     loggerOptions: {
