@@ -91,27 +91,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const handleAuth0Callback = async (code: string, state: string) => {
     try {
-      // Exchange code for token with Auth0
-      const response = await fetch(
-        "https://" + import.meta.env.VITE_AUTH0_DOMAIN + "/oauth/token",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            client_id: import.meta.env.VITE_AUTH0_CLIENT_ID,
-            client_secret: import.meta.env.VITE_AUTH0_CLIENT_SECRET,
-            code: code,
-            grant_type: "authorization_code",
-            redirect_uri: import.meta.env.VITE_AUTH0_REDIRECT_URI,
-            state: state,
-          }),
+      // Exchange code for token with backend (more secure than client-side exchange)
+      const response = await fetch("/api/auth/auth0-exchange", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
         },
-      );
+        body: JSON.stringify({
+          code: code,
+          redirect_uri: import.meta.env.VITE_AUTH0_REDIRECT_URI,
+        }),
+      });
 
       if (!response.ok) {
-        throw new Error("Failed to exchange code for token");
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.detail || "Failed to exchange code for token");
       }
 
       const data = await response.json();
@@ -120,12 +114,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Store token
       localStorage.setItem("auth0_access_token", accessToken);
 
-      // Validate token with backend e obter dados do usuário
-      const userData = await validateAndSyncUser(accessToken);
+      // Create user object from response
+      const now = Date.now();
+      const userData: User = {
+        id: data.id,
+        email: data.email,
+        name: `${data.nome} ${data.sobrenome}`,
+        firstName: data.nome,
+        lastName: data.sobrenome,
+        nivel_acesso: data.nivel_acesso,
+        setores: Array.isArray(data.setores) ? data.setores : [],
+        bi_subcategories: Array.isArray(data.bi_subcategories)
+          ? data.bi_subcategories
+          : null,
+        loginTime: now,
+      };
+
+      // Set user in state
+      setUser(userData);
+
+      // Store in sessionStorage
+      sessionStorage.setItem("evoque-fitness-auth", JSON.stringify(userData));
 
       // Get redirect URL - usar a que foi armazenada ou gerar automática
       let redirectUrl = sessionStorage.getItem("auth0_redirect_after_login");
-      if (!redirectUrl && userData) {
+      if (!redirectUrl) {
         // Se não houver redirecionamento armazenado, usar o automático baseado no nível de acesso
         redirectUrl = getAutoRedirectUrl(userData) || "/";
       }
@@ -136,6 +149,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       navigate(redirectUrl, { replace: true });
     } catch (error) {
       console.error("Error handling Auth0 callback:", error);
+      setUser(null);
       throw error;
     }
   };
