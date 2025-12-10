@@ -308,6 +308,7 @@ def auth0_login(request: Auth0LoginRequest, db: Session = Depends(get_db)):
         print(f"[AUTH0-LOGIN] Email: {email}")
         print(f"[AUTH0-LOGIN] Email verified: {email_verified}")
         print(f"[AUTH0-LOGIN] Auth0 user ID: {auth0_user_id}")
+        print(f"[AUTH0-LOGIN] Require email verified: {AUTH0_REQUIRE_EMAIL_VERIFIED}")
 
         if not email:
             print(f"[AUTH0-LOGIN] ✗ Email not found in token")
@@ -316,12 +317,15 @@ def auth0_login(request: Auth0LoginRequest, db: Session = Depends(get_db)):
                 detail="Email not found in token"
             )
 
-        if not email_verified:
+        if AUTH0_REQUIRE_EMAIL_VERIFIED and not email_verified:
             print(f"[AUTH0-LOGIN] ✗ Email not verified in Auth0")
             raise HTTPException(
                 status_code=403,
                 detail="Email not verified. Please verify your email in Auth0 before accessing the system."
             )
+
+        if not email_verified:
+            print(f"[AUTH0-LOGIN] ⚠️  Email not verified, but AUTH0_REQUIRE_EMAIL_VERIFIED is False - allowing login")
 
         # Find user in database
         print(f"[AUTH0-LOGIN] Looking up user by email: {email}")
