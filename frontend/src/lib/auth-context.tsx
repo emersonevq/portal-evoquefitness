@@ -31,6 +31,35 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Helper function: generates a cryptographically secure random string for state parameter
+function generateSecureState(): string {
+  const array = new Uint8Array(32);
+  crypto.getRandomValues(array);
+  return Array.from(array, (byte) => byte.toString(16).padStart(2, "0")).join(
+    "",
+  );
+}
+
+// Helper function: generates PKCE code verifier and challenge
+function generatePKCE(): { verifier: string; challenge: string } {
+  const array = new Uint8Array(32);
+  crypto.getRandomValues(array);
+  const verifier = Array.from(array, (byte) =>
+    byte.toString(16).padStart(2, "0"),
+  ).join("");
+
+  // Create challenge from verifier using SHA256
+  const buffer = new TextEncoder().encode(verifier);
+  return crypto.subtle.digest("SHA-256", buffer).then((hashBuffer) => {
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const challenge = btoa(String.fromCharCode.apply(null, hashArray))
+      .replace(/\+/g, "-")
+      .replace(/\//g, "_")
+      .replace(/=/g, "");
+    return { verifier, challenge };
+  }) as any;
+}
+
 // Helper function: determina para onde redirecionar baseado no nível de acesso
 function getAutoRedirectUrl(user: User): string | null {
   if (!user.nivel_acesso) return null;
@@ -63,14 +92,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  // Attempt silent authentication with Auth0
+  // Check if there's an existing Auth0 session cookie (for SSO between portals)
   const attemptSilentAuth = async (): Promise<boolean> => {
     try {
-      console.debug("[AUTH] Attempting silent authentication with Auth0...");
+      console.debug(
+        "[AUTH] Checking for existing Auth0 session (SSO between portals)...",
+      );
 
+      // Build Auth0 authorization URL with prompt=none to check session without showing login UI
+      // This only works if there's already a session in Auth0 from login on another portal
       const authorizationUrl = new URL(
         `https://${import.meta.env.VITE_AUTH0_DOMAIN}/authorize`,
       );
+
+      const state = generateSecureState();
+      sessionStorage.setItem("auth_state_sso", state);
 
       const params = {
         response_type: "code",
@@ -78,50 +114,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         redirect_uri: import.meta.env.VITE_AUTH0_REDIRECT_URI,
         scope: "openid profile email offline_access",
         audience: import.meta.env.VITE_AUTH0_AUDIENCE,
-        state: Math.random().toString(36).substring(7),
-        prompt: "none", // Critical: don't show login UI if not authenticated
+        state: state,
+        prompt: "none", // Don't show login UI if already authenticated
       };
 
       Object.entries(params).forEach(([key, value]) => {
         authorizationUrl.searchParams.append(key, value);
       });
 
-      // Use fetch with a timeout to handle failure gracefully
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
-
-      try {
-        const response = await fetch(authorizationUrl.toString(), {
-          method: "GET",
-          signal: controller.signal,
-        });
-
-        clearTimeout(timeoutId);
-
-        if (response.ok) {
-          console.debug(
-            "[AUTH] ✓ Silent auth successful, redirecting to Auth0",
-          );
-          // Auth0 will redirect to callback with code
-          // This will be handled by the next useEffect
-          return true;
-        } else {
-          console.debug(
-            "[AUTH] Silent auth returned non-200 status:",
-            response.status,
-          );
-          return false;
-        }
-      } catch (e) {
-        clearTimeout(timeoutId);
-        console.debug(
-          "[AUTH] Silent auth fetch failed (expected if not authenticated):",
-          e,
-        );
-        return false;
-      }
+      // Navigate directly to Auth0 authorize endpoint
+      // This will redirect back to callback URL if session exists
+      window.location.href = authorizationUrl.toString();
+      return true;
     } catch (error) {
-      console.debug("[AUTH] Silent auth attempt failed:", error);
+      console.debug("[AUTH] Silent auth check failed:", error);
       return false;
     }
   };
@@ -133,6 +139,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Check if returning from Auth0 callback
         const code = searchParams.get("code");
         const state = searchParams.get("state");
+        const error = searchParams.get("error");
+        const errorDescription = searchParams.get("error_description");
 
         console.debug(
           "[AUTH] Init - searchParams keys:",
@@ -140,13 +148,63 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         );
         console.debug("[AUTH] Init - code:", code ? "present" : "missing");
         console.debug("[AUTH] Init - state:", state ? "present" : "missing");
+        console.debug("[AUTH] Init - error:", error || "none");
         console.debug("[AUTH] Current pathname:", window.location.pathname);
-        console.debug("[AUTH] Current search:", window.location.search);
+
+        if (error) {
+          console.error(
+            "[AUTH] Auth0 returned error:",
+            error,
+            errorDescription,
+          );
+          // Clear any SSO state on error
+          sessionStorage.removeItem("auth_state_sso");
+
+          // If error is login_required, it means no session exists for SSO
+          if (error === "login_required") {
+            console.debug(
+              "[AUTH] No Auth0 session found (expected for first login)",
+            );
+            setIsLoading(false);
+            return;
+          }
+
+          // For other errors, redirect to login
+          setIsLoading(false);
+          navigate("/auth0/login", { replace: true });
+          return;
+        }
 
         if (code && state) {
           console.debug(
             "[AUTH] ✓ Code and state found, initiating Auth0 callback",
           );
+
+          // Validate state parameter for security
+          const storedState = sessionStorage.getItem("auth_state");
+          const storedSSOState = sessionStorage.getItem("auth_state_sso");
+          const isValidState =
+            (storedState && state === storedState) ||
+            (storedSSOState && state === storedSSOState);
+
+          if (!isValidState) {
+            console.error(
+              "[AUTH] ✗ State parameter mismatch - possible CSRF attack",
+            );
+            console.error(
+              "[AUTH] Expected state:",
+              storedState || storedSSOState,
+            );
+            console.error("[AUTH] Received state:", state);
+            throw new Error("Invalid state parameter - CSRF validation failed");
+          }
+
+          console.debug("[AUTH] ✓ State parameter validated");
+
+          // Clean up state from storage
+          sessionStorage.removeItem("auth_state");
+          sessionStorage.removeItem("auth_state_sso");
+
           // Handle Auth0 redirect - exchange code for token
           await handleAuth0Callback(code, state);
         } else {
@@ -154,17 +212,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // Check for existing session in sessionStorage
           const hasSession = await checkExistingSession();
 
-          // If no local session and not in callback page, attempt silent auth
-          if (!hasSession && window.location.pathname !== "/auth/callback") {
-            console.debug(
-              "[AUTH] No existing session, attempting silent authentication...",
-            );
-            const silentAuthSucceeded = await attemptSilentAuth();
-            if (!silentAuthSucceeded) {
-              console.debug(
-                "[AUTH] Silent authentication failed (user not logged in at Auth0)",
-              );
-            }
+          if (!hasSession) {
+            console.debug("[AUTH] No existing session found");
+            // Don't attempt silent auth here - only on explicit login
           }
         }
       } catch (error) {
@@ -451,6 +501,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         new URLSearchParams(window.location.search).get("redirect") || "/";
       sessionStorage.setItem("auth0_redirect_after_login", redirect);
 
+      // Generate secure state parameter for CSRF protection
+      const state = generateSecureState();
+      sessionStorage.setItem("auth_state", state);
+
       // Build Auth0 login URL
       const authorizationUrl = new URL(
         `https://${import.meta.env.VITE_AUTH0_DOMAIN}/authorize`,
@@ -462,12 +516,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         redirect_uri: import.meta.env.VITE_AUTH0_REDIRECT_URI,
         scope: "openid profile email offline_access",
         audience: import.meta.env.VITE_AUTH0_AUDIENCE,
-        state: Math.random().toString(36).substring(7), // Simple state for demo
+        state: state,
       };
 
       Object.entries(params).forEach(([key, value]) => {
         authorizationUrl.searchParams.append(key, value);
       });
+
+      console.debug("[AUTH] Redirecting to Auth0 for login");
+      console.debug("[AUTH] Auth URL:", authorizationUrl.toString());
+      console.debug("[AUTH] State stored:", state);
 
       // Redirect to Auth0
       window.location.href = authorizationUrl.toString();
