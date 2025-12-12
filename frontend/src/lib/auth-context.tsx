@@ -501,9 +501,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         new URLSearchParams(window.location.search).get("redirect") || "/";
       sessionStorage.setItem("auth0_redirect_after_login", redirect);
 
+      // Generate secure state parameter for CSRF protection
+      const state = generateSecureState();
+      sessionStorage.setItem("auth_state", state);
+
       // Build Auth0 login URL
       const authorizationUrl = new URL(
-        `https://${import.meta.env.VITE_AUTH0_DOMAIN}/authorize`,
+        `https://${import.meta.env.VITE_AUTH0_DOMAIN}/authorize`
       );
 
       const params = {
@@ -512,12 +516,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         redirect_uri: import.meta.env.VITE_AUTH0_REDIRECT_URI,
         scope: "openid profile email offline_access",
         audience: import.meta.env.VITE_AUTH0_AUDIENCE,
-        state: Math.random().toString(36).substring(7), // Simple state for demo
+        state: state,
       };
 
       Object.entries(params).forEach(([key, value]) => {
         authorizationUrl.searchParams.append(key, value);
       });
+
+      console.debug("[AUTH] Redirecting to Auth0 for login");
+      console.debug("[AUTH] Auth URL:", authorizationUrl.toString());
+      console.debug("[AUTH] State stored:", state);
 
       // Redirect to Auth0
       window.location.href = authorizationUrl.toString();
