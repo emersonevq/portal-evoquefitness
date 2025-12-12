@@ -301,7 +301,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const checkExistingSession = async () => {
+  const checkExistingSession = async (): Promise<boolean> => {
     try {
       const sessionToken = sessionStorage.getItem("auth_session_token");
       const expiresAt = sessionStorage.getItem("auth_expires_at");
@@ -309,7 +309,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!sessionToken || !expiresAt) {
         console.debug("[AUTH] No session found in sessionStorage");
         setUser(null);
-        return;
+        return false;
       }
 
       // Check if session is expired
