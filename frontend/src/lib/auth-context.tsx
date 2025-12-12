@@ -31,6 +31,35 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Helper function: generates a cryptographically secure random string for state parameter
+function generateSecureState(): string {
+  const array = new Uint8Array(32);
+  crypto.getRandomValues(array);
+  return Array.from(array, (byte) => byte.toString(16).padStart(2, "0")).join(
+    ""
+  );
+}
+
+// Helper function: generates PKCE code verifier and challenge
+function generatePKCE(): { verifier: string; challenge: string } {
+  const array = new Uint8Array(32);
+  crypto.getRandomValues(array);
+  const verifier = Array.from(array, (byte) =>
+    byte.toString(16).padStart(2, "0")
+  ).join("");
+
+  // Create challenge from verifier using SHA256
+  const buffer = new TextEncoder().encode(verifier);
+  return crypto.subtle.digest("SHA-256", buffer).then((hashBuffer) => {
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const challenge = btoa(String.fromCharCode.apply(null, hashArray))
+      .replace(/\+/g, "-")
+      .replace(/\//g, "_")
+      .replace(/=/g, "");
+    return { verifier, challenge };
+  }) as any;
+}
+
 // Helper function: determina para onde redirecionar baseado no nível de acesso
 function getAutoRedirectUrl(user: User): string | null {
   if (!user.nivel_acesso) return null;
