@@ -93,14 +93,26 @@ _uploads = _base_dir / "uploads"
 _uploads.mkdir(parents=True, exist_ok=True)
 _http.mount("/uploads", StaticFiles(directory=str(_uploads), html=False), name="uploads")
 
+_allowed_origins = [
+    "http://localhost:3005",
+    "http://127.0.0.1:3005",
+    "http://localhost:5173",  # Vite default dev port
+    "http://127.0.0.1:5173",
+]
+
+# Adicionar domínios de produção se disponíveis nas env vars
+_prod_frontend_url = os.getenv("FRONTEND_URL", "").strip()
+_prod_domain = os.getenv("PRODUCTION_DOMAIN", "").strip()
+
+if _prod_frontend_url:
+    _allowed_origins.append(_prod_frontend_url)
+if _prod_domain:
+    _allowed_origins.append(f"https://{_prod_domain}")
+    _allowed_origins.append(f"http://{_prod_domain}")
+
 _http.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3005",
-        "http://127.0.0.1:3005",
-        "http://localhost:5173",  # Vite default dev port
-        "http://127.0.0.1:5173",
-    ],
+    allow_origins=_allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
