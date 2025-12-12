@@ -104,12 +104,15 @@ _allowed_origins = [
 # Adicionar domínios de produção se disponíveis nas env vars
 _prod_frontend_url = os.getenv("FRONTEND_URL", "").strip()
 _prod_domain = os.getenv("PRODUCTION_DOMAIN", "").strip()
+_financial_portal_url = os.getenv("FINANCIAL_PORTAL_URL", "").strip()
 
 if _prod_frontend_url:
     _allowed_origins.append(_prod_frontend_url)
 if _prod_domain:
     _allowed_origins.append(f"https://{_prod_domain}")
     _allowed_origins.append(f"http://{_prod_domain}")
+if _financial_portal_url:
+    _allowed_origins.append(_financial_portal_url)
 
 _http.add_middleware(
     CORSMiddleware,
