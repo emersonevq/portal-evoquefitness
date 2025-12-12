@@ -36,6 +36,7 @@ AUTH0_MANAGEMENT_API_URL = f"https://{AUTH0_DOMAIN}/api/v2/"
 print(f"\n[AUTH0-CONFIG] 🔧 Auth0 Configuration Loaded:")
 print(f"[AUTH0-CONFIG] Domain: {AUTH0_DOMAIN}")
 print(f"[AUTH0-CONFIG] Audience: {AUTH0_AUDIENCE}")
+print(f"[AUTH0-CONFIG] Callback URL: {AUTH0_CALLBACK_URL}")
 print(f"[AUTH0-CONFIG] Client ID: {AUTH0_CLIENT_ID[:20] + '...' if AUTH0_CLIENT_ID else '❌ NOT SET'}")
 print(f"[AUTH0-CONFIG] Client Secret: {'✓ SET' if AUTH0_CLIENT_SECRET else '❌ NOT SET'}")
 print(f"[AUTH0-CONFIG] M2M Client ID: {'✓ SET' if AUTH0_M2M_CLIENT_ID else '❌ NOT SET'}")
