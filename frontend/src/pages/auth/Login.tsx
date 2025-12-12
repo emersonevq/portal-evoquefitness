@@ -4,14 +4,84 @@ import { useAuthContext } from "@/lib/auth-context";
 import LoginMediaPanel from "./components/LoginMediaPanel";
 import { Shield, Zap, Clock, LogIn, AlertCircle } from "lucide-react";
 
+// Helper to generate secure state for OAuth
+function generateSecureState(): string {
+  const array = new Uint8Array(32);
+  crypto.getRandomValues(array);
+  return Array.from(array, (byte) => byte.toString(16).padStart(2, "0")).join(
+    ""
+  );
+}
+
 export default function Login() {
   const { loginWithAuth0 } = useAuthContext();
   const [isLoading, setIsLoading] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [ssoAttempted, setSsoAttempted] = useState(false);
 
+  // Check for SSO session on component mount
   useEffect(() => {
-    setMounted(true);
-  }, []);
+    const checkForSSO = async () => {
+      try {
+        // Only attempt SSO once
+        if (ssoAttempted) return;
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const skipSso = urlParams.has("skip_sso");
+
+        if (skipSso) {
+          console.debug(
+            "[LOGIN] SSO check skipped via skip_sso parameter"
+          );
+          setSsoAttempted(true);
+          setMounted(true);
+          return;
+        }
+
+        console.debug(
+          "[LOGIN] Checking for existing Auth0 session (SSO)..."
+        );
+
+        // Generate state for this check
+        const state = generateSecureState();
+        sessionStorage.setItem("auth_state_sso", state);
+
+        // Build SSO check URL
+        const authUrl = new URL(
+          `https://${import.meta.env.VITE_AUTH0_DOMAIN}/authorize`
+        );
+
+        const params = {
+          response_type: "code",
+          client_id: import.meta.env.VITE_AUTH0_CLIENT_ID,
+          redirect_uri: import.meta.env.VITE_AUTH0_REDIRECT_URI,
+          scope: "openid profile email offline_access",
+          audience: import.meta.env.VITE_AUTH0_AUDIENCE,
+          state: state,
+          prompt: "none", // Critical: don't show login UI if authenticated
+        };
+
+        Object.entries(params).forEach(([key, value]) => {
+          authUrl.searchParams.append(key, value);
+        });
+
+        console.debug(
+          "[LOGIN] Attempting SSO check with prompt=none..."
+        );
+
+        // Try to silently authenticate - this will redirect if successful
+        // If not authenticated, Auth0 will redirect with error=login_required
+        window.location.href = authUrl.toString();
+        setSsoAttempted(true);
+      } catch (error) {
+        console.debug("[LOGIN] SSO check failed:", error);
+        setSsoAttempted(true);
+        setMounted(true);
+      }
+    };
+
+    checkForSSO();
+  }, [ssoAttempted]);
 
   const handleAuth0Login = async () => {
     setIsLoading(true);
