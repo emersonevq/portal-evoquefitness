@@ -63,6 +63,64 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
+  // Attempt silent authentication with Auth0
+  const attemptSilentAuth = async (): Promise<boolean> => {
+    try {
+      console.debug("[AUTH] Attempting silent authentication with Auth0...");
+
+      const authorizationUrl = new URL(
+        `https://${import.meta.env.VITE_AUTH0_DOMAIN}/authorize`,
+      );
+
+      const params = {
+        response_type: "code",
+        client_id: import.meta.env.VITE_AUTH0_CLIENT_ID,
+        redirect_uri: import.meta.env.VITE_AUTH0_REDIRECT_URI,
+        scope: "openid profile email offline_access",
+        audience: import.meta.env.VITE_AUTH0_AUDIENCE,
+        state: Math.random().toString(36).substring(7),
+        prompt: "none", // Critical: don't show login UI if not authenticated
+      };
+
+      Object.entries(params).forEach(([key, value]) => {
+        authorizationUrl.searchParams.append(key, value);
+      });
+
+      // Use fetch with a timeout to handle failure gracefully
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+      try {
+        const response = await fetch(authorizationUrl.toString(), {
+          method: "GET",
+          signal: controller.signal,
+        });
+
+        clearTimeout(timeoutId);
+
+        if (response.ok) {
+          console.debug("[AUTH] ✓ Silent auth successful, redirecting to Auth0");
+          // Auth0 will redirect to callback with code
+          // This will be handled by the next useEffect
+          return true;
+        } else {
+          console.debug(
+            "[AUTH] Silent auth returned non-200 status:",
+            response.status,
+          );
+          return false;
+        }
+      } catch (e) {
+        clearTimeout(timeoutId);
+        console.debug("[AUTH] Silent auth fetch failed (expected if not authenticated):", e);
+        return false;
+      }
+    } catch (error) {
+      console.debug("[AUTH] Silent auth attempt failed:", error);
+      return false;
+    }
+  };
+
   // Initialize Auth0 on mount
   useEffect(() => {
     const initAuth0 = async () => {
@@ -89,7 +147,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } else {
           console.debug("[AUTH] No code/state, checking existing session");
           // Check for existing session in sessionStorage
-          await checkExistingSession();
+          const hasSession = await checkExistingSession();
+
+          // If no local session and not in callback page, attempt silent auth
+          if (!hasSession && window.location.pathname !== "/auth/callback") {
+            console.debug("[AUTH] No existing session, attempting silent authentication...");
+            const silentAuthSucceeded = await attemptSilentAuth();
+            if (!silentAuthSucceeded) {
+              console.debug("[AUTH] Silent authentication failed (user not logged in at Auth0)");
+            }
+          }
         }
       } catch (error) {
         console.error("[AUTH] ✗ Error initializing auth:", error);
