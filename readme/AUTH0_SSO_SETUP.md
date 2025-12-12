@@ -22,12 +22,14 @@ This guide explains how to set up Single Sign-On (SSO) between multiple portals 
 ### Frontend Auth Context (`frontend/src/lib/auth-context.tsx`)
 
 **New Features:**
+
 - **Secure State Parameter Generation**: Uses `crypto.getRandomValues()` for cryptographically secure CSRF protection
 - **State Parameter Validation**: Validates the state parameter returned from Auth0 to prevent CSRF attacks
 - **Proper OAuth 2.0 Flow**: Implements standard OAuth authorization code flow
 - **Error Handling**: Properly handles Auth0 errors, including `login_required` which indicates no existing session
 
 **Key Functions:**
+
 ```typescript
 // Generates secure random state parameter
 generateSecureState(): string
@@ -44,6 +46,7 @@ loginWithAuth0()
 ### 1. Auth0 Tenant Settings
 
 Make sure you have:
+
 - Auth0 account and domain (e.g., `your-domain.auth0.com`)
 - Two applications created: one for Portal Evoque, one for Portal Financeiro
 - Database connection enabled (Username-Password-Authentication)
@@ -53,6 +56,7 @@ Make sure you have:
 In Auth0 Dashboard → Applications → Portal Evoque:
 
 **Application URIs:**
+
 - **Login URL**: `https://portalevoque.com`
 - **Callback URLs**:
   ```
@@ -80,6 +84,7 @@ In Auth0 Dashboard → Applications → Portal Evoque:
   ```
 
 **Connections:**
+
 - Enable "Username-Password-Authentication" database connection
 - Enable social connections if needed (Google, etc.)
 
@@ -88,6 +93,7 @@ In Auth0 Dashboard → Applications → Portal Evoque:
 In Auth0 Dashboard → Applications → Portal Financeiro:
 
 **Application URIs:**
+
 - **Login URL**: `https://qas-frontend-app.calmmoss-ededd9fd.eastus.azurecontainerapps.io`
 - **Callback URLs**:
   ```
@@ -109,6 +115,7 @@ In Auth0 Dashboard → Applications → Portal Financeiro:
   ```
 
 **Connections:**
+
 - Enable "Username-Password-Authentication" database connection (SAME as Portal Evoque)
 - Enable social connections if needed
 
@@ -125,6 +132,7 @@ VITE_AUTH0_LOGOUT_URI=http://localhost:5173
 ```
 
 For production, update the URLs:
+
 ```env
 VITE_AUTH0_DOMAIN=your-domain.auth0.com
 VITE_AUTH0_CLIENT_ID=your-client-id-here
@@ -176,6 +184,7 @@ if (state !== storedState) {
 Frontend sends code to backend: `POST /api/auth/auth0-exchange`
 
 Backend:
+
 1. Exchanges code for access token with Auth0
 2. Validates token signature
 3. Extracts user email
@@ -193,6 +202,7 @@ Frontend stores session token and user data in `sessionStorage` and logs user in
 **Cause:** State parameter wasn't properly stored or validated.
 
 **Solution:**
+
 1. Check that `sessionStorage` is enabled in browser
 2. Verify state is being stored before redirect: `sessionStorage.setItem("auth_state", state)`
 3. Check that redirect URL matches exactly what's in Auth0 configuration
@@ -202,6 +212,7 @@ Frontend stores session token and user data in `sessionStorage` and logs user in
 **Cause:** SSO is not working because of missing Auth0 configuration.
 
 **Possible Solutions:**
+
 1. Verify both applications are in the SAME Auth0 tenant
 2. Verify both applications have the SAME database connection enabled
 3. Verify "Allowed Web Origins" includes the Financial Portal domain
@@ -213,6 +224,7 @@ Frontend stores session token and user data in `sessionStorage` and logs user in
 **Expected Behavior:** If user is NOT logged in at Auth0 (first time accessing the system), they should see the login screen. This is correct!
 
 **When it's a problem:**
+
 - If user WAS just logged in on Portal Evoque, they should NOT see a login screen
 - Check Auth0 session cookie is being set (check browser Network tab)
 
@@ -221,6 +233,7 @@ Frontend stores session token and user data in `sessionStorage` and logs user in
 **Cause:** Allowed Web Origins not configured correctly in Auth0.
 
 **Solution:**
+
 1. Go to Auth0 Dashboard → Applications → Settings
 2. Add your portal domain to "Allowed Web Origins"
 3. Save and wait ~1 minute for changes to propagate
@@ -229,20 +242,24 @@ Frontend stores session token and user data in `sessionStorage` and logs user in
 ## Security Features Implemented
 
 ### 1. CSRF Protection via State Parameter
+
 - State is generated using cryptographically secure random values
 - State is validated on callback
 - If state doesn't match, authentication is rejected
 
 ### 2. Secure Token Storage
+
 - Access tokens stored in `sessionStorage` only (not localStorage)
 - Session expires after 24 hours
 - Session can be revoked anytime
 
 ### 3. Email Verification
+
 - Users must have verified email in Auth0 (if required)
 - Backend validates token before issuing session
 
 ### 4. HTTPS Required (Production)
+
 - All OAuth redirects use HTTPS
 - Cookies marked as secure (HTTPS only)
 
@@ -251,6 +268,7 @@ Frontend stores session token and user data in `sessionStorage` and logs user in
 ### Setup Local Environment
 
 1. Set up both portals to run locally:
+
    ```bash
    # Terminal 1: Portal Evoque
    cd frontend
@@ -262,6 +280,7 @@ Frontend stores session token and user data in `sessionStorage` and logs user in
    ```
 
    ⚠️ They'll conflict on same port. Use different ports:
+
    ```bash
    # Terminal 1: Portal Evoque
    npm run dev
@@ -284,6 +303,7 @@ Frontend stores session token and user data in `sessionStorage` and logs user in
 ### Before Deploying
 
 1. **Test OAuth Code Exchange**
+
    ```bash
    curl -X POST https://your-domain.auth0.com/oauth/token \
      -H "Content-Type: application/json" \

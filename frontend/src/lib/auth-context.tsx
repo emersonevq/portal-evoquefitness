@@ -36,7 +36,7 @@ function generateSecureState(): string {
   const array = new Uint8Array(32);
   crypto.getRandomValues(array);
   return Array.from(array, (byte) => byte.toString(16).padStart(2, "0")).join(
-    ""
+    "",
   );
 }
 
@@ -45,7 +45,7 @@ function generatePKCE(): { verifier: string; challenge: string } {
   const array = new Uint8Array(32);
   crypto.getRandomValues(array);
   const verifier = Array.from(array, (byte) =>
-    byte.toString(16).padStart(2, "0")
+    byte.toString(16).padStart(2, "0"),
   ).join("");
 
   // Create challenge from verifier using SHA256
@@ -96,13 +96,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const attemptSilentAuth = async (): Promise<boolean> => {
     try {
       console.debug(
-        "[AUTH] Checking for existing Auth0 session (SSO between portals)..."
+        "[AUTH] Checking for existing Auth0 session (SSO between portals)...",
       );
 
       // Build Auth0 authorization URL with prompt=none to check session without showing login UI
       // This only works if there's already a session in Auth0 from login on another portal
       const authorizationUrl = new URL(
-        `https://${import.meta.env.VITE_AUTH0_DOMAIN}/authorize`
+        `https://${import.meta.env.VITE_AUTH0_DOMAIN}/authorize`,
       );
 
       const state = generateSecureState();
@@ -144,7 +144,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         console.debug(
           "[AUTH] Init - searchParams keys:",
-          Array.from(searchParams.keys())
+          Array.from(searchParams.keys()),
         );
         console.debug("[AUTH] Init - code:", code ? "present" : "missing");
         console.debug("[AUTH] Init - state:", state ? "present" : "missing");
@@ -155,7 +155,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           console.error(
             "[AUTH] Auth0 returned error:",
             error,
-            errorDescription
+            errorDescription,
           );
           // Clear any SSO state on error
           sessionStorage.removeItem("auth_state_sso");
@@ -163,7 +163,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // If error is login_required, it means no session exists for SSO
           if (error === "login_required") {
             console.debug(
-              "[AUTH] No Auth0 session found (expected for first login)"
+              "[AUTH] No Auth0 session found (expected for first login)",
             );
             setIsLoading(false);
             return;
@@ -177,7 +177,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         if (code && state) {
           console.debug(
-            "[AUTH] ✓ Code and state found, initiating Auth0 callback"
+            "[AUTH] ✓ Code and state found, initiating Auth0 callback",
           );
 
           // Validate state parameter for security
@@ -189,11 +189,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
           if (!isValidState) {
             console.error(
-              "[AUTH] ✗ State parameter mismatch - possible CSRF attack"
+              "[AUTH] ✗ State parameter mismatch - possible CSRF attack",
             );
             console.error(
               "[AUTH] Expected state:",
-              storedState || storedSSOState
+              storedState || storedSSOState,
             );
             console.error("[AUTH] Received state:", state);
             throw new Error("Invalid state parameter - CSRF validation failed");
@@ -507,7 +507,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       // Build Auth0 login URL
       const authorizationUrl = new URL(
-        `https://${import.meta.env.VITE_AUTH0_DOMAIN}/authorize`
+        `https://${import.meta.env.VITE_AUTH0_DOMAIN}/authorize`,
       );
 
       const params = {

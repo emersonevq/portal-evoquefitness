@@ -9,12 +9,14 @@ Implementar Single Sign-On (SSO) entre **Portal Evoque** e **Portal Financeiro**
 ### 1. Correção do Erro "The State Parameter is Missing"
 
 **Problema Original:**
+
 - O código tentava fazer `fetch()` do endpoint `/authorize` do Auth0
 - Parâmetro `state` não era armazenado antes do redirecionamento
 - `state` era gerado com `Math.random()` (inseguro)
 - Não havia validação de `state` no callback
 
 **Solução Implementada:**
+
 - ✅ Redirecionamento correto via `window.location.href`
 - ✅ Geração segura de `state` com `crypto.getRandomValues()`
 - ✅ Armazenamento em `sessionStorage` antes do redirect
@@ -23,24 +25,28 @@ Implementar Single Sign-On (SSO) entre **Portal Evoque** e **Portal Financeiro**
 ### 2. Mudanças no Código (`frontend/src/lib/auth-context.tsx`)
 
 #### Função de Geração de State Seguro
+
 ```typescript
 function generateSecureState(): string {
   const array = new Uint8Array(32);
   crypto.getRandomValues(array);
-  return Array.from(array, (byte) => byte.toString(16).padStart(2, "0")).join("");
+  return Array.from(array, (byte) => byte.toString(16).padStart(2, "0")).join(
+    "",
+  );
 }
 ```
 
 #### Login Correto com Auth0
+
 ```typescript
 const loginWithAuth0 = async () => {
   const state = generateSecureState();
   sessionStorage.setItem("auth_state", state);
-  
+
   const authorizationUrl = new URL(
-    `https://${import.meta.env.VITE_AUTH0_DOMAIN}/authorize`
+    `https://${import.meta.env.VITE_AUTH0_DOMAIN}/authorize`,
   );
-  
+
   const params = {
     response_type: "code",
     client_id: import.meta.env.VITE_AUTH0_CLIENT_ID,
@@ -49,36 +55,38 @@ const loginWithAuth0 = async () => {
     audience: import.meta.env.VITE_AUTH0_AUDIENCE,
     state: state,
   };
-  
+
   Object.entries(params).forEach(([key, value]) => {
     authorizationUrl.searchParams.append(key, value);
   });
-  
+
   window.location.href = authorizationUrl.toString();
 };
 ```
 
 #### Validação de State no Callback
+
 ```typescript
 if (code && state) {
   const storedState = sessionStorage.getItem("auth_state");
   const storedSSOState = sessionStorage.getItem("auth_state_sso");
-  const isValidState = 
+  const isValidState =
     (storedState && state === storedState) ||
     (storedSSOState && state === storedSSOState);
 
   if (!isValidState) {
     throw new Error("Invalid state parameter - CSRF validation failed");
   }
-  
+
   sessionStorage.removeItem("auth_state");
   sessionStorage.removeItem("auth_state_sso");
-  
+
   await handleAuth0Callback(code, state);
 }
 ```
 
 #### Tratamento de Erros Auth0
+
 ```typescript
 const error = searchParams.get("error");
 const errorDescription = searchParams.get("error_description");
@@ -89,7 +97,7 @@ if (error) {
     setIsLoading(false);
     return;
   }
-  
+
   navigate("/auth0/login", { replace: true });
 }
 ```
@@ -124,27 +132,32 @@ Foram criados 4 documentos em português brasileiro:
 ## 🔒 Segurança Implementada
 
 ### 1. Proteção CSRF (Cross-Site Request Forgery)
+
 - ✅ Parâmetro `state` gerado criptograficamente
 - ✅ State armazenado e validado
 - ✅ Ataque CSRF detectado se state não corresponder
 
 ### 2. Armazenamento Seguro
+
 - ✅ Session em `sessionStorage` (não localStorage)
 - ✅ Expiração em 24 horas
 - ✅ Revogação automática
 
 ### 3. Validação de Token
+
 - ✅ Backend valida assinatura JWT
 - ✅ Email verificado em Auth0
 - ✅ Usuário validado no banco de dados
 
 ### 4. HTTPS (Produção)
+
 - ✅ Todos os redirecionamentos OAuth via HTTPS
 - ✅ Cookies marcados como seguros
 
 ## 📋 Checklist de Configuração
 
 ### Auth0 - Portal Evoque
+
 - [ ] Application criada ou atualizada
 - [ ] Callback URLs configuradas
 - [ ] Logout URLs configuradas
@@ -152,6 +165,7 @@ Foram criados 4 documentos em português brasileiro:
 - [ ] Username-Password-Authentication habilitada
 
 ### Auth0 - Portal Financeiro
+
 - [ ] Application criada ou atualizada
 - [ ] Callback URLs configuradas
 - [ ] Logout URLs configuradas
@@ -159,11 +173,13 @@ Foram criados 4 documentos em português brasileiro:
 - [ ] Username-Password-Authentication habilitada (MESMO banco que Evoque)
 
 ### Banco de Dados
+
 - [ ] Usuários existem com emails correspondentes
 - [ ] Usuários têm permissões atribuídas
 - [ ] Usuários não estão bloqueados
 
 ### Variáveis de Ambiente
+
 - [ ] `VITE_AUTH0_DOMAIN` configurada
 - [ ] `VITE_AUTH0_CLIENT_ID` configurada
 - [ ] `VITE_AUTH0_REDIRECT_URI` configurada
@@ -171,6 +187,7 @@ Foram criados 4 documentos em português brasileiro:
 - [ ] `VITE_AUTH0_LOGOUT_URI` configurada
 
 ### Teste
+
 - [ ] Login em Portal Evoque funciona
 - [ ] SSO em Portal Financeiro funciona
 - [ ] State parameter está sendo validado
@@ -255,12 +272,14 @@ Response: {
 ### Verificar Auth0 Logs
 
 Dashboard → Logs → Procure por:
+
 - Success Login (código)
 - Successful Exchange (token)
 
 ## 📚 Documentação Relacionada
 
 Leia também:
+
 - `readme/AUTH0_SSO_SETUP_PT_BR.md` - Configuração detalhada
 - `readme/AUTH0_STATE_PARAMETER_FIX_PT_BR.md` - Detalhes técnicos
 - `readme/AUTH0_SSO_PASSO_A_PASSO_PT_BR.md` - Guia rápido
@@ -268,44 +287,53 @@ Leia também:
 ## ⚠️ Possíveis Problemas e Soluções
 
 ### "The state parameter is missing"
+
 ✅ RESOLVIDO - Código foi corrigido
 
 ### "User not found in database"
+
 - Verificar se usuário existe no banco com MESMO email do Auth0
 - Comando SQL: `SELECT * FROM usuarios WHERE email = 'seu-email@dominio.com'`
 
 ### "CORS error"
+
 - Adicionar domínio em Auth0 → Applications → Settings → Allowed Web Origins
 
 ### "login_required"
+
 - Normal - significa que usuário não está logado no Auth0
 - Faça login em outro portal primeiro para habilitar SSO
 
 ### "State mismatch"
+
 - sessionStorage está desabilitado
 - Tente desabilitar modo privado do navegador
 
 ## 🎓 Conceitos Importantes
 
 ### State Parameter
+
 - Protege contra ataques CSRF
 - Gerado aleatoriamente a cada login
 - Validado quando Auth0 redireciona de volta
 - Se não corresponder → ataque detectado
 
 ### JWT Token
+
 - Contém dados do usuário
 - Assinado digitalmente pelo Auth0
 - Validado pelo backend
 - Expira após tempo determinado
 
 ### Session Storage
+
 - Armazena dados da sessão no navegador
 - Limpo quando navegador fecha
 - Mais seguro que localStorage
 - Específico por aba do navegador
 
 ### OAuth 2.0 Flow
+
 - Padrão de segurança da indústria
 - Usuário não compartilha senha com aplicação
 - Auth0 gerencia credenciais
@@ -313,14 +341,14 @@ Leia também:
 
 ## 📊 Estatísticas da Implementação
 
-| Métrica | Valor |
-|---------|-------|
-| Linhas de código alteradas | ~150 |
-| Funções novas/alteradas | 3 |
-| Recursos de segurança | 4+ |
-| Documentação criada | 4 arquivos |
-| Tempo de implementação | Completo |
-| Compatibilidade | 100% |
+| Métrica                    | Valor      |
+| -------------------------- | ---------- |
+| Linhas de código alteradas | ~150       |
+| Funções novas/alteradas    | 3          |
+| Recursos de segurança      | 4+         |
+| Documentação criada        | 4 arquivos |
+| Tempo de implementação     | Completo   |
+| Compatibilidade            | 100%       |
 
 ## ✨ Melhorias Futuras (Opcional)
 
@@ -348,15 +376,17 @@ Leia também:
 
 ## 🎉 Conclusão
 
-A implementação de SSO com Auth0 está **completa e funcional**. 
+A implementação de SSO com Auth0 está **completa e funcional**.
 
 O erro "The state parameter is missing" foi **completamente resolvido** através de:
+
 1. Implementação correta do fluxo OAuth 2.0
 2. Geração segura de parâmetro state
 3. Armazenamento e validação adequados
 4. Tratamento de erros Auth0
 
 Agora os usuários podem:
+
 - ✅ Fazer login em Portal Evoque
 - ✅ Ser automaticamente autenticados em Portal Financeiro
 - ✅ Ter sessão sincronizada entre portais

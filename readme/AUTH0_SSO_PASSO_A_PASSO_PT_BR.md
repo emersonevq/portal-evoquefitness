@@ -25,6 +25,7 @@ Seu código anterior tinha o erro **"The state parameter is missing"** porque:
 3. ❌ Gerava `state` com `Math.random()` (inseguro)
 
 **Agora está corrigido:**
+
 - ✅ Usa `window.location.href` para redirecionar (correto)
 - ✅ Armazena `state` em `sessionStorage` antes do redirect
 - ✅ Gera `state` com `crypto.getRandomValues()` (seguro)
@@ -40,6 +41,7 @@ Seu código anterior tinha o erro **"The state parameter is missing"** porque:
 4. Na seção "Application URIs", configure:
 
    **Callback URLs:**
+
    ```
    http://localhost:5173/auth/callback
    http://localhost:3005/auth/callback
@@ -49,6 +51,7 @@ Seu código anterior tinha o erro **"The state parameter is missing"** porque:
    ```
 
    **Logout URLs:**
+
    ```
    http://localhost:5173
    http://localhost:3005
@@ -58,6 +61,7 @@ Seu código anterior tinha o erro **"The state parameter is missing"** porque:
    ```
 
    **Allowed Web Origins:**
+
    ```
    http://localhost:5173
    http://localhost:3005
@@ -78,6 +82,7 @@ Seu código anterior tinha o erro **"The state parameter is missing"** porque:
 4. Na seção "Application URIs", configure:
 
    **Callback URLs:**
+
    ```
    http://localhost:5173/auth/callback
    http://localhost:3005/auth/callback
@@ -85,6 +90,7 @@ Seu código anterior tinha o erro **"The state parameter is missing"** porque:
    ```
 
    **Logout URLs:**
+
    ```
    http://localhost:5173
    http://localhost:3005
@@ -92,6 +98,7 @@ Seu código anterior tinha o erro **"The state parameter is missing"** porque:
    ```
 
    **Allowed Web Origins:**
+
    ```
    http://localhost:5173
    http://localhost:3005
@@ -115,6 +122,7 @@ VITE_AUTH0_LOGOUT_URI=http://localhost:5173
 ```
 
 **Para Produção:**
+
 ```env
 VITE_AUTH0_DOMAIN=seu-dominio.auth0.com
 VITE_AUTH0_CLIENT_ID=seu-client-id
@@ -126,16 +134,19 @@ VITE_AUTH0_LOGOUT_URI=https://qas-frontend-app.calmmoss-ededd9fd.eastus.azurecon
 ### Passo 4: Verificar Usuários no Banco de Dados
 
 Certifique-se que:
+
 1. Usuário existe no Auth0 (ex: `emerson.silva@academiaevoque.com.br`)
 2. Usuário existe no seu banco de dados **com MESMO EMAIL**
 3. Usuário tem permissões atribuídas
 
 **Para verificar no Auth0:**
+
 - Dashboard → Users & Roles → Users
 - Procure por seu email
 - Deve ter `email_verified: true` (se seu sistema exigir)
 
 **Para verificar no banco de dados:**
+
 ```sql
 SELECT * FROM usuarios WHERE email = 'emerson.silva@academiaevoque.com.br';
 ```
@@ -145,6 +156,7 @@ SELECT * FROM usuarios WHERE email = 'emerson.silva@academiaevoque.com.br';
 ### Teste Local
 
 1. **Abra o Portal Evoque:**
+
    ```bash
    cd frontend
    npm run dev
@@ -160,6 +172,7 @@ SELECT * FROM usuarios WHERE email = 'emerson.silva@academiaevoque.com.br';
 4. **Você deve ver a página inicial autenticada**
 
 5. **Abra Portal Financeiro (em outra porta):**
+
    ```bash
    cd portal-financeiro
    VITE_AUTH0_REDIRECT_URI=http://localhost:5174/auth/callback npm run dev -- --port 5174
@@ -249,29 +262,32 @@ Abra `F12` → **Console** e procure por:
 
 ### Portal Evoque vs Portal Financeiro
 
-| Aspecto | Portal Evoque | Portal Financeiro |
-|---------|---------------|-------------------|
-| Cliente Auth0 | ✅ Específico | ✅ Específico |
-| Banco de Dados | ✅ Mesmo | ✅ Mesmo |
-| Domínio | `portalevoque.com` | `qas-frontend-app...` |
-| Callback URL | `portalevoque.com/auth/callback` | `qas-frontend-app.../auth/callback` |
-| SSO Automático | Não (primeira vez) | ✅ Sim (se logado em Evoque) |
+| Aspecto        | Portal Evoque                    | Portal Financeiro                   |
+| -------------- | -------------------------------- | ----------------------------------- |
+| Cliente Auth0  | ✅ Específico                    | ✅ Específico                       |
+| Banco de Dados | ✅ Mesmo                         | ✅ Mesmo                            |
+| Domínio        | `portalevoque.com`               | `qas-frontend-app...`               |
+| Callback URL   | `portalevoque.com/auth/callback` | `qas-frontend-app.../auth/callback` |
+| SSO Automático | Não (primeira vez)               | ✅ Sim (se logado em Evoque)        |
 
 ## Segurança Implementada
 
 ### 1. Parâmetro State (CSRF)
+
 - ✅ Gerado com `crypto.getRandomValues()` (256 bits)
 - ✅ Armazenado em `sessionStorage` (não localStorage)
 - ✅ Validado no callback
 - ✅ Se não corresponder, autenticação é rejeitada
 
 ### 2. Token JWT
+
 - ✅ Validado pelo backend
 - ✅ Assinatura verificada
 - ✅ Email verificado
 - ✅ Usuário e permissões validadas
 
 ### 3. Sessão
+
 - ✅ Armazenada em `sessionStorage` (não localStorage)
 - ✅ Expira em 24 horas
 - ✅ Pode ser revogada manualmente
@@ -279,14 +295,14 @@ Abra `F12` → **Console** e procure por:
 
 ## Troubleshooting Rápido
 
-| Problema | Solução |
-|----------|---------|
-| "The state parameter is missing" | ❌ Erro resolvido (era bug anterior) |
-| "login_required" | ✅ Normal - faça login em outro portal |
-| "User not found" | Crie usuário no BD com mesmo email Auth0 |
-| "CORS error" | Adicione domínio em Auth0 → Allowed Web Origins |
-| "No Auth0 session" | Esperado - faça login em outro portal |
-| "Usuário está bloqueado" | Desbloqueie em Auth0 ou BD |
+| Problema                         | Solução                                         |
+| -------------------------------- | ----------------------------------------------- |
+| "The state parameter is missing" | ❌ Erro resolvido (era bug anterior)            |
+| "login_required"                 | ✅ Normal - faça login em outro portal          |
+| "User not found"                 | Crie usuário no BD com mesmo email Auth0        |
+| "CORS error"                     | Adicione domínio em Auth0 → Allowed Web Origins |
+| "No Auth0 session"               | Esperado - faça login em outro portal           |
+| "Usuário está bloqueado"         | Desbloqueie em Auth0 ou BD                      |
 
 ## Próximas Melhorias (Futuro)
 
@@ -320,5 +336,6 @@ Se tiver problemas, verifique:
 ## Documentação Completa
 
 Para mais detalhes, veja:
+
 - `readme/AUTH0_SSO_SETUP_PT_BR.md` - Configuração completa
 - `readme/AUTH0_STATE_PARAMETER_FIX_PT_BR.md` - Detalhes técnicos da correção

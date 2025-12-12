@@ -3,6 +3,7 @@
 ## O Problema
 
 Você estava recebendo o erro **"The state parameter is missing"** ao tentar fazer login no Portal Financeiro via Auth0, mesmo que:
+
 - O Auth0 estivesse corretamente configurado
 - O usuário existisse no Auth0 com credenciais válidas
 - A mesma conta funcionasse no Portal Evoque
@@ -15,7 +16,9 @@ O erro ocorria porque o código anterior tinha implementação incorreta do flux
 
 ```typescript
 // ❌ INCORRETO: Tentando fazer fetch da URL de autorização
-const authorizationUrl = new URL(`https://${import.meta.env.VITE_AUTH0_DOMAIN}/authorize`);
+const authorizationUrl = new URL(
+  `https://${import.meta.env.VITE_AUTH0_DOMAIN}/authorize`,
+);
 
 const params = {
   response_type: "code",
@@ -36,6 +39,7 @@ const response = await fetch(authorizationUrl.toString(), {
 ```
 
 **Problemas:**
+
 1. ❌ Tentava fazer `fetch()` do endpoint `/authorize` do Auth0 (isso não funciona)
 2. ❌ Gerava state com `Math.random()` (não é criptograficamente seguro)
 3. ❌ Não armazenava o state no `sessionStorage` antes do redirecionamento
@@ -50,7 +54,9 @@ const response = await fetch(authorizationUrl.toString(), {
 function generateSecureState(): string {
   const array = new Uint8Array(32);
   crypto.getRandomValues(array); // Criptograficamente seguro
-  return Array.from(array, (byte) => byte.toString(16).padStart(2, "0")).join("");
+  return Array.from(array, (byte) => byte.toString(16).padStart(2, "0")).join(
+    "",
+  );
 }
 
 // ✅ Armazenar state ANTES de fazer o redirect
@@ -58,7 +64,9 @@ const state = generateSecureState();
 sessionStorage.setItem("auth_state", state); // ← CRÍTICO!
 
 // ✅ Construir a URL de autorização
-const authorizationUrl = new URL(`https://${import.meta.env.VITE_AUTH0_DOMAIN}/authorize`);
+const authorizationUrl = new URL(
+  `https://${import.meta.env.VITE_AUTH0_DOMAIN}/authorize`,
+);
 
 const params = {
   response_type: "code",
@@ -104,11 +112,14 @@ sessionStorage.removeItem("auth_state");
 function generateSecureState(): string {
   const array = new Uint8Array(32);
   crypto.getRandomValues(array);
-  return Array.from(array, (byte) => byte.toString(16).padStart(2, "0")).join("");
+  return Array.from(array, (byte) => byte.toString(16).padStart(2, "0")).join(
+    "",
+  );
 }
 ```
 
 **Por que é mais seguro:**
+
 - ✅ Usa `crypto.getRandomValues()` (verdadeiro aleatório criptográfico)
 - ✅ Gera 32 bytes (256 bits) de entropia
 - ✅ Impossível adivinhar ou reproduzir
@@ -135,6 +146,7 @@ const response = await fetch(authorizationUrl.toString());
 ```
 
 **Por quê?**
+
 - O endpoint `/authorize` do Auth0 NÃO é uma API
 - Ele é um endpoint de redirecionamento HTML
 - Deve ser acessado via `window.location.href`, não via `fetch()`
@@ -147,13 +159,13 @@ const errorDescription = searchParams.get("error_description");
 
 if (error) {
   console.error("[AUTH] Auth0 error:", error, errorDescription);
-  
+
   // Se error=login_required, significa que não há sessão ativa
   if (error === "login_required") {
     console.debug("[AUTH] No Auth0 session found (expected for first login)");
     return;
   }
-  
+
   // Para outros erros, redirecionar para login
   navigate("/auth0/login", { replace: true });
 }
@@ -169,7 +181,7 @@ Frontend gera state seguro e armazena em sessionStorage
 Frontend redireciona para: https://auth0.com/authorize?code=xxx&state=yyy
     ↓
 Auth0 verifica se há sessão ativa
-    ├─ SIM (usuário logado em outro portal): 
+    ├─ SIM (usuário logado em outro portal):
     │   → Auth0 retorna código de autorização
     │
     └─ NÃO (primeiro login):
@@ -210,6 +222,7 @@ VITE_AUTH0_REDIRECT_URI=http://localhost:5174/auth/callback npm run dev -- --por
 ```
 
 **Passos para testar:**
+
 1. Abra `http://localhost:5173`
 2. Clique em "Entrar com Auth0"
 3. Faça login com seu usuário Auth0
@@ -256,15 +269,15 @@ Abra a aba Network do DevTools (`F12` → Network) e procure por:
 
 ## Comparação: Antes vs Depois
 
-| Aspecto | Antes ❌ | Depois ✅ |
-|---------|---------|----------|
-| Geração de State | `Math.random()` (fraco) | `crypto.getRandomValues()` (seguro) |
-| Armazenamento de State | Não armazenado | `sessionStorage.setItem()` |
-| Validação de State | Não validado | Validado no callback |
-| Acesso Auth0 | `fetch()` (erro) | `window.location.href` (correto) |
-| Tratamento de Erros | Genérico | Específico por tipo de erro |
-| Proteção CSRF | Nenhuma | State parameter |
-| Fluxo OAuth 2.0 | Incorreto | Correto (RFC 6749) |
+| Aspecto                | Antes ❌                | Depois ✅                           |
+| ---------------------- | ----------------------- | ----------------------------------- |
+| Geração de State       | `Math.random()` (fraco) | `crypto.getRandomValues()` (seguro) |
+| Armazenamento de State | Não armazenado          | `sessionStorage.setItem()`          |
+| Validação de State     | Não validado            | Validado no callback                |
+| Acesso Auth0           | `fetch()` (erro)        | `window.location.href` (correto)    |
+| Tratamento de Erros    | Genérico                | Específico por tipo de erro         |
+| Proteção CSRF          | Nenhuma                 | State parameter                     |
+| Fluxo OAuth 2.0        | Incorreto               | Correto (RFC 6749)                  |
 
 ## Segurança
 
@@ -273,6 +286,7 @@ Abra a aba Network do DevTools (`F12` → Network) e procure por:
 O parâmetro `state` protege contra ataques **Cross-Site Request Forgery (CSRF)**:
 
 **Ataque CSRF Sem State:**
+
 ```
 1. Atacante cria site malicioso
 2. Usuário clica em link malicioso
@@ -282,6 +296,7 @@ O parâmetro `state` protege contra ataques **Cross-Site Request Forgery (CSRF)*
 ```
 
 **Com State Parameter:**
+
 ```
 1. Atacante cria site malicioso
 2. Usuário clica em link malicioso
@@ -327,6 +342,7 @@ curl -X POST https://seu-dominio.auth0.com/oauth/token \
 ### 3. Monitore Erros
 
 Adicione logs no backend para monitorar:
+
 - Erros de troca de código
 - Usuários não encontrados
 - Tokens inválidos
