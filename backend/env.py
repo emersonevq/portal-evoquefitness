@@ -37,7 +37,8 @@ AUTH0_DOMAIN=evoqueacademia.us.auth0.com
 AUTH0_AUDIENCE=https://erp-api.evoquefitness.com.br
 AUTH0_CLIENT_ID=uvLK21vRoW9NMK7EsI46OosLyi9bPK2z
 AUTH0_CLIENT_SECRET=GeaVyti9rlpMkPdl55Bk2zHiES_4HuUal-hIKTyIeWrEZr-SpnJUgKZ6-ZuAWDeh
-AUTH0_CALLBACK_URL=http://localhost:3005/auth/callback
+# AUTH0_CALLBACK_URL will be set dynamically from FRONTEND_URL or PRODUCTION_DOMAIN
+# AUTH0_CALLBACK_URL=http://localhost:3005/auth/callback
 AUTH0_ALGORITHMS=RS256
 AUTH0_REQUIRE_EMAIL_VERIFIED=False
 
