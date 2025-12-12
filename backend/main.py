@@ -98,6 +98,7 @@ _allowed_origins = [
     "http://127.0.0.1:3005",
     "http://localhost:5173",  # Vite default dev port
     "http://127.0.0.1:5173",
+    "http://147.93.70.206:3005",  # VPS production IP
 ]
 
 # Adicionar domínios de produção se disponíveis nas env vars
