@@ -139,20 +139,72 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Check if returning from Auth0 callback
         const code = searchParams.get("code");
         const state = searchParams.get("state");
+        const error = searchParams.get("error");
+        const errorDescription = searchParams.get("error_description");
 
         console.debug(
           "[AUTH] Init - searchParams keys:",
-          Array.from(searchParams.keys()),
+          Array.from(searchParams.keys())
         );
         console.debug("[AUTH] Init - code:", code ? "present" : "missing");
         console.debug("[AUTH] Init - state:", state ? "present" : "missing");
+        console.debug("[AUTH] Init - error:", error || "none");
         console.debug("[AUTH] Current pathname:", window.location.pathname);
-        console.debug("[AUTH] Current search:", window.location.search);
+
+        if (error) {
+          console.error(
+            "[AUTH] Auth0 returned error:",
+            error,
+            errorDescription
+          );
+          // Clear any SSO state on error
+          sessionStorage.removeItem("auth_state_sso");
+
+          // If error is login_required, it means no session exists for SSO
+          if (error === "login_required") {
+            console.debug(
+              "[AUTH] No Auth0 session found (expected for first login)"
+            );
+            setIsLoading(false);
+            return;
+          }
+
+          // For other errors, redirect to login
+          setIsLoading(false);
+          navigate("/auth0/login", { replace: true });
+          return;
+        }
 
         if (code && state) {
           console.debug(
-            "[AUTH] ✓ Code and state found, initiating Auth0 callback",
+            "[AUTH] ✓ Code and state found, initiating Auth0 callback"
           );
+
+          // Validate state parameter for security
+          const storedState = sessionStorage.getItem("auth_state");
+          const storedSSOState = sessionStorage.getItem("auth_state_sso");
+          const isValidState =
+            (storedState && state === storedState) ||
+            (storedSSOState && state === storedSSOState);
+
+          if (!isValidState) {
+            console.error(
+              "[AUTH] ✗ State parameter mismatch - possible CSRF attack"
+            );
+            console.error(
+              "[AUTH] Expected state:",
+              storedState || storedSSOState
+            );
+            console.error("[AUTH] Received state:", state);
+            throw new Error("Invalid state parameter - CSRF validation failed");
+          }
+
+          console.debug("[AUTH] ✓ State parameter validated");
+
+          // Clean up state from storage
+          sessionStorage.removeItem("auth_state");
+          sessionStorage.removeItem("auth_state_sso");
+
           // Handle Auth0 redirect - exchange code for token
           await handleAuth0Callback(code, state);
         } else {
@@ -160,17 +212,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // Check for existing session in sessionStorage
           const hasSession = await checkExistingSession();
 
-          // If no local session and not in callback page, attempt silent auth
-          if (!hasSession && window.location.pathname !== "/auth/callback") {
-            console.debug(
-              "[AUTH] No existing session, attempting silent authentication...",
-            );
-            const silentAuthSucceeded = await attemptSilentAuth();
-            if (!silentAuthSucceeded) {
-              console.debug(
-                "[AUTH] Silent authentication failed (user not logged in at Auth0)",
-              );
-            }
+          if (!hasSession) {
+            console.debug("[AUTH] No existing session found");
+            // Don't attempt silent auth here - only on explicit login
           }
         }
       } catch (error) {
