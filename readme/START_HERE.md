@@ -3,16 +3,19 @@
 ## O que foi feito em 5 minutos?
 
 ✅ **Backend preparado com Auth0**
+
 - Arquivo `.env` criado com todas as credenciais
 - CORS atualizado para suportar ambos portais
 - Endpoint de autenticação funcionando
 
 ✅ **Frontend (Portal Evoque) com SSO pronto**
+
 - Silent Authentication implementado
 - Quando usuário faz login, Auth0 mantém sessão
 - Login automático ao acessar outro portal
 
 ✅ **Documentação completa criada**
+
 - 4 guias de implementação
 - Status de progresso
 - Troubleshooting
@@ -38,11 +41,13 @@ cd frontend && npm run dev
 ### Opção 2️⃣: Implementar Portal Financeiro (45 minutos)
 
 Siga este guia passo a passo:
+
 ```
 readme/FINANCIAL_PORTAL_SETUP.md
 ```
 
 **Resumo dos passos**:
+
 1. Criar `.env` no Portal Financeiro
 2. Copiar 4 arquivos de autenticação
 3. Registrar URLs no Auth0
@@ -51,6 +56,7 @@ readme/FINANCIAL_PORTAL_SETUP.md
 ### Opção 3️⃣: Entender tudo (30 minutos)
 
 Leia o guia completo:
+
 ```
 readme/SSO_MULTI_PORTAL_GUIDE.md
 ```
@@ -67,6 +73,7 @@ Seus secrets foram expostos! Você precisa:
 4. **Atualizar o `.env` local**
 
 Secrets comprometidos:
+
 - ❌ `DB_PASSWORD`
 - ❌ `GRAPH_CLIENT_SECRET`
 - ❌ `POWERBI_CLIENT_SECRET`
@@ -78,33 +85,36 @@ Secrets comprometidos:
 
 ## 📁 Arquivos Criados/Modificados
 
-| Arquivo | Tipo | O que faz |
-|---------|------|----------|
-| `backend/.env` | Novo | Credenciais e config |
-| `backend/main.py` | Modificado | CORS para Portal Financeiro |
-| `frontend/src/lib/auth-context.tsx` | Modificado | Silent Auth adicionado |
-| `readme/SSO_MULTI_PORTAL_GUIDE.md` | Novo | Guia completo (329 linhas) |
-| `readme/IMPLEMENTATION_SUMMARY.md` | Novo | Resumo do que foi feito |
-| `readme/FINANCIAL_PORTAL_SETUP.md` | Novo | Guia rápido Portal Financeiro |
-| `readme/SSO_STATUS.md` | Novo | Dashboard de status |
-| `readme/START_HERE.md` | Novo | Este arquivo |
+| Arquivo                             | Tipo       | O que faz                     |
+| ----------------------------------- | ---------- | ----------------------------- |
+| `backend/.env`                      | Novo       | Credenciais e config          |
+| `backend/main.py`                   | Modificado | CORS para Portal Financeiro   |
+| `frontend/src/lib/auth-context.tsx` | Modificado | Silent Auth adicionado        |
+| `readme/SSO_MULTI_PORTAL_GUIDE.md`  | Novo       | Guia completo (329 linhas)    |
+| `readme/IMPLEMENTATION_SUMMARY.md`  | Novo       | Resumo do que foi feito       |
+| `readme/FINANCIAL_PORTAL_SETUP.md`  | Novo       | Guia rápido Portal Financeiro |
+| `readme/SSO_STATUS.md`              | Novo       | Dashboard de status           |
+| `readme/START_HERE.md`              | Novo       | Este arquivo                  |
 
 ---
 
 ## 🎯 Próximos Passos Recomendados
 
 ### 👤 Para você (5 min)
+
 - [x] Ler este arquivo ✓
 - [ ] Ir para Azure Portal e revogar secrets
 - [ ] Escolher: Testar OU Implementar Portal Financeiro
 
 ### 🔧 Para implementar Portal Financeiro (45 min)
+
 - [ ] Seguir `readme/FINANCIAL_PORTAL_SETUP.md`
 - [ ] Testar em desenvolvimento
 - [ ] Registrar URLs em Auth0
 - [ ] Testar SSO entre portais
 
 ### 🚀 Para colocar em produção
+
 - [ ] Deploy Portal Financeiro
 - [ ] Usar Azure Key Vault
 - [ ] Monitorar logs
@@ -152,6 +162,7 @@ readme/
 ```
 
 **Leia nesta ordem**:
+
 1. START_HERE.md (este)
 2. IMPLEMENTATION_SUMMARY.md (entender o que foi feito)
 3. FINANCIAL_PORTAL_SETUP.md OU SSO_MULTI_PORTAL_GUIDE.md (depende do seu objetivo)
@@ -161,6 +172,7 @@ readme/
 ## 🎬 Comece Agora!
 
 ### 🏃 Route A: Testar (Rápido)
+
 ```bash
 cd backend && python main.py  # Terminal 1
 cd frontend && npm run dev    # Terminal 2
@@ -168,9 +180,11 @@ cd frontend && npm run dev    # Terminal 2
 ```
 
 ### 🔧 Route B: Implementar Portal Financeiro
+
 → Abra `readme/FINANCIAL_PORTAL_SETUP.md`
 
 ### 📚 Route C: Entender Tudo
+
 → Abra `readme/SSO_MULTI_PORTAL_GUIDE.md`
 
 ---

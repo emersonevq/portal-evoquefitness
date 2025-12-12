@@ -99,7 +99,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         clearTimeout(timeoutId);
 
         if (response.ok) {
-          console.debug("[AUTH] ✓ Silent auth successful, redirecting to Auth0");
+          console.debug(
+            "[AUTH] ✓ Silent auth successful, redirecting to Auth0",
+          );
           // Auth0 will redirect to callback with code
           // This will be handled by the next useEffect
           return true;
@@ -112,7 +114,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       } catch (e) {
         clearTimeout(timeoutId);
-        console.debug("[AUTH] Silent auth fetch failed (expected if not authenticated):", e);
+        console.debug(
+          "[AUTH] Silent auth fetch failed (expected if not authenticated):",
+          e,
+        );
         return false;
       }
     } catch (error) {
@@ -151,10 +156,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
           // If no local session and not in callback page, attempt silent auth
           if (!hasSession && window.location.pathname !== "/auth/callback") {
-            console.debug("[AUTH] No existing session, attempting silent authentication...");
+            console.debug(
+              "[AUTH] No existing session, attempting silent authentication...",
+            );
             const silentAuthSucceeded = await attemptSilentAuth();
             if (!silentAuthSucceeded) {
-              console.debug("[AUTH] Silent authentication failed (user not logged in at Auth0)");
+              console.debug(
+                "[AUTH] Silent authentication failed (user not logged in at Auth0)",
+              );
             }
           }
         }
@@ -263,7 +272,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const sessionData = await sessionResponse.json();
       console.debug("[AUTH] ✓ Session created in database");
-      console.debug("[AUTH] Session token:", sessionData.session_token.substring(0, 20) + "...");
+      console.debug(
+        "[AUTH] Session token:",
+        sessionData.session_token.substring(0, 20) + "...",
+      );
 
       // Store session token in sessionStorage (NOT localStorage)
       sessionStorage.setItem("auth_session_token", sessionData.session_token);
@@ -364,7 +376,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           console.debug("[AUTH] ✓ Session restored from sessionStorage");
           return true;
         } catch (e) {
-          console.error("[AUTH] Failed to parse user data from sessionStorage:", e);
+          console.error(
+            "[AUTH] Failed to parse user data from sessionStorage:",
+            e,
+          );
           sessionStorage.removeItem("evoque-fitness-auth");
           setUser(null);
           return false;

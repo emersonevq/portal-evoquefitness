@@ -22,7 +22,8 @@ VITE_AUTH0_LOGOUT_URI=https://qas-frontend-app.calmmoss-ededd9fd.eastus.azurecon
 VITE_PUBLIC_BUILDER_KEY=__BUILDER_PUBLIC_KEY__
 ```
 
-**⚠️ Importante**: 
+**⚠️ Importante**:
+
 - Use o **MESMO** `AUTH0_DOMAIN`, `AUTH0_CLIENT_ID` e `AUTH0_AUDIENCE` do Portal Evoque
 - Use **URLs DIFERENTES** específicas do seu Portal Financeiro
 
@@ -47,6 +48,7 @@ cp frontend/src/components/RequireLogin.tsx → seu-portal-financeiro/src/compon
 ```
 
 **Arquivos mínimos necessários**:
+
 - ✅ `src/lib/auth-context.tsx` - SSO Logic
 - ✅ `src/hooks/useAuth.ts` - Hook para usar auth
 - ✅ `src/pages/auth/Login.tsx` - Página de login
@@ -102,9 +104,7 @@ export default function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
-        <Routes>
-          {/* suas rotas */}
-        </Routes>
+        <Routes>{/* suas rotas */}</Routes>
       </BrowserRouter>
     </AuthProvider>
   );
@@ -149,6 +149,7 @@ npm run dev
 ```
 
 **Teste**:
+
 1. Acesse Portal Evoque em `http://localhost:3005`
 2. Faça login
 3. Abra Portal Financeiro em `http://localhost:3006` (porta diferente)
@@ -196,6 +197,7 @@ npm run dev
 Quando estiver tudo testado:
 
 1. **Configurar URL de produção no `.env`**:
+
    ```env
    VITE_AUTH0_REDIRECT_URI=https://seu-dominio-producao.com/auth/callback
    VITE_AUTH0_LOGOUT_URI=https://seu-dominio-producao.com
@@ -205,6 +207,7 @@ Quando estiver tudo testado:
    - Adicionar URLs de produção em Allowed Callback URLs
 
 3. **Build e Deploy**:
+
    ```bash
    npm run build
    npm run preview  # Teste local
@@ -221,19 +224,23 @@ Quando estiver tudo testado:
 ## ⚠️ Problemas Comuns
 
 ### "Erro: Invalid redirect_uri"
+
 **Causa**: URL não registrada em Auth0
 **Solução**: Vá para Auth0 Dashboard → Allowed Callback URLs → Adicione sua URL
 
 ### "Silent Authentication não funciona"
+
 **Causa**: Provavelmente usuário não está logado no Auth0
 **Esperado**: Página de login será mostrada
 **Solução**: Faça login no Portal Evoque primeiro
 
 ### "CORS error"
+
 **Causa**: Backend não aceita seu domínio
 **Solução**: Verifique se `FINANCIAL_PORTAL_URL` está configurada no backend
 
 ### "User not found in database"
+
 **Causa**: Usuário está em Auth0 mas não no seu banco
 **Solução**: Crie o usuário ou implemente auto-provisioning
 
@@ -241,13 +248,13 @@ Quando estiver tudo testado:
 
 ## 📚 Referência Rápida
 
-| Arquivo | Função |
-|---------|--------|
-| `auth-context.tsx` | Contexto de autenticação com SSO |
-| `useAuth.ts` | Hook para acessar dados de usuário |
-| `Login.tsx` | Página de login (Auth0) |
-| `Callback.tsx` | Página de callback (recebe code do Auth0) |
-| `RequireLogin.tsx` | Componente para proteger rotas |
+| Arquivo            | Função                                    |
+| ------------------ | ----------------------------------------- |
+| `auth-context.tsx` | Contexto de autenticação com SSO          |
+| `useAuth.ts`       | Hook para acessar dados de usuário        |
+| `Login.tsx`        | Página de login (Auth0)                   |
+| `Callback.tsx`     | Página de callback (recebe code do Auth0) |
+| `RequireLogin.tsx` | Componente para proteger rotas            |
 
 ---
 
@@ -267,4 +274,3 @@ Quando estiver tudo testado:
 
 **Tempo estimado**: 30-45 minutos  
 **Dificuldade**: Baixa (copiar & colar + configurar URLs)
-

@@ -1,6 +1,7 @@
 # 📊 SSO Implementation Status Dashboard
 
 ## 🎯 Objetivo
+
 Implementar **Single Sign-On (SSO)** entre Portal Evoque e Portal Financeiro usando Auth0 com **Silent Authentication**.
 
 ---
@@ -8,6 +9,7 @@ Implementar **Single Sign-On (SSO)** entre Portal Evoque e Portal Financeiro usa
 ## ✅ O que foi Implementado
 
 ### Backend
+
 ```
 ✅ backend/.env
    ├─ Auth0 credentials configuradas
@@ -30,6 +32,7 @@ Implementar **Single Sign-On (SSO)** entre Portal Evoque e Portal Financeiro usa
 ```
 
 ### Frontend (Portal Evoque)
+
 ```
 ✅ frontend/src/lib/auth-context.tsx
    ├─ attemptSilentAuth() método novo
@@ -53,6 +56,7 @@ Implementar **Single Sign-On (SSO)** entre Portal Evoque e Portal Financeiro usa
 ```
 
 ### Documentação
+
 ```
 ✅ readme/SSO_MULTI_PORTAL_GUIDE.md
    └─ Guia completo com 329 linhas
@@ -72,6 +76,7 @@ Implementar **Single Sign-On (SSO)** entre Portal Evoque e Portal Financeiro usa
 ## ⏳ O que Falta Fazer
 
 ### Portal Financeiro (Para o Usuário)
+
 ```
 ⏳ Step 1: Preparar .env
    └─ [ ] Criar frontend/.env com URLs próprias
@@ -172,7 +177,7 @@ Implementar **Single Sign-On (SSO)** entre Portal Evoque e Portal Financeiro usa
 # Terminal 1
 cd backend && python main.py
 
-# Terminal 2  
+# Terminal 2
 cd frontend && npm run dev
 
 # Abra http://localhost:3005
@@ -182,10 +187,11 @@ cd frontend && npm run dev
 ```
 
 **Verificar**:
+
 ```javascript
 // No DevTools Console:
-sessionStorage.getItem("auth_session_token")  // Deve ter valor
-sessionStorage.getItem("evoque-fitness-auth")  // Deve ter JSON do usuário
+sessionStorage.getItem("auth_session_token"); // Deve ter valor
+sessionStorage.getItem("evoque-fitness-auth"); // Deve ter JSON do usuário
 ```
 
 ### Teste 2: Portal Financeiro em Produção/QA
@@ -204,21 +210,22 @@ Uma vez que implementar o Portal Financeiro:
 
 ## 📈 Métricas de Implementação
 
-| Métrica | Status | Detalhes |
-|---------|--------|----------|
-| **Backend Config** | ✅ 100% | Auth0, DB, Email configurados |
-| **Frontend Auth** | ✅ 100% | Silent Auth implementado |
-| **CORS Setup** | ✅ 100% | Ambos portais suportados |
-| **Documentação** | ✅ 100% | 3 guias criados |
-| **Portal Evoque** | ✅ 100% | Pronto para usar |
-| **Portal Financeiro** | ⏳ 0% | Aguardando configuração |
-| **Produção** | ⏳ 0% | Após Portal Financeiro ok |
+| Métrica               | Status  | Detalhes                      |
+| --------------------- | ------- | ----------------------------- |
+| **Backend Config**    | ✅ 100% | Auth0, DB, Email configurados |
+| **Frontend Auth**     | ✅ 100% | Silent Auth implementado      |
+| **CORS Setup**        | ✅ 100% | Ambos portais suportados      |
+| **Documentação**      | ✅ 100% | 3 guias criados               |
+| **Portal Evoque**     | ✅ 100% | Pronto para usar              |
+| **Portal Financeiro** | ⏳ 0%   | Aguardando configuração       |
+| **Produção**          | ⏳ 0%   | Após Portal Financeiro ok     |
 
 ---
 
 ## 🔒 Considerações de Segurança
 
 ### ✅ Implementado
+
 - [x] Backend faz exchange de código (não client-side)
 - [x] JWT validado no backend
 - [x] SessionStorage (não localStorage)
@@ -227,6 +234,7 @@ Uma vez que implementar o Portal Financeiro:
 - [x] Timeout em Silent Auth para não travar
 
 ### ⚠️ A Fazer (URGENTE!)
+
 - [ ] Revogar secrets expostos no Azure Portal
 - [ ] Gerar novos secrets
 - [ ] Usar Azure Key Vault em produção
@@ -234,6 +242,7 @@ Uma vez que implementar o Portal Financeiro:
 - [ ] Adicionar logging de segurança
 
 ### 🔐 Dados Sensíveis (Precisa Atualizar)
+
 ```
 ❌ DB_PASSWORD = Evq@2520##!
 ❌ GRAPH_CLIENT_SECRET = 4lg8Q~Np6rsPirXWNnlTtgIPfauxbXEVFdK6ocwN
@@ -248,18 +257,21 @@ Uma vez que implementar o Portal Financeiro:
 ## 📞 Próximas Ações Recomendadas
 
 ### Imediato (Esta semana)
+
 1. ✅ **Revisar implementação** - Leia `readme/IMPLEMENTATION_SUMMARY.md`
 2. ✅ **Testar Portal Evoque** - Verify SSO works locally
 3. ⚠️ **Revogar secrets** - Go to Azure Portal NOW
 4. ⏳ **Implementar Portal Financeiro** - Follow `readme/FINANCIAL_PORTAL_SETUP.md`
 
 ### Curto Prazo (Próximas 2 semanas)
+
 - [ ] Testes em QA do Portal Financeiro
 - [ ] Testes de SSO entre portais
 - [ ] Testar logout/login flow
 - [ ] Performance testing
 
 ### Longo Prazo (Produção)
+
 - [ ] Deploy Portal Financeiro
 - [ ] Monitorar logs
 - [ ] Implementar Azure Key Vault
@@ -301,12 +313,12 @@ readme/
 
 ## 🎉 Resumo
 
-| Item | Status | Ação |
-|------|--------|------|
-| Portal Evoque com SSO | ✅ FEITO | Pronto para usar |
-| Portal Financeiro | ⏳ PENDENTE | Siga guia FINANCIAL_PORTAL_SETUP.md |
-| Segurança (secrets) | ⚠️ URGENTE | Revogue secrets no Azure Portal |
-| Documentação | ✅ COMPLETO | 3 guias criados |
+| Item                  | Status      | Ação                                |
+| --------------------- | ----------- | ----------------------------------- |
+| Portal Evoque com SSO | ✅ FEITO    | Pronto para usar                    |
+| Portal Financeiro     | ⏳ PENDENTE | Siga guia FINANCIAL_PORTAL_SETUP.md |
+| Segurança (secrets)   | ⚠️ URGENTE  | Revogue secrets no Azure Portal     |
+| Documentação          | ✅ COMPLETO | 3 guias criados                     |
 
 ---
 
@@ -317,4 +329,3 @@ Agora é só implementar o Portal Financeiro seguindo os guias.
 
 Para começar, leia:  
 → `readme/FINANCIAL_PORTAL_SETUP.md` (30-45 minutos)
-

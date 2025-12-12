@@ -3,6 +3,7 @@
 ## O que foi feito
 
 ### 1️⃣ **Backend - Arquivo `.env` Criado**
+
 - Arquivo: `backend/.env`
 - Status: ✅ Criado com todas as credenciais
 - Contém:
@@ -18,6 +19,7 @@
 ---
 
 ### 2️⃣ **Frontend - Silent Authentication Implementado**
+
 - Arquivo: `frontend/src/lib/auth-context.tsx`
 - Novo método: `attemptSilentAuth()`
 - Funcionalidade:
@@ -27,6 +29,7 @@
   - ✅ Funciona em qualquer domínio
 
 **Fluxo**:
+
 ```
 Usuário acessa Portal → Verifica sessão local
                      ↓
@@ -39,6 +42,7 @@ Usuário acessa Portal → Verifica sessão local
 ---
 
 ### 3️⃣ **Backend - CORS Atualizado**
+
 - Arquivo: `backend/main.py`
 - Modificação: Adicionado suporte para `FINANCIAL_PORTAL_URL`
 - Variável de ambiente: `FINANCIAL_PORTAL_URL`
@@ -49,6 +53,7 @@ Usuário acessa Portal → Verifica sessão local
 ---
 
 ### 4️⃣ **Documentação Criada**
+
 - Arquivo: `readme/SSO_MULTI_PORTAL_GUIDE.md`
 - Conteúdo:
   - 📋 Guia completo de implementação
@@ -96,6 +101,7 @@ Os seguintes secrets foram encontrados no `.env`:
 ## 🔄 Status da Implementação
 
 ### Portal Evoque (ATUAL)
+
 - ✅ `.env` com Auth0 configurado
 - ✅ `auth-context.tsx` com Silent Authentication
 - ✅ Backend endpoint `/api/auth/auth0-exchange` funcionando
@@ -103,6 +109,7 @@ Os seguintes secrets foram encontrados no `.env`:
 - ✅ Pronto para testar SSO
 
 ### Portal Financeiro (A FAZER)
+
 - ⏳ Criar `.env` com URLs próprias
 - ⏳ Copiar arquivos de autenticação
 - ⏳ Registrar Redirect URI no Auth0
@@ -116,6 +123,7 @@ Os seguintes secrets foram encontrados no `.env`:
 ### Teste Local (Desenvolvimento)
 
 **Terminal 1 - Backend**:
+
 ```bash
 cd backend
 python main.py
@@ -123,6 +131,7 @@ python main.py
 ```
 
 **Terminal 2 - Frontend (Portal Evoque)**:
+
 ```bash
 cd frontend
 npm run dev
@@ -130,6 +139,7 @@ npm run dev
 ```
 
 **Teste**:
+
 1. Abra `http://localhost:3005`
 2. Clique "Login com Auth0"
 3. Faça login com suas credenciais Auth0
@@ -156,6 +166,7 @@ npm run dev
 ## 📝 Próximos Passos
 
 ### 1. Implementar Portal Financeiro
+
 - [ ] Clonar `frontend/src/lib/auth-context.tsx`
 - [ ] Atualizar `.env` do Portal Financeiro
 - [ ] Registrar Redirect URI no Auth0
@@ -163,6 +174,7 @@ npm run dev
 - [ ] Documentar configuração
 
 ### 2. Produção
+
 - [ ] Gerar novos secrets no Azure
 - [ ] Usar Azure Key Vault
 - [ ] Configurar CORS para domínios de produção
@@ -170,6 +182,7 @@ npm run dev
 - [ ] Monitorar logs
 
 ### 3. Segurança Pós-Implementação
+
 - [ ] Auditar credenciais expostas
 - [ ] Implementar rate limiting
 - [ ] Adicionar logging de segurança
@@ -179,14 +192,14 @@ npm run dev
 
 ## 📊 Resumo Técnico
 
-| Componente | Status | Arquivo |
-|-----------|--------|---------|
-| Backend `.env` | ✅ Criado | `backend/.env` |
-| Auth0 Routes | ✅ Existente | `backend/auth0/routes.py` |
-| Silent Auth | ✅ Implementado | `frontend/src/lib/auth-context.tsx` |
-| CORS Backend | ✅ Atualizado | `backend/main.py` (linha 96-112) |
-| Documentação | ✅ Criada | `readme/SSO_MULTI_PORTAL_GUIDE.md` |
-| Portal Financeiro | ⏳ Aguardando | - |
+| Componente        | Status          | Arquivo                             |
+| ----------------- | --------------- | ----------------------------------- |
+| Backend `.env`    | ✅ Criado       | `backend/.env`                      |
+| Auth0 Routes      | ✅ Existente    | `backend/auth0/routes.py`           |
+| Silent Auth       | ✅ Implementado | `frontend/src/lib/auth-context.tsx` |
+| CORS Backend      | ✅ Atualizado   | `backend/main.py` (linha 96-112)    |
+| Documentação      | ✅ Criada       | `readme/SSO_MULTI_PORTAL_GUIDE.md`  |
+| Portal Financeiro | ⏳ Aguardando   | -                                   |
 
 ---
 

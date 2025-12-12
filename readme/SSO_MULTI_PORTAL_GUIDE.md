@@ -3,6 +3,7 @@
 ## 📋 Visão Geral
 
 Este guia implementa **Single Sign-On (SSO)** entre dois portais usando Auth0:
+
 - **Portal Evoque**: `https://app.portalevoque.com/`
 - **Portal Financeiro**: `https://qas-frontend-app.calmmoss-ededd9fd.eastus.azurecontainerapps.io/` (QA)
 
@@ -35,6 +36,7 @@ Usuário em Portal Evoque        Usuário em Portal Financeiro
 ### Tecnologia
 
 **Silent Authentication**: Usa o parâmetro `prompt=none` no Auth0:
+
 - Se o usuário já está logado no Auth0, faz login automaticamente
 - Se não está logado, falha silenciosamente (usuário vê página de login)
 - Funciona mesmo em domínios diferentes
@@ -67,12 +69,12 @@ const attemptSilentAuth = async (): Promise<boolean> => {
   // 2. Tenta comunicar com Auth0 usando fetch
   // 3. Se sucesso: Auth0 redireciona com código
   // 4. Se falha: Retorna false (usuário não está logado)
-  
   // Timeout de 5 segundos para não travar a página
 };
 ```
 
 **Integração no `useEffect` inicial**:
+
 - Se não há sessão local e não está na página de callback
 - Chama `attemptSilentAuth()`
 - Se falha, usuário vê página de login normalmente
@@ -112,6 +114,7 @@ VITE_AUTH0_LOGOUT_URI=https://qas-frontend-app.calmmoss-ededd9fd.eastus.azurecon
 ### Passo 2: Copiar Implementação do Auth0
 
 Copie os arquivos:
+
 - `frontend/src/lib/auth-context.tsx`
 - `frontend/src/pages/auth/` (Login, Callback, etc)
 - `frontend/src/hooks/useAuth.ts`
@@ -121,6 +124,7 @@ Copie os arquivos:
 Na **Auth0 Dashboard** → **Applications** → **Settings**:
 
 Adicione à lista "Allowed Callback URLs":
+
 ```
 https://qas-frontend-app.calmmoss-ededd9fd.eastus.azurecontainerapps.io/auth/callback
 https://qas-frontend-app.calmmoss-ededd9fd.eastus.azurecontainerapps.io (logout)
@@ -160,6 +164,7 @@ CORS_ORIGINS=http://localhost:3005,https://app.portalevoque.com,https://qas-fron
 ### Teste Local
 
 1. **Terminal 1** - Backend:
+
 ```bash
 cd backend
 python main.py
@@ -167,6 +172,7 @@ python main.py
 ```
 
 2. **Terminal 2** - Portal Evoque:
+
 ```bash
 cd frontend
 npm run dev
@@ -196,11 +202,9 @@ npm run dev
 - **Backend faz a troca de código** (`/api/auth/auth0-exchange`)
   - Mais seguro que client-side
   - Client secret nunca é exposto ao navegador
-  
 - **Validação JWT no Backend**
   - Verifica assinatura RS256
   - Valida audience e issuer
-  
 - **SessionStorage (não localStorage)**
   - Sessão se encerra ao fechar a aba
   - Mais seguro que localStorage
@@ -280,19 +284,23 @@ npm run dev
 ## 🛠️ Troubleshooting
 
 ### "Erro: Silent Authentication Timeout"
+
 - Normal se usuário não está logado no Auth0
 - Frontend espera 5 segundos e desiste
 - Usuário é apresentado com página de login
 
 ### "Error: Invalid redirect_uri"
+
 - Verifique se a URL está registrada em Auth0
 - Deve estar em **Applications → Settings → Allowed Callback URLs**
 
 ### "Email not verified"
+
 - Se `AUTH0_REQUIRE_EMAIL_VERIFIED=True`, usuário precisa verificar email no Auth0
 - Configure como `False` para permitir emails não verificados
 
 ### "User not found in database"
+
 - Usuário está no Auth0, mas não foi criado no banco de dados
 - Crie o usuário via admin ou API
 - Auth0 não cria automaticamente no seu banco
@@ -310,12 +318,14 @@ npm run dev
 ## ✅ Checklist de Implementação
 
 ### Portal Evoque
+
 - [x] `.env` com credenciais Auth0
 - [x] `auth-context.tsx` com Silent Authentication
 - [x] Backend endpoint `/api/auth/auth0-exchange`
 - [x] Backend `.env` com Auth0 config
 
 ### Portal Financeiro
+
 - [ ] Criar `.env` com URLs do seu domínio
 - [ ] Copiar arquivos de auth
 - [ ] Registrar Redirect URI no Auth0
