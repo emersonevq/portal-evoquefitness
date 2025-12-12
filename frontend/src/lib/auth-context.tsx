@@ -63,6 +63,69 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
+  // Attempt silent authentication with Auth0
+  const attemptSilentAuth = async (): Promise<boolean> => {
+    try {
+      console.debug("[AUTH] Attempting silent authentication with Auth0...");
+
+      const authorizationUrl = new URL(
+        `https://${import.meta.env.VITE_AUTH0_DOMAIN}/authorize`,
+      );
+
+      const params = {
+        response_type: "code",
+        client_id: import.meta.env.VITE_AUTH0_CLIENT_ID,
+        redirect_uri: import.meta.env.VITE_AUTH0_REDIRECT_URI,
+        scope: "openid profile email offline_access",
+        audience: import.meta.env.VITE_AUTH0_AUDIENCE,
+        state: Math.random().toString(36).substring(7),
+        prompt: "none", // Critical: don't show login UI if not authenticated
+      };
+
+      Object.entries(params).forEach(([key, value]) => {
+        authorizationUrl.searchParams.append(key, value);
+      });
+
+      // Use fetch with a timeout to handle failure gracefully
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+      try {
+        const response = await fetch(authorizationUrl.toString(), {
+          method: "GET",
+          signal: controller.signal,
+        });
+
+        clearTimeout(timeoutId);
+
+        if (response.ok) {
+          console.debug(
+            "[AUTH] ✓ Silent auth successful, redirecting to Auth0",
+          );
+          // Auth0 will redirect to callback with code
+          // This will be handled by the next useEffect
+          return true;
+        } else {
+          console.debug(
+            "[AUTH] Silent auth returned non-200 status:",
+            response.status,
+          );
+          return false;
+        }
+      } catch (e) {
+        clearTimeout(timeoutId);
+        console.debug(
+          "[AUTH] Silent auth fetch failed (expected if not authenticated):",
+          e,
+        );
+        return false;
+      }
+    } catch (error) {
+      console.debug("[AUTH] Silent auth attempt failed:", error);
+      return false;
+    }
+  };
+
   // Initialize Auth0 on mount
   useEffect(() => {
     const initAuth0 = async () => {
@@ -89,7 +152,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } else {
           console.debug("[AUTH] No code/state, checking existing session");
           // Check for existing session in sessionStorage
-          await checkExistingSession();
+          const hasSession = await checkExistingSession();
+
+          // If no local session and not in callback page, attempt silent auth
+          if (!hasSession && window.location.pathname !== "/auth/callback") {
+            console.debug(
+              "[AUTH] No existing session, attempting silent authentication...",
+            );
+            const silentAuthSucceeded = await attemptSilentAuth();
+            if (!silentAuthSucceeded) {
+              console.debug(
+                "[AUTH] Silent authentication failed (user not logged in at Auth0)",
+              );
+            }
+          }
         }
       } catch (error) {
         console.error("[AUTH] ✗ Error initializing auth:", error);
@@ -196,7 +272,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const sessionData = await sessionResponse.json();
       console.debug("[AUTH] ✓ Session created in database");
-      console.debug("[AUTH] Session token:", sessionData.session_token.substring(0, 20) + "...");
+      console.debug(
+        "[AUTH] Session token:",
+        sessionData.session_token.substring(0, 20) + "...",
+      );
 
       // Store session token in sessionStorage (NOT localStorage)
       sessionStorage.setItem("auth_session_token", sessionData.session_token);
@@ -234,7 +313,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const checkExistingSession = async () => {
+  const checkExistingSession = async (): Promise<boolean> => {
     try {
       const sessionToken = sessionStorage.getItem("auth_session_token");
       const expiresAt = sessionStorage.getItem("auth_expires_at");
@@ -242,7 +321,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!sessionToken || !expiresAt) {
         console.debug("[AUTH] No session found in sessionStorage");
         setUser(null);
-        return;
+        return false;
       }
 
       // Check if session is expired
@@ -254,7 +333,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         sessionStorage.removeItem("auth_expires_at");
         sessionStorage.removeItem("evoque-fitness-auth");
         setUser(null);
-        return;
+        return false;
       }
 
       // Validate session with backend
@@ -274,7 +353,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         sessionStorage.removeItem("auth_expires_at");
         sessionStorage.removeItem("evoque-fitness-auth");
         setUser(null);
-        return;
+        return false;
       }
 
       const validationData = await response.json();
@@ -285,7 +364,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         sessionStorage.removeItem("auth_expires_at");
         sessionStorage.removeItem("evoque-fitness-auth");
         setUser(null);
-        return;
+        return false;
       }
 
       // Restore user from sessionStorage
@@ -295,15 +374,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const userData = JSON.parse(userDataRaw) as User;
           setUser(userData);
           console.debug("[AUTH] ✓ Session restored from sessionStorage");
+          return true;
         } catch (e) {
-          console.error("[AUTH] Failed to parse user data from sessionStorage:", e);
+          console.error(
+            "[AUTH] Failed to parse user data from sessionStorage:",
+            e,
+          );
           sessionStorage.removeItem("evoque-fitness-auth");
           setUser(null);
+          return false;
         }
       }
+      return false;
     } catch (error) {
       console.error("[AUTH] Error checking session:", error);
       setUser(null);
+      return false;
     }
   };
 
