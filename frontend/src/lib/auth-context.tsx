@@ -321,7 +321,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         sessionStorage.removeItem("auth_expires_at");
         sessionStorage.removeItem("evoque-fitness-auth");
         setUser(null);
-        return;
+        return false;
       }
 
       // Validate session with backend
@@ -341,7 +341,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         sessionStorage.removeItem("auth_expires_at");
         sessionStorage.removeItem("evoque-fitness-auth");
         setUser(null);
-        return;
+        return false;
       }
 
       const validationData = await response.json();
@@ -352,7 +352,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         sessionStorage.removeItem("auth_expires_at");
         sessionStorage.removeItem("evoque-fitness-auth");
         setUser(null);
-        return;
+        return false;
       }
 
       // Restore user from sessionStorage
@@ -362,15 +362,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const userData = JSON.parse(userDataRaw) as User;
           setUser(userData);
           console.debug("[AUTH] ✓ Session restored from sessionStorage");
+          return true;
         } catch (e) {
           console.error("[AUTH] Failed to parse user data from sessionStorage:", e);
           sessionStorage.removeItem("evoque-fitness-auth");
           setUser(null);
+          return false;
         }
       }
+      return false;
     } catch (error) {
       console.error("[AUTH] Error checking session:", error);
       setUser(null);
+      return false;
     }
   };
 
