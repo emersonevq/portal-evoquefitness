@@ -11,6 +11,17 @@ AUTH0_CLIENT_ID = os.getenv("AUTH0_CLIENT_ID", "")
 AUTH0_CLIENT_SECRET = os.getenv("AUTH0_CLIENT_SECRET", "")
 AUTH0_REQUIRE_EMAIL_VERIFIED = os.getenv("AUTH0_REQUIRE_EMAIL_VERIFIED", "False").lower() in ("true", "1", "yes")
 
+# Generate dynamic AUTH0_CALLBACK_URL based on frontend URL
+_frontend_url = os.getenv("FRONTEND_URL", "").strip()
+_production_domain = os.getenv("PRODUCTION_DOMAIN", "").strip()
+
+if _frontend_url:
+    AUTH0_CALLBACK_URL = f"{_frontend_url}/auth/callback"
+elif _production_domain:
+    AUTH0_CALLBACK_URL = f"https://{_production_domain}/auth/callback"
+else:
+    AUTH0_CALLBACK_URL = "http://localhost:3005/auth/callback"
+
 # Machine-to-Machine (M2M) Credentials for Management API
 AUTH0_M2M_CLIENT_ID = os.getenv("AUTH0_M2M_CLIENT_ID", "")
 AUTH0_M2M_CLIENT_SECRET = os.getenv("AUTH0_M2M_CLIENT_SECRET", "")
