@@ -1220,6 +1220,7 @@ export default function ChamadosPage() {
                         Modelo de Mensagem
                       </label>
                       <Select
+                        key={`template-select-${template || "none"}`}
                         value={template || "none"}
                         onValueChange={(v) => {
                           if (v === "none") {
@@ -1239,13 +1240,7 @@ export default function ChamadosPage() {
                         }}
                       >
                         <SelectTrigger>
-                          <SelectValue
-                            placeholder="Selecione um modelo (opcional)"
-                          >
-                            {template === "atualizacao" && "Atualização padrão"}
-                            {template === "info" && "Solicitar mais informações"}
-                            {(!template || template === "") && "Selecione um modelo (opcional)"}
-                          </SelectValue>
+                          <SelectValue placeholder="Selecione um modelo (opcional)" />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="none">Sem modelo</SelectItem>
