@@ -537,10 +537,23 @@ class MetricsCalculator:
         return resultado
 
     @staticmethod
-    def get_chamados_por_mes(db: Session, meses: int = 3) -> list[dict]:
-        """Retorna quantidade de chamados registrados e concluídos por mês dos últimos N meses"""
+    def get_chamados_por_mes(db: Session, meses: int = 3, statuses: list[str] | None = None) -> list[dict]:
+        """Retorna quantidade de chamados por mês dos últimos N meses, separado por status
+
+        Args:
+            db: Session do banco de dados
+            meses: Número de meses a retornar
+            statuses: Lista de status para filtrar (ex: ["Aberto", "Em andamento"])
+                     Se None ou vazio, mostra todos os status
+        """
         agora = now_brazil_naive()
         resultado = []
+
+        # Status disponíveis no sistema
+        status_disponiveis = ["Aberto", "Em andamento", "Em análise", "Concluído", "Cancelado"]
+
+        # Se statuses foi especificado, filtra apenas os selecionados
+        statuses_para_usar = statuses if statuses and len(statuses) > 0 else status_disponiveis
 
         for i in range(meses):
             mes_num = meses - i
@@ -554,28 +567,26 @@ class MetricsCalculator:
             else:
                 mes_fim = mes_inicio.replace(month=mes_inicio.month + 1)
 
-            # Contar chamados registrados
-            registrados = db.query(Chamado).filter(
-                and_(
-                    Chamado.data_abertura >= mes_inicio,
-                    Chamado.data_abertura < mes_fim,
-                )
-            ).count()
-
-            # Contar chamados concluídos
-            concluidos = db.query(Chamado).filter(
-                and_(
-                    Chamado.data_conclusao >= mes_inicio,
-                    Chamado.data_conclusao < mes_fim,
-                    Chamado.status == "Concluído"
-                )
-            ).count()
-
-            resultado.insert(0, {
+            # Contar por status
+            dados_mes = {
                 "mes": mes_inicio.strftime("%b %Y"),
-                "registrados": registrados,
-                "concluidos": concluidos
-            })
+                "data_iso": mes_inicio.strftime("%Y-%m"),
+            }
+
+            for status in statuses_para_usar:
+                count = db.query(Chamado).filter(
+                    and_(
+                        Chamado.data_abertura >= mes_inicio,
+                        Chamado.data_abertura < mes_fim,
+                        Chamado.status == status
+                    )
+                ).count()
+
+                # Normaliza nome do status para key segura (remova espaços e caracteres especiais)
+                status_key = status.lower().replace(" ", "_").replace("á", "a")
+                dados_mes[status_key] = count
+
+            resultado.insert(0, dados_mes)
 
         return resultado
 
