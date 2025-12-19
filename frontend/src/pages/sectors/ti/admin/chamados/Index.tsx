@@ -1244,8 +1244,12 @@ export default function ChamadosPage() {
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="none">Sem modelo</SelectItem>
-                          <SelectItem value="atualizacao">Atualização padrão</SelectItem>
-                          <SelectItem value="info">Solicitar mais informações</SelectItem>
+                          <SelectItem value="atualizacao">
+                            Atualização padrão
+                          </SelectItem>
+                          <SelectItem value="info">
+                            Solicitar mais informações
+                          </SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
