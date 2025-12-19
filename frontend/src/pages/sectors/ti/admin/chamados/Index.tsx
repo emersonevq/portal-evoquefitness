@@ -1224,18 +1224,25 @@ export default function ChamadosPage() {
                         value={template || "none"}
                         onValueChange={(v) => {
                           const chamadoId = selected?.codigo || "EVQ-XXXX";
-                          const solicitante = selected?.solicitante || "[Nome do solicitante]";
+                          const solicitante =
+                            selected?.solicitante || "[Nome do solicitante]";
                           const problema = selected?.categoria || "[Problema]";
                           const unidade = selected?.unidade || "[Unidade]";
                           const dataAbertura = selected?.criadoEm
-                            ? new Date(selected.criadoEm).toLocaleString("pt-BR")
+                            ? new Date(selected.criadoEm).toLocaleString(
+                                "pt-BR",
+                              )
                             : "[Data de abertura]";
                           const statusChamado = (() => {
                             if (selected?.status === "ABERTO") return "Aberto";
-                            if (selected?.status === "EM_ANDAMENTO") return "Em andamento";
-                            if (selected?.status === "EM_ANALISE") return "Em análise";
-                            if (selected?.status === "CONCLUIDO") return "Concluído";
-                            if (selected?.status === "CANCELADO") return "Cancelado";
+                            if (selected?.status === "EM_ANDAMENTO")
+                              return "Em andamento";
+                            if (selected?.status === "EM_ANALISE")
+                              return "Em análise";
+                            if (selected?.status === "CONCLUIDO")
+                              return "Concluído";
+                            if (selected?.status === "CANCELADO")
+                              return "Cancelado";
                             return "[Status do chamado]";
                           })();
 
