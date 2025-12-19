@@ -249,10 +249,16 @@ def get_sla_compliance(db: Session = Depends(get_db)):
 
 
 @router.get("/metrics/chamados-por-dia")
-def get_chamados_por_dia(dias: int = 7, db: Session = Depends(get_db)):
-    """Retorna quantidade de chamados por dia dos últimos N dias"""
+def get_chamados_por_dia(dias: int = 7, statuses: str = "", db: Session = Depends(get_db)):
+    """Retorna quantidade de chamados por dia dos últimos N dias
+
+    Query params:
+    - dias: Número de dias (default: 7)
+    - statuses: Lista separada por vírgula (ex: "Aberto,Em andamento")
+    """
     try:
-        dados = MetricsCalculator.get_chamados_por_dia(db, dias)
+        status_list = [s.strip() for s in statuses.split(",") if s.strip()] if statuses else []
+        dados = MetricsCalculator.get_chamados_por_dia(db, dias, status_list if status_list else None)
         if not isinstance(dados, list):
             return {"dados": []}
         return {"dados": dados}
