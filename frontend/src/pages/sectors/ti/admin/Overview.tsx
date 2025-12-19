@@ -157,9 +157,10 @@ export default function Overview() {
   });
 
   const { data: dailyChartData, isLoading: dailyLoading } = useQuery({
-    queryKey: ["metrics-daily"],
+    queryKey: ["metrics-daily", selectedStatuses],
     queryFn: async () => {
-      const response = await api.get("/metrics/chamados-por-dia");
+      const statusQuery = selectedStatuses.length > 0 ? `&statuses=${selectedStatuses.join(",")}` : "";
+      const response = await api.get(`/metrics/chamados-por-dia?dias=7${statusQuery}`);
       return response.data?.dados || [];
     },
     staleTime: 10 * 60 * 1000,
@@ -167,9 +168,10 @@ export default function Overview() {
   });
 
   const { data: weeklyChartData, isLoading: weeklyLoading } = useQuery({
-    queryKey: ["metrics-weekly"],
+    queryKey: ["metrics-weekly", selectedStatuses],
     queryFn: async () => {
-      const response = await api.get("/metrics/chamados-por-semana");
+      const statusQuery = selectedStatuses.length > 0 ? `&statuses=${selectedStatuses.join(",")}` : "";
+      const response = await api.get(`/metrics/chamados-por-semana?semanas=4${statusQuery}`);
       return response.data?.dados || [];
     },
     staleTime: 10 * 60 * 1000,
