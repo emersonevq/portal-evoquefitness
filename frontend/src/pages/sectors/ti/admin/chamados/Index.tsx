@@ -1222,34 +1222,30 @@ export default function ChamadosPage() {
                       <Select
                         value={template || "none"}
                         onValueChange={(v) => {
-                          const selectedTemplate = v === "none" ? "" : v;
-                          setTemplate(selectedTemplate);
                           if (v === "none") {
+                            setTemplate("");
                             setMessage("");
-                          } else if (v === "atualizacao") {
-                            setMessage(
-                              "Prezado,\n\nSegue abaixo uma atualização sobre seu chamado.\n\nContinuamos trabalhando para resolver sua solicitação com a máxima agilidade.\n\nQualquer dúvida, não hesite em nos contatar.\n\nAtenciosamente,\nTim de TI",
-                            );
-                          } else if (v === "info") {
-                            setMessage(
-                              "Prezado,\n\nPara que possamos avançar no atendimento de seu chamado, solicitamos algumas informações adicionais:\n\n- [Informação 1]\n- [Informação 2]\n\nFavor responder com os detalhes solicitados para que possamos prosseguir.\n\nAtenciosamente,\nTim de TI",
-                            );
+                          } else {
+                            setTemplate(v);
+                            if (v === "atualizacao") {
+                              setMessage(
+                                "Prezado,\n\nSegue abaixo uma atualização sobre seu chamado.\n\nContinuamos trabalhando para resolver sua solicitação com a máxima agilidade.\n\nQualquer dúvida, não hesite em nos contatar.\n\nAtenciosamente,\nTim de TI",
+                              );
+                            } else if (v === "info") {
+                              setMessage(
+                                "Prezado,\n\nPara que possamos avançar no atendimento de seu chamado, solicitamos algumas informações adicionais:\n\n- [Informação 1]\n- [Informação 2]\n\nFavor responder com os detalhes solicitados para que possamos prosseguir.\n\nAtenciosamente,\nTim de TI",
+                              );
+                            }
                           }
                         }}
                       >
                         <SelectTrigger>
-                          <SelectValue
-                            placeholder="Selecione um modelo (opcional)"
-                          />
+                          <SelectValue placeholder="Selecione um modelo (opcional)" />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="none">Sem modelo</SelectItem>
-                          <SelectItem value="atualizacao">
-                            Atualização padrão
-                          </SelectItem>
-                          <SelectItem value="info">
-                            Solicitar mais informações
-                          </SelectItem>
+                          <SelectItem value="atualizacao">Atualização padrão</SelectItem>
+                          <SelectItem value="info">Solicitar mais informações</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
