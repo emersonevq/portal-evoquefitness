@@ -504,16 +504,20 @@ class MetricsCalculator:
 
     @staticmethod
     def get_chamados_por_semana(db: Session, semanas: int = 4, statuses: list[str] | None = None) -> list[dict]:
-        """Retorna quantidade de chamados por semana dos últimos N semanas
+        """Retorna quantidade de chamados por semana dos últimos N semanas, separado por status
 
         Args:
             db: Session do banco de dados
             semanas: Número de semanas a retornar
             statuses: Lista de status para filtrar (ex: ["Aberto", "Em andamento"])
-                     Se None ou vazio, inclui todos exceto "Cancelado"
+                     Se None ou vazio, mostra todos os status
         """
         agora = now_brazil_naive()
         resultado = []
+
+        # Status disponíveis
+        status_disponiveis = ["Aberto", "Em andamento", "Em análise", "Concluído", "Cancelado"]
+        statuses_para_usar = statuses if statuses and len(statuses) > 0 else status_disponiveis
 
         for i in range(semanas):
             semana_num = semanas - i
@@ -522,22 +526,24 @@ class MetricsCalculator:
             semana_inicio = semana_inicio.replace(hour=0, minute=0, second=0, microsecond=0)
             semana_fim = semana_inicio + timedelta(days=7)
 
-            filters = [
-                Chamado.data_abertura >= semana_inicio,
-                Chamado.data_abertura < semana_fim,
-            ]
-
-            if statuses and len(statuses) > 0:
-                filters.append(Chamado.status.in_(statuses))
-            else:
-                filters.append(Chamado.status != "Cancelado")
-
-            count = db.query(Chamado).filter(and_(*filters)).count()
-
-            resultado.insert(0, {
+            dados_semana = {
                 "semana": f"S{semana_num}",
-                "quantidade": count
-            })
+            }
+
+            # Contar por status
+            for status in statuses_para_usar:
+                count = db.query(Chamado).filter(
+                    and_(
+                        Chamado.data_abertura >= semana_inicio,
+                        Chamado.data_abertura < semana_fim,
+                        Chamado.status == status
+                    )
+                ).count()
+
+                status_key = status.lower().replace(" ", "_").replace("á", "a")
+                dados_semana[status_key] = count
+
+            resultado.insert(0, dados_semana)
 
         return resultado
 
