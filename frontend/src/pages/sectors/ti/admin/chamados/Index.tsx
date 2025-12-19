@@ -1223,18 +1223,43 @@ export default function ChamadosPage() {
                         key={`template-select-${template || "none"}`}
                         value={template || "none"}
                         onValueChange={(v) => {
+                          const chamadoId = selected?.codigo || "EVQ-XXXX";
+                          const solicitante = selected?.solicitante || "[Nome do solicitante]";
+                          const problema = selected?.categoria || "[Problema]";
+                          const unidade = selected?.unidade || "[Unidade]";
+                          const dataAbertura = selected?.criadoEm
+                            ? new Date(selected.criadoEm).toLocaleString("pt-BR")
+                            : "[Data de abertura]";
+                          const statusChamado = (() => {
+                            if (selected?.status === "ABERTO") return "Aberto";
+                            if (selected?.status === "EM_ANDAMENTO") return "Em andamento";
+                            if (selected?.status === "EM_ANALISE") return "Em análise";
+                            if (selected?.status === "CONCLUIDO") return "Concluído";
+                            if (selected?.status === "CANCELADO") return "Cancelado";
+                            return "[Status do chamado]";
+                          })();
+
                           if (v === "none") {
                             setTemplate("");
                             setMessage("");
+                            setSubject(`Atualização do Chamado ${chamadoId}`);
                           } else if (v === "atualizacao") {
                             setTemplate("atualizacao");
+                            setSubject(`Atualização do Chamado ${chamadoId}`);
                             setMessage(
-                              "Prezado,\n\nSegue abaixo uma atualização sobre seu chamado.\n\nContinuamos trabalhando para resolver sua solicitação com a máxima agilidade.\n\nQualquer dúvida, não hesite em nos contatar.\n\nAtenciosamente,\nTim de TI",
+                              `Prezado(a) ${solicitante},\n\nSeu chamado ${chamadoId} foi atualizado.\nStatus atual: ${statusChamado}\n\nAtenciosamente,\nEquipe de Suporte TI`,
                             );
-                          } else if (v === "info") {
-                            setTemplate("info");
+                          } else if (v === "confirmacao") {
+                            setTemplate("confirmacao");
+                            setSubject(`Atualização do Chamado ${chamadoId}`);
                             setMessage(
-                              "Prezado,\n\nPara que possamos avançar no atendimento de seu chamado, solicitamos algumas informações adicionais:\n\n- [Informação 1]\n- [Informação 2]\n\nFavor responder com os detalhes solicitados para que possamos prosseguir.\n\nAtenciosamente,\nTim de TI",
+                              `Prezado(a) ${solicitante},\n\nConfirmamos o recebimento do seu chamado ${chamadoId}.\nEm breve nossa equipe iniciará o atendimento.\n\nDetalhes do chamado:\n- Problema: ${problema}\n- Unidade: ${unidade}\n- Data de abertura: ${dataAbertura}\n\nManteremos você informado sobre o progresso.\n\nAtenciosamente,\nEquipe de Suporte TI`,
+                            );
+                          } else if (v === "conclusao") {
+                            setTemplate("conclusao");
+                            setSubject(`Atualização do Chamado ${chamadoId}`);
+                            setMessage(
+                              `Prezado(a) ${solicitante},\n\nSeu chamado ${chamadoId} foi concluído com sucesso.\n\nResumo do atendimento:\n- Problema relatado: ${problema}\n- Data de conclusão: ${new Date().toLocaleString("pt-BR")}\n\nCaso necessite de suporte adicional, não hesite em abrir um novo chamado.\n\nAtenciosamente,\nEquipe de Suporte TI`,
                             );
                           }
                         }}
@@ -1245,10 +1270,13 @@ export default function ChamadosPage() {
                         <SelectContent>
                           <SelectItem value="none">Sem modelo</SelectItem>
                           <SelectItem value="atualizacao">
-                            Atualização padrão
+                            Atualização de Status
                           </SelectItem>
-                          <SelectItem value="info">
-                            Solicitar mais informações
+                          <SelectItem value="confirmacao">
+                            Confirmação de Recebimento
+                          </SelectItem>
+                          <SelectItem value="conclusao">
+                            Conclusão de Chamado
                           </SelectItem>
                         </SelectContent>
                       </Select>
