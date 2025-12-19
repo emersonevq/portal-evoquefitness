@@ -117,23 +117,15 @@ const colorStyles = {
   purple: "bg-purple-500",
 };
 
+const STATUS_OPTIONS = ["Aberto", "Em andamento", "Em análise", "Concluído", "Cancelado"] as const;
+
 export default function Overview() {
   const { warmupCache } = useSLACacheManager();
   const queryClient = useQueryClient();
   const [metrics, setMetrics] = useState<any>(null);
-  const [dailyData, setDailyData] = useState<
-    Array<{ dia: string; quantidade: number }>
-  >([]);
-  const [weeklyData, setWeeklyData] = useState<
-    Array<{ semana: string; quantidade: number }>
-  >([]);
-  const [monthlyData, setMonthlyData] = useState<
-    Array<{
-      mes: string;
-      registrados: number;
-      concluidos: number;
-    }>
-  >([]);
+  const [dailyData, setDailyData] = useState<any[]>([]);
+  const [weeklyData, setWeeklyData] = useState<any[]>([]);
+  const [monthlyData, setMonthlyData] = useState<any[]>([]);
   const [slaData, setSLAData] = useState<{
     dentro_sla: number;
     fora_sla: number;
@@ -149,6 +141,9 @@ export default function Overview() {
     "30d",
   );
   const [showCompleted, setShowCompleted] = useState(true);
+  const [selectedStatuses, setSelectedStatuses] = useState<typeof STATUS_OPTIONS>(
+    ["Aberto", "Em andamento", "Concluído"]
+  );
 
   // Cache de métricas com React Query
   const { data: basicMetricsData, isLoading: basicLoading } = useQuery({
