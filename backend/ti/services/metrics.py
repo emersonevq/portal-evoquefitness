@@ -456,13 +456,13 @@ class MetricsCalculator:
 
     @staticmethod
     def get_chamados_por_dia(db: Session, dias: int = 7, statuses: list[str] | None = None) -> list[dict]:
-        """Retorna quantidade de chamados por dia dos últimos N dias
+        """Retorna quantidade de chamados por dia dos últimos N dias, separado por status
 
         Args:
             db: Session do banco de dados
             dias: Número de dias a retornar
             statuses: Lista de status para filtrar (ex: ["Aberto", "Em andamento"])
-                     Se None ou vazio, inclui todos exceto "Cancelado"
+                     Se None ou vazio, mostra todos os status
         """
         agora = now_brazil_naive()
         dias_atras = agora - timedelta(days=dias)
@@ -472,28 +472,33 @@ class MetricsCalculator:
             dia = agora - timedelta(days=dias - 1 - i)
             dias_data.append(dia.replace(hour=0, minute=0, second=0, microsecond=0))
 
+        # Status disponíveis
+        status_disponiveis = ["Aberto", "Em andamento", "Em análise", "Concluído", "Cancelado"]
+        statuses_para_usar = statuses if statuses and len(statuses) > 0 else status_disponiveis
+
         resultado = []
         for i, dia_inicio in enumerate(dias_data):
             dia_fim = dia_inicio + timedelta(days=1)
 
-            filters = [
-                Chamado.data_abertura >= dia_inicio,
-                Chamado.data_abertura < dia_fim,
-            ]
-
-            if statuses and len(statuses) > 0:
-                filters.append(Chamado.status.in_(statuses))
-            else:
-                filters.append(Chamado.status != "Cancelado")
-
-            count = db.query(Chamado).filter(and_(*filters)).count()
-
-            dia_nome = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"][dia_inicio.weekday()]
-            resultado.append({
-                "dia": dia_nome,
+            dados_dia = {
+                "dia": ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"][dia_inicio.weekday()],
                 "data": dia_inicio.strftime("%Y-%m-%d"),
-                "quantidade": count
-            })
+            }
+
+            # Contar por status
+            for status in statuses_para_usar:
+                count = db.query(Chamado).filter(
+                    and_(
+                        Chamado.data_abertura >= dia_inicio,
+                        Chamado.data_abertura < dia_fim,
+                        Chamado.status == status
+                    )
+                ).count()
+
+                status_key = status.lower().replace(" ", "_").replace("á", "a")
+                dados_dia[status_key] = count
+
+            resultado.append(dados_dia)
 
         return resultado
 
