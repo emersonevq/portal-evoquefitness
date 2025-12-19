@@ -627,11 +627,22 @@ export default function Overview() {
                     borderRadius: "8px",
                   }}
                 />
-                <Bar
-                  dataKey="quantidade"
-                  fill="hsl(var(--primary))"
-                  radius={[8, 8, 0, 0]}
-                />
+                <Legend />
+                {selectedStatuses.includes("Aberto") && (
+                  <Bar dataKey="aberto" fill="#06b6d4" radius={[8, 8, 0, 0]} name="Aberto" />
+                )}
+                {selectedStatuses.includes("Em andamento") && (
+                  <Bar dataKey="em_andamento" fill="#f59e0b" radius={[8, 8, 0, 0]} name="Em andamento" />
+                )}
+                {selectedStatuses.includes("Em análise") && (
+                  <Bar dataKey="em_analise" fill="#8b5cf6" radius={[8, 8, 0, 0]} name="Em análise" />
+                )}
+                {selectedStatuses.includes("Concluído") && (
+                  <Bar dataKey="concluido" fill="#10b981" radius={[8, 8, 0, 0]} name="Concluído" />
+                )}
+                {selectedStatuses.includes("Cancelado") && (
+                  <Bar dataKey="cancelado" fill="#ef4444" radius={[8, 8, 0, 0]} name="Cancelado" />
+                )}
               </BarChart>
             </ResponsiveContainer>
           </div>
