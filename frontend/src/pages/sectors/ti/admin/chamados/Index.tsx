@@ -1222,7 +1222,8 @@ export default function ChamadosPage() {
                       <Select
                         value={template || "none"}
                         onValueChange={(v) => {
-                          setTemplate(v === "none" ? "" : v);
+                          const selectedTemplate = v === "none" ? "" : v;
+                          setTemplate(selectedTemplate);
                           if (v === "none") {
                             setMessage("");
                           } else if (v === "atualizacao") {
@@ -1237,7 +1238,9 @@ export default function ChamadosPage() {
                         }}
                       >
                         <SelectTrigger>
-                          <SelectValue placeholder="Selecione um modelo (opcional)" />
+                          <SelectValue
+                            placeholder="Selecione um modelo (opcional)"
+                          />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="none">Sem modelo</SelectItem>
