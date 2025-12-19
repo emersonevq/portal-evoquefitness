@@ -1265,7 +1265,10 @@ export default function ChamadosPage() {
                           } else if (v === "conclusao") {
                             setTemplate("conclusao");
                             setSubject(`Atualização do Chamado ${chamadoId}`);
-                            const dataConclusao = new Date().toLocaleDateString("pt-BR") + ", " + new Date().toLocaleTimeString("pt-BR");
+                            const dataConclusao =
+                              new Date().toLocaleDateString("pt-BR") +
+                              ", " +
+                              new Date().toLocaleTimeString("pt-BR");
                             setMessage(
                               `Prezado(a) ${solicitante},\n\nSeu chamado ${chamadoId} foi concluído com sucesso.\n\nResumo do atendimento:\n- Problema relatado: ${problema}\n- Data de conclusão: ${dataConclusao}\n\nCaso necessite de suporte adicional, não hesite em abrir um novo chamado.\n\nAtenciosamente,\nEquipe de Suporte TI`,
                             );
