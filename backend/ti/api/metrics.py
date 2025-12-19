@@ -270,10 +270,16 @@ def get_chamados_por_dia(dias: int = 7, statuses: str = "", db: Session = Depend
 
 
 @router.get("/metrics/chamados-por-semana")
-def get_chamados_por_semana(semanas: int = 4, db: Session = Depends(get_db)):
-    """Retorna quantidade de chamados por semana dos últimos N semanas"""
+def get_chamados_por_semana(semanas: int = 4, statuses: str = "", db: Session = Depends(get_db)):
+    """Retorna quantidade de chamados por semana dos últimos N semanas
+
+    Query params:
+    - semanas: Número de semanas (default: 4)
+    - statuses: Lista separada por vírgula (ex: "Aberto,Em andamento")
+    """
     try:
-        dados = MetricsCalculator.get_chamados_por_semana(db, semanas)
+        status_list = [s.strip() for s in statuses.split(",") if s.strip()] if statuses else []
+        dados = MetricsCalculator.get_chamados_por_semana(db, semanas, status_list if status_list else None)
         if not isinstance(dados, list):
             return {"dados": []}
         return {"dados": dados}
