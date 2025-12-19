@@ -438,39 +438,73 @@ export default function Overview() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Visão Geral</h1>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            <Calendar className="w-4 h-4 text-muted-foreground" />
-            <Select
-              value={dateRange}
-              onValueChange={(v) => setDateRange(v as any)}
+      <div className="flex flex-col gap-4">
+        <div className="flex justify-between items-center">
+          <h1 className="text-2xl font-bold">Visão Geral</h1>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <Calendar className="w-4 h-4 text-muted-foreground" />
+              <Select
+                value={dateRange}
+                onValueChange={(v) => setDateRange(v as any)}
+              >
+                <SelectTrigger className="w-32">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="7d">Últimos 7 dias</SelectItem>
+                  <SelectItem value="30d">Últimos 30 dias</SelectItem>
+                  <SelectItem value="90d">Últimos 90 dias</SelectItem>
+                  <SelectItem value="all">Todos os dados</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <Button
+              onClick={() => atualizarMetricasMutation.mutate()}
+              disabled={atualizarMetricasMutation.isPending}
+              size="sm"
+              className="gap-2"
             >
-              <SelectTrigger className="w-32">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="7d">Últimos 7 dias</SelectItem>
-                <SelectItem value="30d">Últimos 30 dias</SelectItem>
-                <SelectItem value="90d">Últimos 90 dias</SelectItem>
-                <SelectItem value="all">Todos os dados</SelectItem>
-              </SelectContent>
-            </Select>
+              <RefreshCw
+                className={`w-4 h-4 ${atualizarMetricasMutation.isPending ? "animate-spin" : ""}`}
+              />
+              {atualizarMetricasMutation.isPending
+                ? "Atualizando..."
+                : "Atualizar Métricas"}
+            </Button>
           </div>
-          <Button
-            onClick={() => atualizarMetricasMutation.mutate()}
-            disabled={atualizarMetricasMutation.isPending}
-            size="sm"
-            className="gap-2"
-          >
-            <RefreshCw
-              className={`w-4 h-4 ${atualizarMetricasMutation.isPending ? "animate-spin" : ""}`}
-            />
-            {atualizarMetricasMutation.isPending
-              ? "Atualizando..."
-              : "Atualizar Métricas"}
-          </Button>
+        </div>
+
+        {/* Status Filter */}
+        <div className="flex items-center gap-3">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="gap-2">
+                <span className="text-sm">Status selecionados ({selectedStatuses.length})</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-56">
+              {STATUS_OPTIONS.map((status) => (
+                <DropdownMenuCheckboxItem
+                  key={status}
+                  checked={selectedStatuses.includes(status)}
+                  onCheckedChange={() => toggleStatus(status)}
+                >
+                  {status}
+                </DropdownMenuCheckboxItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+          {selectedStatuses.length > 0 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setSelectedStatuses(["Aberto", "Em andamento", "Concluído"])}
+              className="text-xs"
+            >
+              Redefinir filtro
+            </Button>
+          )}
         </div>
       </div>
 
