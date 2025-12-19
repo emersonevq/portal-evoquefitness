@@ -455,8 +455,15 @@ class MetricsCalculator:
         return f"{horas}h {minutos}m" if minutos > 0 else f"{horas}h"
 
     @staticmethod
-    def get_chamados_por_dia(db: Session, dias: int = 7) -> list[dict]:
-        """Retorna quantidade de chamados por dia dos últimos N dias"""
+    def get_chamados_por_dia(db: Session, dias: int = 7, statuses: list[str] | None = None) -> list[dict]:
+        """Retorna quantidade de chamados por dia dos últimos N dias
+
+        Args:
+            db: Session do banco de dados
+            dias: Número de dias a retornar
+            statuses: Lista de status para filtrar (ex: ["Aberto", "Em andamento"])
+                     Se None ou vazio, inclui todos exceto "Cancelado"
+        """
         agora = now_brazil_naive()
         dias_atras = agora - timedelta(days=dias)
 
@@ -469,13 +476,17 @@ class MetricsCalculator:
         for i, dia_inicio in enumerate(dias_data):
             dia_fim = dia_inicio + timedelta(days=1)
 
-            count = db.query(Chamado).filter(
-                and_(
-                    Chamado.data_abertura >= dia_inicio,
-                    Chamado.data_abertura < dia_fim,
-                    Chamado.status != "Cancelado"
-                )
-            ).count()
+            filters = [
+                Chamado.data_abertura >= dia_inicio,
+                Chamado.data_abertura < dia_fim,
+            ]
+
+            if statuses and len(statuses) > 0:
+                filters.append(Chamado.status.in_(statuses))
+            else:
+                filters.append(Chamado.status != "Cancelado")
+
+            count = db.query(Chamado).filter(and_(*filters)).count()
 
             dia_nome = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"][dia_inicio.weekday()]
             resultado.append({
