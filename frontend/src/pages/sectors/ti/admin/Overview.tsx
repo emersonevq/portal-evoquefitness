@@ -655,21 +655,6 @@ export default function Overview() {
         <div className="relative card-surface rounded-2xl p-6 border border-border/60">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-lg">Chamados por Mês</h3>
-            <div className="flex items-center gap-2">
-              <label className="text-xs font-medium text-muted-foreground">
-                Mostrar concluídos:
-              </label>
-              <button
-                onClick={() => setShowCompleted(!showCompleted)}
-                className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
-                  showCompleted
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted text-muted-foreground"
-                }`}
-              >
-                {showCompleted ? "Sim" : "Não"}
-              </button>
-            </div>
           </div>
           <ResponsiveContainer width="100%" height={320}>
             <BarChart data={monthlyData}>
@@ -692,19 +677,20 @@ export default function Overview() {
                 }}
               />
               <Legend />
-              <Bar
-                dataKey="registrados"
-                fill="hsl(var(--primary))"
-                radius={[8, 8, 0, 0]}
-                name="Registrados"
-              />
-              {showCompleted && (
-                <Bar
-                  dataKey="concluidos"
-                  fill="hsl(var(--chart-1))"
-                  radius={[8, 8, 0, 0]}
-                  name="Concluídos"
-                />
+              {selectedStatuses.includes("Aberto") && (
+                <Bar dataKey="aberto" fill="#06b6d4" radius={[8, 8, 0, 0]} name="Aberto" />
+              )}
+              {selectedStatuses.includes("Em andamento") && (
+                <Bar dataKey="em_andamento" fill="#f59e0b" radius={[8, 8, 0, 0]} name="Em andamento" />
+              )}
+              {selectedStatuses.includes("Em análise") && (
+                <Bar dataKey="em_analise" fill="#8b5cf6" radius={[8, 8, 0, 0]} name="Em análise" />
+              )}
+              {selectedStatuses.includes("Concluído") && (
+                <Bar dataKey="concluido" fill="#10b981" radius={[8, 8, 0, 0]} name="Concluído" />
+              )}
+              {selectedStatuses.includes("Cancelado") && (
+                <Bar dataKey="cancelado" fill="#ef4444" radius={[8, 8, 0, 0]} name="Cancelado" />
               )}
             </BarChart>
           </ResponsiveContainer>
