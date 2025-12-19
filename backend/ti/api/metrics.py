@@ -291,11 +291,13 @@ def get_chamados_por_semana(semanas: int = 4, statuses: str = "", db: Session = 
 
 
 @router.get("/metrics/chamados-por-mes")
-def get_chamados_por_mes(range: str = "30d", db: Session = Depends(get_db)):
-    """Retorna quantidade de chamados registrados e concluídos por mês
+def get_chamados_por_mes(range: str = "30d", statuses: str = "", db: Session = Depends(get_db)):
+    """Retorna quantidade de chamados por status por mês
 
     Query params:
     - range: '7d', '30d', '90d' ou 'all' (padrão: '30d')
+    - statuses: Lista separada por vírgula (ex: "Aberto,Em andamento,Concluído")
+                Se vazio, mostra todos os status
     """
     try:
         meses_param = {
@@ -305,7 +307,8 @@ def get_chamados_por_mes(range: str = "30d", db: Session = Depends(get_db)):
             "all": 24
         }.get(range, 3)
 
-        dados = MetricsCalculator.get_chamados_por_mes(db, meses_param)
+        status_list = [s.strip() for s in statuses.split(",") if s.strip()] if statuses else []
+        dados = MetricsCalculator.get_chamados_por_mes(db, meses_param, status_list if status_list else None)
         if not isinstance(dados, list):
             return {"dados": []}
         return {"dados": dados}
