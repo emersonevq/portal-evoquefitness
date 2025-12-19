@@ -148,7 +148,7 @@ export default function Index() {
                       size="lg"
                       className="rounded-full bg-background text-foreground hover:bg-background/90"
                     >
-                      Escolher Setor <ChevronDown className="size-4" />
+                      Escolher portal <ChevronDown className="size-4" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="center">
