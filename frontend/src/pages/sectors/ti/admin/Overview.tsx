@@ -314,6 +314,15 @@ export default function Overview() {
     preWarmCache();
   }, [warmupCache]);
 
+  // Toggle status selection
+  const toggleStatus = (status: typeof STATUS_OPTIONS[number]) => {
+    setSelectedStatuses((prev) =>
+      prev.includes(status)
+        ? prev.filter((s) => s !== status)
+        : [...prev, status]
+    );
+  };
+
   // Listener WebSocket para atualizações em tempo real de métricas
   useEffect(() => {
     try {
