@@ -210,11 +210,10 @@ export default function Overview() {
   });
 
   const { data: monthlyChartData, isLoading: monthlyLoading } = useQuery({
-    queryKey: ["metrics-monthly", dateRange],
+    queryKey: ["metrics-monthly", dateRange, selectedStatuses],
     queryFn: async () => {
-      const response = await api.get("/metrics/chamados-por-mes", {
-        params: { range: dateRange },
-      });
+      const statusQuery = selectedStatuses.length > 0 ? `&statuses=${selectedStatuses.join(",")}` : "";
+      const response = await api.get(`/metrics/chamados-por-mes?range=${dateRange}${statusQuery}`);
       return response.data?.dados || [];
     },
     staleTime: 15 * 60 * 1000,
