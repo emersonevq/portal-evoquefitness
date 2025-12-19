@@ -455,8 +455,15 @@ class MetricsCalculator:
         return f"{horas}h {minutos}m" if minutos > 0 else f"{horas}h"
 
     @staticmethod
-    def get_chamados_por_dia(db: Session, dias: int = 7) -> list[dict]:
-        """Retorna quantidade de chamados por dia dos últimos N dias"""
+    def get_chamados_por_dia(db: Session, dias: int = 7, statuses: list[str] | None = None) -> list[dict]:
+        """Retorna quantidade de chamados por dia dos últimos N dias, separado por status
+
+        Args:
+            db: Session do banco de dados
+            dias: Número de dias a retornar
+            statuses: Lista de status para filtrar (ex: ["Aberto", "Em andamento"])
+                     Se None ou vazio, mostra todos os status
+        """
         agora = now_brazil_naive()
         dias_atras = agora - timedelta(days=dias)
 
@@ -465,32 +472,52 @@ class MetricsCalculator:
             dia = agora - timedelta(days=dias - 1 - i)
             dias_data.append(dia.replace(hour=0, minute=0, second=0, microsecond=0))
 
+        # Status disponíveis
+        status_disponiveis = ["Aberto", "Em andamento", "Em análise", "Concluído", "Cancelado"]
+        statuses_para_usar = statuses if statuses and len(statuses) > 0 else status_disponiveis
+
         resultado = []
         for i, dia_inicio in enumerate(dias_data):
             dia_fim = dia_inicio + timedelta(days=1)
 
-            count = db.query(Chamado).filter(
-                and_(
-                    Chamado.data_abertura >= dia_inicio,
-                    Chamado.data_abertura < dia_fim,
-                    Chamado.status != "Cancelado"
-                )
-            ).count()
-
-            dia_nome = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"][dia_inicio.weekday()]
-            resultado.append({
-                "dia": dia_nome,
+            dados_dia = {
+                "dia": ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"][dia_inicio.weekday()],
                 "data": dia_inicio.strftime("%Y-%m-%d"),
-                "quantidade": count
-            })
+            }
+
+            # Contar por status
+            for status in statuses_para_usar:
+                count = db.query(Chamado).filter(
+                    and_(
+                        Chamado.data_abertura >= dia_inicio,
+                        Chamado.data_abertura < dia_fim,
+                        Chamado.status == status
+                    )
+                ).count()
+
+                status_key = status.lower().replace(" ", "_").replace("á", "a")
+                dados_dia[status_key] = count
+
+            resultado.append(dados_dia)
 
         return resultado
 
     @staticmethod
-    def get_chamados_por_semana(db: Session, semanas: int = 4) -> list[dict]:
-        """Retorna quantidade de chamados por semana dos últimos N semanas"""
+    def get_chamados_por_semana(db: Session, semanas: int = 4, statuses: list[str] | None = None) -> list[dict]:
+        """Retorna quantidade de chamados por semana dos últimos N semanas, separado por status
+
+        Args:
+            db: Session do banco de dados
+            semanas: Número de semanas a retornar
+            statuses: Lista de status para filtrar (ex: ["Aberto", "Em andamento"])
+                     Se None ou vazio, mostra todos os status
+        """
         agora = now_brazil_naive()
         resultado = []
+
+        # Status disponíveis
+        status_disponiveis = ["Aberto", "Em andamento", "Em análise", "Concluído", "Cancelado"]
+        statuses_para_usar = statuses if statuses and len(statuses) > 0 else status_disponiveis
 
         for i in range(semanas):
             semana_num = semanas - i
@@ -499,26 +526,45 @@ class MetricsCalculator:
             semana_inicio = semana_inicio.replace(hour=0, minute=0, second=0, microsecond=0)
             semana_fim = semana_inicio + timedelta(days=7)
 
-            count = db.query(Chamado).filter(
-                and_(
-                    Chamado.data_abertura >= semana_inicio,
-                    Chamado.data_abertura < semana_fim,
-                    Chamado.status != "Cancelado"
-                )
-            ).count()
-
-            resultado.insert(0, {
+            dados_semana = {
                 "semana": f"S{semana_num}",
-                "quantidade": count
-            })
+            }
+
+            # Contar por status
+            for status in statuses_para_usar:
+                count = db.query(Chamado).filter(
+                    and_(
+                        Chamado.data_abertura >= semana_inicio,
+                        Chamado.data_abertura < semana_fim,
+                        Chamado.status == status
+                    )
+                ).count()
+
+                status_key = status.lower().replace(" ", "_").replace("á", "a")
+                dados_semana[status_key] = count
+
+            resultado.insert(0, dados_semana)
 
         return resultado
 
     @staticmethod
-    def get_chamados_por_mes(db: Session, meses: int = 3) -> list[dict]:
-        """Retorna quantidade de chamados registrados e concluídos por mês dos últimos N meses"""
+    def get_chamados_por_mes(db: Session, meses: int = 3, statuses: list[str] | None = None) -> list[dict]:
+        """Retorna quantidade de chamados por mês dos últimos N meses, separado por status
+
+        Args:
+            db: Session do banco de dados
+            meses: Número de meses a retornar
+            statuses: Lista de status para filtrar (ex: ["Aberto", "Em andamento"])
+                     Se None ou vazio, mostra todos os status
+        """
         agora = now_brazil_naive()
         resultado = []
+
+        # Status disponíveis no sistema
+        status_disponiveis = ["Aberto", "Em andamento", "Em análise", "Concluído", "Cancelado"]
+
+        # Se statuses foi especificado, filtra apenas os selecionados
+        statuses_para_usar = statuses if statuses and len(statuses) > 0 else status_disponiveis
 
         for i in range(meses):
             mes_num = meses - i
@@ -532,28 +578,26 @@ class MetricsCalculator:
             else:
                 mes_fim = mes_inicio.replace(month=mes_inicio.month + 1)
 
-            # Contar chamados registrados
-            registrados = db.query(Chamado).filter(
-                and_(
-                    Chamado.data_abertura >= mes_inicio,
-                    Chamado.data_abertura < mes_fim,
-                )
-            ).count()
-
-            # Contar chamados concluídos
-            concluidos = db.query(Chamado).filter(
-                and_(
-                    Chamado.data_conclusao >= mes_inicio,
-                    Chamado.data_conclusao < mes_fim,
-                    Chamado.status == "Concluído"
-                )
-            ).count()
-
-            resultado.insert(0, {
+            # Contar por status
+            dados_mes = {
                 "mes": mes_inicio.strftime("%b %Y"),
-                "registrados": registrados,
-                "concluidos": concluidos
-            })
+                "data_iso": mes_inicio.strftime("%Y-%m"),
+            }
+
+            for status in statuses_para_usar:
+                count = db.query(Chamado).filter(
+                    and_(
+                        Chamado.data_abertura >= mes_inicio,
+                        Chamado.data_abertura < mes_fim,
+                        Chamado.status == status
+                    )
+                ).count()
+
+                # Normaliza nome do status para key segura (remova espaços e caracteres especiais)
+                status_key = status.lower().replace(" ", "_").replace("á", "a")
+                dados_mes[status_key] = count
+
+            resultado.insert(0, dados_mes)
 
         return resultado
 

@@ -1220,16 +1220,19 @@ export default function ChamadosPage() {
                         Modelo de Mensagem
                       </label>
                       <Select
+                        key={`template-select-${template || "none"}`}
                         value={template || "none"}
                         onValueChange={(v) => {
-                          setTemplate(v === "none" ? "" : v);
                           if (v === "none") {
+                            setTemplate("");
                             setMessage("");
                           } else if (v === "atualizacao") {
+                            setTemplate("atualizacao");
                             setMessage(
                               "Prezado,\n\nSegue abaixo uma atualização sobre seu chamado.\n\nContinuamos trabalhando para resolver sua solicitação com a máxima agilidade.\n\nQualquer dúvida, não hesite em nos contatar.\n\nAtenciosamente,\nTim de TI",
                             );
                           } else if (v === "info") {
+                            setTemplate("info");
                             setMessage(
                               "Prezado,\n\nPara que possamos avançar no atendimento de seu chamado, solicitamos algumas informações adicionais:\n\n- [Informação 1]\n- [Informação 2]\n\nFavor responder com os detalhes solicitados para que possamos prosseguir.\n\nAtenciosamente,\nTim de TI",
                             );

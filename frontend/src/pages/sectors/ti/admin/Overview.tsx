@@ -9,6 +9,7 @@ import {
   Loader,
   RefreshCw,
   Calendar,
+  X,
 } from "lucide-react";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { api } from "@/lib/api";
@@ -21,6 +22,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuCheckboxItem,
+} from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import {
   Bar,
@@ -109,23 +117,21 @@ const colorStyles = {
   purple: "bg-purple-500",
 };
 
+const STATUS_OPTIONS = [
+  "Aberto",
+  "Em andamento",
+  "Em análise",
+  "Concluído",
+  "Cancelado",
+] as const;
+
 export default function Overview() {
   const { warmupCache } = useSLACacheManager();
   const queryClient = useQueryClient();
   const [metrics, setMetrics] = useState<any>(null);
-  const [dailyData, setDailyData] = useState<
-    Array<{ dia: string; quantidade: number }>
-  >([]);
-  const [weeklyData, setWeeklyData] = useState<
-    Array<{ semana: string; quantidade: number }>
-  >([]);
-  const [monthlyData, setMonthlyData] = useState<
-    Array<{
-      mes: string;
-      registrados: number;
-      concluidos: number;
-    }>
-  >([]);
+  const [dailyData, setDailyData] = useState<any[]>([]);
+  const [weeklyData, setWeeklyData] = useState<any[]>([]);
+  const [monthlyData, setMonthlyData] = useState<any[]>([]);
   const [slaData, setSLAData] = useState<{
     dentro_sla: number;
     fora_sla: number;
@@ -141,6 +147,9 @@ export default function Overview() {
     "30d",
   );
   const [showCompleted, setShowCompleted] = useState(true);
+  const [selectedStatuses, setSelectedStatuses] = useState<
+    typeof STATUS_OPTIONS
+  >(["Aberto", "Em andamento", "Concluído"]);
 
   // Cache de métricas com React Query
   const { data: basicMetricsData, isLoading: basicLoading } = useQuery({
@@ -154,9 +163,15 @@ export default function Overview() {
   });
 
   const { data: dailyChartData, isLoading: dailyLoading } = useQuery({
-    queryKey: ["metrics-daily"],
+    queryKey: ["metrics-daily", selectedStatuses],
     queryFn: async () => {
-      const response = await api.get("/metrics/chamados-por-dia");
+      const statusQuery =
+        selectedStatuses.length > 0
+          ? `&statuses=${selectedStatuses.join(",")}`
+          : "";
+      const response = await api.get(
+        `/metrics/chamados-por-dia?dias=7${statusQuery}`,
+      );
       return response.data?.dados || [];
     },
     staleTime: 10 * 60 * 1000,
@@ -164,9 +179,15 @@ export default function Overview() {
   });
 
   const { data: weeklyChartData, isLoading: weeklyLoading } = useQuery({
-    queryKey: ["metrics-weekly"],
+    queryKey: ["metrics-weekly", selectedStatuses],
     queryFn: async () => {
-      const response = await api.get("/metrics/chamados-por-semana");
+      const statusQuery =
+        selectedStatuses.length > 0
+          ? `&statuses=${selectedStatuses.join(",")}`
+          : "";
+      const response = await api.get(
+        `/metrics/chamados-por-semana?semanas=4${statusQuery}`,
+      );
       return response.data?.dados || [];
     },
     staleTime: 10 * 60 * 1000,
@@ -205,11 +226,15 @@ export default function Overview() {
   });
 
   const { data: monthlyChartData, isLoading: monthlyLoading } = useQuery({
-    queryKey: ["metrics-monthly", dateRange],
+    queryKey: ["metrics-monthly", dateRange, selectedStatuses],
     queryFn: async () => {
-      const response = await api.get("/metrics/chamados-por-mes", {
-        params: { range: dateRange },
-      });
+      const statusQuery =
+        selectedStatuses.length > 0
+          ? `&statuses=${selectedStatuses.join(",")}`
+          : "";
+      const response = await api.get(
+        `/metrics/chamados-por-mes?range=${dateRange}${statusQuery}`,
+      );
       return response.data?.dados || [];
     },
     staleTime: 15 * 60 * 1000,
@@ -309,6 +334,15 @@ export default function Overview() {
     };
     preWarmCache();
   }, [warmupCache]);
+
+  // Toggle status selection
+  const toggleStatus = (status: (typeof STATUS_OPTIONS)[number]) => {
+    setSelectedStatuses((prev) =>
+      prev.includes(status)
+        ? prev.filter((s) => s !== status)
+        : [...prev, status],
+    );
+  };
 
   // Listener WebSocket para atualizações em tempo real de métricas
   useEffect(() => {
@@ -425,39 +459,77 @@ export default function Overview() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Visão Geral</h1>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            <Calendar className="w-4 h-4 text-muted-foreground" />
-            <Select
-              value={dateRange}
-              onValueChange={(v) => setDateRange(v as any)}
+      <div className="flex flex-col gap-4">
+        <div className="flex justify-between items-center">
+          <h1 className="text-2xl font-bold">Visão Geral</h1>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <Calendar className="w-4 h-4 text-muted-foreground" />
+              <Select
+                value={dateRange}
+                onValueChange={(v) => setDateRange(v as any)}
+              >
+                <SelectTrigger className="w-32">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="7d">Últimos 7 dias</SelectItem>
+                  <SelectItem value="30d">Últimos 30 dias</SelectItem>
+                  <SelectItem value="90d">Últimos 90 dias</SelectItem>
+                  <SelectItem value="all">Todos os dados</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <Button
+              onClick={() => atualizarMetricasMutation.mutate()}
+              disabled={atualizarMetricasMutation.isPending}
+              size="sm"
+              className="gap-2"
             >
-              <SelectTrigger className="w-32">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="7d">Últimos 7 dias</SelectItem>
-                <SelectItem value="30d">Últimos 30 dias</SelectItem>
-                <SelectItem value="90d">Últimos 90 dias</SelectItem>
-                <SelectItem value="all">Todos os dados</SelectItem>
-              </SelectContent>
-            </Select>
+              <RefreshCw
+                className={`w-4 h-4 ${atualizarMetricasMutation.isPending ? "animate-spin" : ""}`}
+              />
+              {atualizarMetricasMutation.isPending
+                ? "Atualizando..."
+                : "Atualizar Métricas"}
+            </Button>
           </div>
-          <Button
-            onClick={() => atualizarMetricasMutation.mutate()}
-            disabled={atualizarMetricasMutation.isPending}
-            size="sm"
-            className="gap-2"
-          >
-            <RefreshCw
-              className={`w-4 h-4 ${atualizarMetricasMutation.isPending ? "animate-spin" : ""}`}
-            />
-            {atualizarMetricasMutation.isPending
-              ? "Atualizando..."
-              : "Atualizar Métricas"}
-          </Button>
+        </div>
+
+        {/* Status Filter */}
+        <div className="flex items-center gap-3">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="gap-2">
+                <span className="text-sm">
+                  Status selecionados ({selectedStatuses.length})
+                </span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-56">
+              {STATUS_OPTIONS.map((status) => (
+                <DropdownMenuCheckboxItem
+                  key={status}
+                  checked={selectedStatuses.includes(status)}
+                  onCheckedChange={() => toggleStatus(status)}
+                >
+                  {status}
+                </DropdownMenuCheckboxItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+          {selectedStatuses.length > 0 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() =>
+                setSelectedStatuses(["Aberto", "Em andamento", "Concluído"])
+              }
+              className="text-xs"
+            >
+              Redefinir filtro
+            </Button>
+          )}
         </div>
       </div>
 
@@ -509,7 +581,7 @@ export default function Overview() {
               </div>
             </div>
             <ResponsiveContainer width="100%" height={260}>
-              <LineChart data={dailyData}>
+              <BarChart data={dailyData}>
                 <CartesianGrid
                   strokeDasharray="3 3"
                   stroke="hsl(var(--border))"
@@ -528,15 +600,48 @@ export default function Overview() {
                     borderRadius: "8px",
                   }}
                 />
-                <Line
-                  type="monotone"
-                  dataKey="quantidade"
-                  stroke="hsl(var(--primary))"
-                  strokeWidth={3}
-                  dot={{ fill: "hsl(var(--primary))", r: 4 }}
-                  activeDot={{ r: 6 }}
-                />
-              </LineChart>
+                <Legend />
+                {selectedStatuses.includes("Aberto") && (
+                  <Bar
+                    dataKey="aberto"
+                    fill="#06b6d4"
+                    radius={[8, 8, 0, 0]}
+                    name="Aberto"
+                  />
+                )}
+                {selectedStatuses.includes("Em andamento") && (
+                  <Bar
+                    dataKey="em_andamento"
+                    fill="#f59e0b"
+                    radius={[8, 8, 0, 0]}
+                    name="Em andamento"
+                  />
+                )}
+                {selectedStatuses.includes("Em análise") && (
+                  <Bar
+                    dataKey="em_analise"
+                    fill="#8b5cf6"
+                    radius={[8, 8, 0, 0]}
+                    name="Em análise"
+                  />
+                )}
+                {selectedStatuses.includes("Concluído") && (
+                  <Bar
+                    dataKey="concluido"
+                    fill="#10b981"
+                    radius={[8, 8, 0, 0]}
+                    name="Concluído"
+                  />
+                )}
+                {selectedStatuses.includes("Cancelado") && (
+                  <Bar
+                    dataKey="cancelado"
+                    fill="#ef4444"
+                    radius={[8, 8, 0, 0]}
+                    name="Cancelado"
+                  />
+                )}
+              </BarChart>
             </ResponsiveContainer>
           </div>
         </div>
@@ -572,11 +677,47 @@ export default function Overview() {
                     borderRadius: "8px",
                   }}
                 />
-                <Bar
-                  dataKey="quantidade"
-                  fill="hsl(var(--primary))"
-                  radius={[8, 8, 0, 0]}
-                />
+                <Legend />
+                {selectedStatuses.includes("Aberto") && (
+                  <Bar
+                    dataKey="aberto"
+                    fill="#06b6d4"
+                    radius={[8, 8, 0, 0]}
+                    name="Aberto"
+                  />
+                )}
+                {selectedStatuses.includes("Em andamento") && (
+                  <Bar
+                    dataKey="em_andamento"
+                    fill="#f59e0b"
+                    radius={[8, 8, 0, 0]}
+                    name="Em andamento"
+                  />
+                )}
+                {selectedStatuses.includes("Em análise") && (
+                  <Bar
+                    dataKey="em_analise"
+                    fill="#8b5cf6"
+                    radius={[8, 8, 0, 0]}
+                    name="Em análise"
+                  />
+                )}
+                {selectedStatuses.includes("Concluído") && (
+                  <Bar
+                    dataKey="concluido"
+                    fill="#10b981"
+                    radius={[8, 8, 0, 0]}
+                    name="Concluído"
+                  />
+                )}
+                {selectedStatuses.includes("Cancelado") && (
+                  <Bar
+                    dataKey="cancelado"
+                    fill="#ef4444"
+                    radius={[8, 8, 0, 0]}
+                    name="Cancelado"
+                  />
+                )}
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -589,21 +730,6 @@ export default function Overview() {
         <div className="relative card-surface rounded-2xl p-6 border border-border/60">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-lg">Chamados por Mês</h3>
-            <div className="flex items-center gap-2">
-              <label className="text-xs font-medium text-muted-foreground">
-                Mostrar concluídos:
-              </label>
-              <button
-                onClick={() => setShowCompleted(!showCompleted)}
-                className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
-                  showCompleted
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted text-muted-foreground"
-                }`}
-              >
-                {showCompleted ? "Sim" : "Não"}
-              </button>
-            </div>
           </div>
           <ResponsiveContainer width="100%" height={320}>
             <BarChart data={monthlyData}>
@@ -626,18 +752,44 @@ export default function Overview() {
                 }}
               />
               <Legend />
-              <Bar
-                dataKey="registrados"
-                fill="hsl(var(--primary))"
-                radius={[8, 8, 0, 0]}
-                name="Registrados"
-              />
-              {showCompleted && (
+              {selectedStatuses.includes("Aberto") && (
                 <Bar
-                  dataKey="concluidos"
-                  fill="hsl(var(--chart-1))"
+                  dataKey="aberto"
+                  fill="#06b6d4"
                   radius={[8, 8, 0, 0]}
-                  name="Concluídos"
+                  name="Aberto"
+                />
+              )}
+              {selectedStatuses.includes("Em andamento") && (
+                <Bar
+                  dataKey="em_andamento"
+                  fill="#f59e0b"
+                  radius={[8, 8, 0, 0]}
+                  name="Em andamento"
+                />
+              )}
+              {selectedStatuses.includes("Em análise") && (
+                <Bar
+                  dataKey="em_analise"
+                  fill="#8b5cf6"
+                  radius={[8, 8, 0, 0]}
+                  name="Em análise"
+                />
+              )}
+              {selectedStatuses.includes("Concluído") && (
+                <Bar
+                  dataKey="concluido"
+                  fill="#10b981"
+                  radius={[8, 8, 0, 0]}
+                  name="Concluído"
+                />
+              )}
+              {selectedStatuses.includes("Cancelado") && (
+                <Bar
+                  dataKey="cancelado"
+                  fill="#ef4444"
+                  radius={[8, 8, 0, 0]}
+                  name="Cancelado"
                 />
               )}
             </BarChart>
