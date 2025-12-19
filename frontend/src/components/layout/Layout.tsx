@@ -224,7 +224,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-              <Link to="/login">
+              <Link to="/auth0/login">
                 <Button
                   variant="secondary"
                   className="ml-2 hidden md:flex items-center gap-2 rounded-full px-3 py-1.5 text-sm"
