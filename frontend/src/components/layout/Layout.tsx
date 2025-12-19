@@ -296,7 +296,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                         </Link>
                       </SheetClose>
                       <div className="mt-2 text-xs uppercase text-muted-foreground px-1">
-                        Setores
+                        Portais
                       </div>
                       <div className="grid grid-cols-1 gap-1">
                         {sectors.map((s) => {
