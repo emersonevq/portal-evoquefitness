@@ -144,7 +144,7 @@ export function useDashboards() {
     };
 
     fetchDashboards();
-  }, [userPermissionSignature?.userId, userPermissionSignature?.biSubcategories?.join(",")]);
+  }, [userPermissionSignature]);
 
   const getDashboardById = (dashboardId: string): Dashboard | undefined => {
     for (const category of categories) {
