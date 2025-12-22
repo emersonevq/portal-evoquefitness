@@ -8,7 +8,7 @@ import sys
 from sqlalchemy import inspect
 from sqlalchemy.exc import SQLAlchemyError
 from core.db import engine, Base, get_db
-from backend.ti.models.notification_settings import NotificationSettings
+from ti.models.notification_settings import NotificationSettings
 
 def create_notification_settings_table():
     """
