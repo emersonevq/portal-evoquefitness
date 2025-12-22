@@ -12,6 +12,7 @@ import {
   Puzzle,
   Settings,
   ChevronRight,
+  Zap,
 } from "lucide-react";
 import NotificationBell from "./components/NotificationBell";
 import { useAutoRecalculateSLA } from "@/hooks/useAutoRecalculateSLA";
@@ -29,24 +30,33 @@ const iconMap = {
 const groups = [
   {
     title: "Operação",
+    description: "Gerencie chamados e usuários",
+    color: "from-blue-500/10 to-cyan-500/10",
+    borderColor: "border-blue-500/20",
     items: [
-      { to: "/setor/ti/admin/overview", label: "Visão geral" },
-      { to: "/setor/ti/admin/chamados", label: "Gerenciar chamados" },
-      { to: "/setor/ti/admin/usuarios", label: "Gerenciar usuários" },
+      { to: "/setor/ti/admin/overview", label: "Visão geral", icon: "LayoutDashboard" },
+      { to: "/setor/ti/admin/chamados", label: "Gerenciar chamados", icon: "FileText" },
+      { to: "/setor/ti/admin/usuarios", label: "Gerenciar usuários", icon: "Users" },
     ],
   },
   {
     title: "Monitoramento",
+    description: "Acompanhe a saúde do sistema",
+    color: "from-violet-500/10 to-purple-500/10",
+    borderColor: "border-violet-500/20",
     items: [
-      { to: "/setor/ti/admin/monitoramento", label: "Monitoramento" },
-      { to: "/setor/ti/admin/historico", label: "Histórico" },
+      { to: "/setor/ti/admin/monitoramento", label: "Monitoramento", icon: "Activity" },
+      { to: "/setor/ti/admin/historico", label: "Histórico", icon: "Clock" },
     ],
   },
   {
     title: "Administração",
+    description: "Configure e integre sistemas",
+    color: "from-emerald-500/10 to-teal-500/10",
+    borderColor: "border-emerald-500/20",
     items: [
-      { to: "/setor/ti/admin/integracoes", label: "Integrações" },
-      { to: "/setor/ti/admin/configuracoes", label: "Configurações" },
+      { to: "/setor/ti/admin/integracoes", label: "Integrações", icon: "Puzzle" },
+      { to: "/setor/ti/admin/configuracoes", label: "Configurações", icon: "Settings" },
     ],
   },
 ];
