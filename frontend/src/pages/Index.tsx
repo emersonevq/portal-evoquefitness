@@ -130,18 +130,18 @@ export default function Index() {
       )}
 
       {/* Hero Section */}
-      <section className="relative overflow-hidden py-3 sm:py-4">
+      <section className="relative overflow-hidden py-6 sm:py-8">
         <div className="container relative z-10">
-          <div className="rounded-2xl brand-gradient px-4 sm:px-8 py-4 sm:py-5 shadow-xl border border-white/20 backdrop-blur-sm overflow-hidden">
+          <div className="rounded-2xl brand-gradient px-6 sm:px-10 py-8 sm:py-10 shadow-xl border border-white/20 backdrop-blur-sm overflow-hidden">
             <div className="relative z-10 text-center max-w-2xl mx-auto">
               {/* Main heading */}
-              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-primary-foreground mb-1 drop-shadow-lg">
+              <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-primary-foreground mb-2 drop-shadow-lg">
                 Portal Evoque
               </h1>
 
               {/* Subtitle */}
-              <p className="text-xs sm:text-sm text-primary-foreground/90 mb-3">
-                Acesse seus setores
+              <p className="text-sm sm:text-base text-primary-foreground/90 mb-5">
+                Acesse seus setores e gerencie suas operações
               </p>
 
               {/* CTA Button */}
@@ -149,10 +149,9 @@ export default function Index() {
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button
-                      size="sm"
-                      className="rounded-full bg-white text-primary hover:bg-white/90 shadow-md hover:shadow-lg transition-all duration-300 font-semibold px-5 h-9 text-sm"
+                      className="rounded-full bg-white text-primary hover:bg-white/90 shadow-lg hover:shadow-xl transition-all duration-300 font-semibold px-7 h-11 text-base"
                     >
-                      Escolher portal <ChevronDown className="size-4 ml-1" />
+                      Escolher portal <ChevronDown className="size-5 ml-2" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="center" className="w-40">
