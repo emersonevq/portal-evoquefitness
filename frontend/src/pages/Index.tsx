@@ -149,9 +149,9 @@ export default function Index() {
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button
-                      className="rounded-full bg-white text-primary hover:bg-white/90 shadow-lg hover:shadow-xl transition-all duration-300 font-semibold px-7 h-11 text-base"
+                      className="rounded-full bg-white text-primary hover:bg-white/90 shadow-xl hover:shadow-2xl transition-all duration-300 font-bold px-9 h-13 text-lg"
                     >
-                      Escolher portal <ChevronDown className="size-5 ml-2" />
+                      Escolher portal <ChevronDown className="size-6 ml-2" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="center" className="w-40">
