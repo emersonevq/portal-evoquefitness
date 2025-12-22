@@ -27,6 +27,7 @@ export function useDashboards() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [categories, setCategories] = useState<DashboardCategory[]>([]);
+  const prevCategoriesRef = useRef<DashboardCategory[] | null>(null);
   const { user } = useAuth();
 
   useEffect(() => {
@@ -106,10 +107,23 @@ export function useDashboards() {
           category.dashboards.sort((a, b) => a.order - b.order);
         });
 
-        console.log(
-          `[BI] ✅ Dashboards organizados em ${grouped.length} categorias`,
-        );
-        setCategories(grouped);
+        // Only update state if data actually changed
+        const dataChanged =
+          prevCategoriesRef.current === null ||
+          JSON.stringify(prevCategoriesRef.current) !== JSON.stringify(grouped);
+
+        if (dataChanged) {
+          console.log(
+            `[BI] ✅ Dashboards organizados em ${grouped.length} categorias`,
+          );
+          prevCategoriesRef.current = grouped;
+          setCategories(grouped);
+        } else {
+          console.log(
+            "[BI] ℹ️ Dados de dashboards não mudaram, evitando re-render",
+          );
+          prevCategoriesRef.current = grouped;
+        }
       } catch (err) {
         const message =
           err instanceof Error ? err.message : "Erro desconhecido";
