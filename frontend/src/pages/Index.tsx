@@ -209,15 +209,15 @@ export default function Index() {
       </section>
 
       {/* Sectors Grid Section */}
-      <section id="setores" className="py-16 sm:py-24 bg-muted/30 backdrop-blur-sm">
+      <section id="setores" className="py-12 sm:py-16 bg-muted/30 backdrop-blur-sm">
         <div className="container">
           {/* Section Header */}
-          <div className="text-center mb-12 sm:mb-16 animate-in fade-in slide-in-from-bottom-4 duration-700">
-            <h2 className="text-3xl sm:text-4xl font-bold mb-3 text-foreground">
+          <div className="text-center mb-8 sm:mb-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            <h2 className="text-2xl sm:text-3xl font-bold mb-2 text-foreground">
               Nossos Setores
             </h2>
-            <p className="text-muted-foreground text-base sm:text-lg max-w-2xl mx-auto">
-              Explore os módulos disponíveis e gerencie todas as operações em um único lugar
+            <p className="text-muted-foreground text-sm sm:text-base max-w-2xl mx-auto">
+              Explore os módulos disponíveis e gerencie suas operações
             </p>
           </div>
 
