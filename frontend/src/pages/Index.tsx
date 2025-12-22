@@ -130,7 +130,7 @@ export default function Index() {
       )}
 
       {/* Hero Section */}
-      <section className="relative overflow-hidden pt-8 sm:pt-16 pb-16 sm:pb-24">
+      <section className="relative overflow-hidden pt-6 sm:pt-8 pb-8 sm:pb-12">
         {/* Animated background elements */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary/10 rounded-full blur-3xl animate-pulse" />
@@ -138,7 +138,7 @@ export default function Index() {
         </div>
 
         <div className="container relative z-10">
-          <div className="rounded-3xl brand-gradient px-6 sm:px-12 py-12 sm:py-20 shadow-2xl border border-white/20 backdrop-blur-sm overflow-hidden">
+          <div className="rounded-3xl brand-gradient px-6 sm:px-12 py-8 sm:py-12 shadow-2xl border border-white/20 backdrop-blur-sm overflow-hidden">
             {/* Decorative grid pattern */}
             <div
               className="absolute inset-0 opacity-5"
