@@ -207,12 +207,12 @@ export default function Index() {
 
         <div className="container relative z-10">
           {/* Section Header */}
-          <div className="text-center mb-8 sm:mb-10">
-            <h2 className="text-2xl sm:text-3xl font-bold mb-2 text-foreground">
+          <div className="text-center mb-6 sm:mb-8">
+            <h2 className="text-2xl sm:text-3xl font-bold mb-1 text-foreground">
               Nossos Setores
             </h2>
-            <p className="text-sm text-muted-foreground">
-              Explore nossos módulos e comece agora
+            <p className="text-xs sm:text-sm text-muted-foreground">
+              Explore nossos módulos
             </p>
           </div>
 
