@@ -185,17 +185,40 @@ export default function Index() {
       </section>
 
       {/* Sectors Grid Section */}
-      <section id="setores" className="py-4 sm:py-5 bg-muted/30 backdrop-blur-sm">
-        <div className="container">
+      <section id="setores" className="relative flex-1 py-8 sm:py-10">
+        {/* Decorative background */}
+        <div className="absolute inset-0 overflow-hidden">
+          {/* Gradient background */}
+          <div className="absolute inset-0 bg-gradient-to-b from-muted/40 via-muted/20 to-background" />
+
+          {/* Floating elements */}
+          <div className="absolute top-1/2 right-0 w-96 h-96 bg-primary/5 rounded-full blur-3xl -translate-y-1/2" />
+          <div className="absolute top-1/3 left-0 w-80 h-80 bg-accent/5 rounded-full blur-3xl" />
+
+          {/* Grid pattern */}
+          <div
+            className="absolute inset-0 opacity-[0.02]"
+            style={{
+              backgroundImage: `linear-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px),
+                               linear-gradient(90deg, rgba(255, 255, 255, 0.1) 1px, transparent 1px)`,
+              backgroundSize: "64px 64px",
+            }}
+          />
+        </div>
+
+        <div className="container relative z-10">
           {/* Section Header */}
-          <div className="text-center mb-4 sm:mb-5">
-            <h2 className="text-lg sm:text-xl font-bold mb-1 text-foreground">
+          <div className="text-center mb-8 sm:mb-10">
+            <h2 className="text-2xl sm:text-3xl font-bold mb-2 text-foreground">
               Nossos Setores
             </h2>
+            <p className="text-sm text-muted-foreground">
+              Explore nossos módulos e comece agora
+            </p>
           </div>
 
           {/* Cards Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
             {sectors.map((s, idx) => {
               const allowed = canAccess(s.slug);
               const href = user
