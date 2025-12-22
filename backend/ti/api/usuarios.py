@@ -56,12 +56,18 @@ def listar_usuarios(db: Session = Depends(get_db)):
             for u in users:
                 if u.bloqueado is None:
                     u.bloqueado = False
+                # Ensure nome and sobrenome are non-empty strings
+                user_nome = (u.nome or "").strip()
+                user_sobrenome = (u.sobrenome or "").strip()
+                if not user_nome:
+                    user_nome = u.email.split("@")[0] if u.email else u.usuario
+
                 setores_list = compute_setores(u)
                 bi_subcategories_list = compute_bi_subcategories(u)
                 rows.append({
                     "id": u.id,
-                    "nome": u.nome,
-                    "sobrenome": u.sobrenome,
+                    "nome": user_nome,
+                    "sobrenome": user_sobrenome,
                     "usuario": u.usuario,
                     "email": u.email,
                     "nivel_acesso": u.nivel_acesso,
