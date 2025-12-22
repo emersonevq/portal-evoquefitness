@@ -16,10 +16,11 @@ export default function BiPage() {
     if (!loading && categories.length > 0 && selectedDashboardId === null) {
       const firstDashboard = categories[0]?.dashboards[0];
       if (firstDashboard) {
+        console.log("[BI] 🎯 Selecionando primeiro dashboard:", firstDashboard.title);
         setSelectedDashboardId(firstDashboard.id);
       }
     }
-  }, [loading, categories, selectedDashboardId]);
+  }, [loading, categories, selectedDashboardId]); // ✅ ADICIONADO: categories
 
   // Memoize dashboard lookup to prevent unnecessary re-renders
   const selectedDashboard = useMemo(() => {
@@ -32,7 +33,7 @@ export default function BiPage() {
   }, [selectedDashboardId, categories]);
 
   const handleSelectDashboard = (dashboard: any) => {
-    console.log("[BI] 🔄 Trocando dashboard...");
+    console.log("[BI] 📄 Trocando dashboard...");
     console.log(
       "[BI] Dashboard anterior:",
       selectedDashboard?.title || "nenhum",
@@ -83,7 +84,10 @@ export default function BiPage() {
                 {/* Área principal de conteúdo */}
                 <main className="bi-content">
                   {selectedDashboard && (
-                    <DashboardViewer dashboard={selectedDashboard} />
+                    <DashboardViewer
+                      key={selectedDashboard.id}
+                      dashboard={selectedDashboard}
+                    />
                   )}
                 </main>
               </>
