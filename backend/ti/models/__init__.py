@@ -14,7 +14,7 @@ from .alert import Alert
 from .session import Session
 from .sla_config import SLAConfiguration
 from .powerbi_dashboard import PowerBIDashboard
-from .metrics_cache import MetricsCache
+from .metrics_cache import MetricsCacheDB
 
 __all__ = [
     "Chamado",
