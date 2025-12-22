@@ -149,23 +149,23 @@ export default function Index() {
               }}
             />
 
-            <div className="relative z-10 text-center max-w-3xl mx-auto">
+            <div className="relative z-10 text-center max-w-2xl mx-auto">
               {/* Badge */}
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-md border border-white/20 rounded-full mb-6 animate-in fade-in slide-in-from-top-4 duration-500">
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white/10 backdrop-blur-md border border-white/20 rounded-full mb-3 sm:mb-4 animate-in fade-in slide-in-from-top-4 duration-500">
                 <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
-                <span className="text-sm font-medium text-white">
+                <span className="text-xs sm:text-sm font-medium text-white">
                   Bem-vindo ao Portal Evoque
                 </span>
               </div>
 
               {/* Main heading */}
-              <h1 className="text-4xl sm:text-6xl font-black tracking-tight text-primary-foreground mb-4 sm:mb-6 animate-in fade-in slide-in-from-top-6 duration-700 drop-shadow-lg">
+              <h1 className="text-3xl sm:text-5xl font-black tracking-tight text-primary-foreground mb-2 sm:mb-3 animate-in fade-in slide-in-from-top-6 duration-700 drop-shadow-lg">
                 Portal Evoque
               </h1>
 
               {/* Subtitle */}
-              <p className="text-base sm:text-lg text-primary-foreground/95 leading-relaxed mb-8 sm:mb-10 animate-in fade-in slide-in-from-top-8 duration-900 max-w-2xl mx-auto">
-                Acesse seus setores, gerencie operações e transforme sua experiência com ferramentas poderosas e intuitivas.
+              <p className="text-sm sm:text-base text-primary-foreground/95 leading-relaxed mb-6 sm:mb-7 animate-in fade-in slide-in-from-top-8 duration-900">
+                Acesse seus setores e gerencie operações em um único lugar.
               </p>
 
               {/* CTA Button */}
