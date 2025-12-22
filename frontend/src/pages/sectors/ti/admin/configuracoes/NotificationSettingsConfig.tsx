@@ -74,7 +74,10 @@ export default function NotificationSettingsConfig() {
     setError(null);
     try {
       const res = await apiFetch("/notification-settings");
-      console.log("[NotificationSettings] GET /notification-settings:", res.status);
+      console.log(
+        "[NotificationSettings] GET /notification-settings:",
+        res.status,
+      );
       if (res.ok) {
         const data = await res.json();
         console.log("[NotificationSettings] Dados recebidos:", data);

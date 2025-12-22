@@ -148,9 +148,7 @@ export default function Index() {
               <div className="flex items-center justify-center">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button
-                      className="rounded-full bg-white text-primary hover:bg-white/90 shadow-xl hover:shadow-2xl transition-all duration-300 font-bold px-9 h-12 text-base"
-                    >
+                    <Button className="rounded-full bg-white text-primary hover:bg-white/90 shadow-xl hover:shadow-2xl transition-all duration-300 font-bold px-9 h-12 text-base">
                       Escolher portal <ChevronDown className="size-6 ml-2" />
                     </Button>
                   </DropdownMenuTrigger>
@@ -225,7 +223,9 @@ export default function Index() {
                   to={href}
                   key={s.slug}
                   className={`group relative ${
-                    user && !allowed ? "opacity-50 pointer-events-none cursor-not-allowed" : "cursor-pointer"
+                    user && !allowed
+                      ? "opacity-50 pointer-events-none cursor-not-allowed"
+                      : "cursor-pointer"
                   }`}
                 >
                   <div

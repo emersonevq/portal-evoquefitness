@@ -34,9 +34,21 @@ const groups = [
     color: "from-blue-500/10 to-cyan-500/10",
     borderColor: "border-blue-500/20",
     items: [
-      { to: "/setor/ti/admin/overview", label: "Visão geral", icon: "LayoutDashboard" },
-      { to: "/setor/ti/admin/chamados", label: "Gerenciar chamados", icon: "FileText" },
-      { to: "/setor/ti/admin/usuarios", label: "Gerenciar usuários", icon: "Users" },
+      {
+        to: "/setor/ti/admin/overview",
+        label: "Visão geral",
+        icon: "LayoutDashboard",
+      },
+      {
+        to: "/setor/ti/admin/chamados",
+        label: "Gerenciar chamados",
+        icon: "FileText",
+      },
+      {
+        to: "/setor/ti/admin/usuarios",
+        label: "Gerenciar usuários",
+        icon: "Users",
+      },
     ],
   },
   {
@@ -45,7 +57,11 @@ const groups = [
     color: "from-violet-500/10 to-purple-500/10",
     borderColor: "border-violet-500/20",
     items: [
-      { to: "/setor/ti/admin/monitoramento", label: "Monitoramento", icon: "Activity" },
+      {
+        to: "/setor/ti/admin/monitoramento",
+        label: "Monitoramento",
+        icon: "Activity",
+      },
       { to: "/setor/ti/admin/historico", label: "Histórico", icon: "Clock" },
     ],
   },
@@ -55,8 +71,16 @@ const groups = [
     color: "from-emerald-500/10 to-teal-500/10",
     borderColor: "border-emerald-500/20",
     items: [
-      { to: "/setor/ti/admin/integracoes", label: "Integrações", icon: "Puzzle" },
-      { to: "/setor/ti/admin/configuracoes", label: "Configurações", icon: "Settings" },
+      {
+        to: "/setor/ti/admin/integracoes",
+        label: "Integrações",
+        icon: "Puzzle",
+      },
+      {
+        to: "/setor/ti/admin/configuracoes",
+        label: "Configurações",
+        icon: "Settings",
+      },
     ],
   },
 ];
