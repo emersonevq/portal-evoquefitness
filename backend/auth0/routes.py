@@ -362,10 +362,16 @@ def auth0_login(request: Auth0LoginRequest, db: Session = Depends(get_db)):
             except Exception:
                 bi_subcategories_list = None
 
+        # Ensure nome and sobrenome are never empty strings
+        user_nome = (user.nome or "").strip()
+        user_sobrenome = (user.sobrenome or "").strip()
+        if not user_nome:
+            user_nome = user.email.split("@")[0]
+
         response = {
             "id": user.id,
-            "nome": user.nome,
-            "sobrenome": user.sobrenome,
+            "nome": user_nome,
+            "sobrenome": user_sobrenome,
             "email": user.email,
             "nivel_acesso": user.nivel_acesso,
             "setores": setores_list,
