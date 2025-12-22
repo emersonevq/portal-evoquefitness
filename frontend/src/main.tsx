@@ -47,13 +47,7 @@ import {
 import ConfiguracoesLayout from "./pages/sectors/ti/admin/configuracoes/ConfiguracoesLayout";
 import {
   SLA as ConfSLA,
-  Prioridades as ConfPrioridades,
   Notificacoes as ConfNotificacoes,
-  Sistema as ConfSistema,
-  Seguranca as ConfSeguranca,
-  Chamados as ConfChamados,
-  Email as ConfEmail,
-  Integracoes as ConfIntegracoes,
   Acoes as ConfAcoes,
 } from "./pages/sectors/ti/admin/configuracoes/pages";
 import LoginMediaConfig from "./pages/sectors/ti/admin/configuracoes/LoginMediaConfig";
@@ -128,13 +122,7 @@ const App = () => (
               <Route path="configuracoes" element={<ConfiguracoesLayout />}>
                 <Route index element={<ConfSLA />} />
                 <Route path="sla" element={<ConfSLA />} />
-                <Route path="prioridades" element={<ConfPrioridades />} />
                 <Route path="notificacoes" element={<ConfNotificacoes />} />
-                <Route path="sistema" element={<ConfSistema />} />
-                <Route path="seguranca" element={<ConfSeguranca />} />
-                <Route path="chamados" element={<ConfChamados />} />
-                <Route path="email" element={<ConfEmail />} />
-                <Route path="integracoes" element={<ConfIntegracoes />} />
                 <Route path="midia-login" element={<LoginMediaConfig />} />
                 <Route path="alertas" element={<AlertsConfig />} />
                 <Route path="acoes" element={<ConfAcoes />} />

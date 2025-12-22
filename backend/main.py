@@ -11,7 +11,7 @@ from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 from fastapi.middleware.cors import CORSMiddleware
 from io import BytesIO
-from ti.api import chamados_router, unidades_router, problemas_router, notifications_router, alerts_router, email_debug_router, sla_router, powerbi_router, metrics_router
+from ti.api import chamados_router, unidades_router, problemas_router, notifications_router, notification_settings_router, alerts_router, email_debug_router, sla_router, powerbi_router, metrics_router
 from ti.api.usuarios import router as usuarios_router
 from ti.api.dashboard_permissions import router as dashboard_permissions_router
 from auth0.routes import router as auth0_router
@@ -48,6 +48,13 @@ try:
     print("✅ Migração historico_status executada com sucesso")
 except Exception as e:
     print(f"⚠️  Erro ao migrar historico_status: {e}")
+
+# Criar tabela de configurações de notificações na inicialização
+try:
+    from ti.scripts.setup_notification_settings import create_notification_settings_table
+    create_notification_settings_table()
+except Exception as e:
+    print(f"⚠️  Erro ao criar tabela notification_settings: {e}")
 
 # Inicializar scheduler de recalculação automática de SLA
 try:
@@ -431,6 +438,7 @@ _http.include_router(usuarios_router, prefix="/api")
 _http.include_router(unidades_router, prefix="/api")
 _http.include_router(problemas_router, prefix="/api")
 _http.include_router(notifications_router, prefix="/api")
+_http.include_router(notification_settings_router, prefix="/api")
 _http.include_router(alerts_router, prefix="/api")
 _http.include_router(email_debug_router, prefix="/api")
 _http.include_router(sla_router, prefix="/api")
@@ -445,6 +453,7 @@ _http.include_router(usuarios_router)
 _http.include_router(unidades_router)
 _http.include_router(problemas_router)
 _http.include_router(notifications_router)
+_http.include_router(notification_settings_router)
 _http.include_router(alerts_router)
 _http.include_router(email_debug_router)
 _http.include_router(sla_router)
