@@ -130,56 +130,32 @@ export default function Index() {
       )}
 
       {/* Hero Section */}
-      <section className="relative overflow-hidden pt-6 sm:pt-8 pb-8 sm:pb-12">
-        {/* Animated background elements */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary/10 rounded-full blur-3xl animate-pulse" />
-          <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-accent/10 rounded-full blur-3xl animate-pulse delay-1000" />
-        </div>
-
+      <section className="relative overflow-hidden py-3 sm:py-4">
         <div className="container relative z-10">
-          <div className="rounded-3xl brand-gradient px-6 sm:px-12 py-8 sm:py-12 shadow-2xl border border-white/20 backdrop-blur-sm overflow-hidden">
-            {/* Decorative grid pattern */}
-            <div
-              className="absolute inset-0 opacity-5"
-              style={{
-                backgroundImage: `linear-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px),
-                                 linear-gradient(90deg, rgba(255, 255, 255, 0.1) 1px, transparent 1px)`,
-                backgroundSize: "64px 64px",
-              }}
-            />
-
+          <div className="rounded-2xl brand-gradient px-4 sm:px-8 py-4 sm:py-5 shadow-xl border border-white/20 backdrop-blur-sm overflow-hidden">
             <div className="relative z-10 text-center max-w-2xl mx-auto">
-              {/* Badge */}
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white/10 backdrop-blur-md border border-white/20 rounded-full mb-3 sm:mb-4 animate-in fade-in slide-in-from-top-4 duration-500">
-                <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
-                <span className="text-xs sm:text-sm font-medium text-white">
-                  Bem-vindo ao Portal Evoque
-                </span>
-              </div>
-
               {/* Main heading */}
-              <h1 className="text-3xl sm:text-5xl font-black tracking-tight text-primary-foreground mb-2 sm:mb-3 animate-in fade-in slide-in-from-top-6 duration-700 drop-shadow-lg">
+              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-primary-foreground mb-1 drop-shadow-lg">
                 Portal Evoque
               </h1>
 
               {/* Subtitle */}
-              <p className="text-sm sm:text-base text-primary-foreground/95 leading-relaxed mb-6 sm:mb-7 animate-in fade-in slide-in-from-top-8 duration-900">
-                Acesse seus setores e gerencie operações em um único lugar.
+              <p className="text-xs sm:text-sm text-primary-foreground/90 mb-3">
+                Acesse seus setores
               </p>
 
               {/* CTA Button */}
-              <div className="flex items-center justify-center animate-in fade-in slide-in-from-bottom-4 duration-700">
+              <div className="flex items-center justify-center">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button
-                      size="lg"
-                      className="rounded-full bg-white text-primary hover:bg-white/90 shadow-lg hover:shadow-xl transition-all duration-300 font-semibold px-8 h-12"
+                      size="sm"
+                      className="rounded-full bg-white text-primary hover:bg-white/90 shadow-md hover:shadow-lg transition-all duration-300 font-semibold px-5 h-9 text-sm"
                     >
-                      Escolher portal <ChevronDown className="size-5 ml-1" />
+                      Escolher portal <ChevronDown className="size-4 ml-1" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="center" className="w-48">
+                  <DropdownMenuContent align="center" className="w-40">
                     {sectors.map((s) => {
                       const allowed = canAccess(s.slug);
                       const href = user
@@ -188,13 +164,13 @@ export default function Index() {
                       return (
                         <Link key={s.slug} to={href}>
                           <DropdownMenuItem
-                            className={`cursor-pointer transition-all ${
+                            className={`cursor-pointer text-sm transition-all ${
                               !user || allowed
                                 ? ""
                                 : "opacity-50 pointer-events-none"
                             }`}
                           >
-                            <s.icon className="w-4 h-4 mr-2" />
+                            <s.icon className="w-3 h-3 mr-2" />
                             {s.title}
                           </DropdownMenuItem>
                         </Link>
