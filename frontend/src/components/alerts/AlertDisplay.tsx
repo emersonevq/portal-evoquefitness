@@ -93,10 +93,30 @@ export default function AlertDisplay() {
     if (markedAsViewedRef.current.has(alertId)) return;
 
     try {
-      const usuarioId = user?.email || user?.name || "anonymous";
+      // Extract name parts from user data
+      const usuarioId = user?.email || "anonymous";
       const usuarioEmail = user?.email || "anonymous";
-      const usuarioNome = user?.firstName || user?.name || "anonymous";
-      const usuarioSobrenome = user?.lastName || "";
+
+      // Use firstName if available, otherwise try to extract from name, fallback to email username
+      let usuarioNome = user?.firstName || "";
+      if (!usuarioNome && user?.name) {
+        // Try to extract first name from full name
+        const nameParts = user.name.trim().split(/\s+/);
+        usuarioNome = nameParts[0] || "";
+      }
+      if (!usuarioNome) {
+        usuarioNome = usuarioEmail.split("@")[0];
+      }
+
+      // Use lastName if available, otherwise try to extract from name
+      let usuarioSobrenome = user?.lastName || "";
+      if (!usuarioSobrenome && user?.name) {
+        // Try to extract last name from full name
+        const nameParts = user.name.trim().split(/\s+/);
+        if (nameParts.length > 1) {
+          usuarioSobrenome = nameParts[nameParts.length - 1];
+        }
+      }
 
       await apiFetch(`/alerts/${alertId}/visualizar`, {
         method: "POST",
