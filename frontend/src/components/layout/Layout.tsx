@@ -138,7 +138,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         <div className="container flex items-center justify-between py-2 gap-2">
           <Link
             to="/"
-            className="flex items-center gap-2 font-extrabold tracking-tight"
+            className="flex items-center gap-1.5 font-bold tracking-tight"
           >
             {!location.pathname.startsWith("/setor/bi") ? (
               <>
