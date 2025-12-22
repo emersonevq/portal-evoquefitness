@@ -90,11 +90,17 @@ def listar_usuarios(db: Session = Depends(get_db)):
             rows = []
             for r in res.fetchall():
                 s = r[6]
+                # Ensure nome and sobrenome are non-empty strings
+                user_nome = (r[1] or "").strip()
+                user_sobrenome = (r[2] or "").strip()
+                if not user_nome:
+                    user_nome = r[4].split("@")[0] if r[4] else r[3]
+
                 setores_list = [str(s)] if s else []
                 rows.append({
                     "id": r[0],
-                    "nome": r[1],
-                    "sobrenome": r[2],
+                    "nome": user_nome,
+                    "sobrenome": user_sobrenome,
                     "usuario": r[3],
                     "email": r[4],
                     "nivel_acesso": r[5],
