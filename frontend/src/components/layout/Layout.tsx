@@ -352,7 +352,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           </div>
         </div>
       </header>
-      <main className="flex-1 w-full">{children}</main>
+      <main className="flex-1 w-full flex flex-col">{children}</main>
       <footer className="border-t border-border/60">
         <div className="container py-2 text-xs text-muted-foreground flex items-center justify-between">
           <p>© {new Date().getFullYear()} Portal Evoque</p>
