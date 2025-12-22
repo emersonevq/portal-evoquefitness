@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
 """
 Script para criar a tabela notification_settings no banco de dados.
-Pode ser executado via: python -m backend.ti.scripts.setup_notification_settings
+Pode ser executado via: python -m ti.scripts.setup_notification_settings
 """
 
 import sys
-from sqlalchemy import inspect
+from sqlalchemy import inspect, text
 from sqlalchemy.exc import SQLAlchemyError
-from core.db import engine, Base, get_db
-from ti.models.notification_settings import NotificationSettings
+from core.db import engine, Base
 
 def create_notification_settings_table():
     """
@@ -16,9 +15,8 @@ def create_notification_settings_table():
     Também insere a configuração padrão.
     """
     try:
-        print("=" * 60)
-        print("Criando tabela notification_settings...")
-        print("=" * 60)
+        # Importar o modelo para registrá-lo em Base.metadata
+        from ti.models.notification_settings import NotificationSettings
         
         # Verificar se a tabela já existe
         inspector = inspect(engine)
@@ -29,43 +27,50 @@ def create_notification_settings_table():
         else:
             print("➜ Criando tabela 'notification_settings'...")
             # Criar a tabela usando o Base.metadata
-            Base.metadata.create_all(bind=engine, tables=[NotificationSettings.__table__])
+            Base.metadata.create_all(bind=engine)
             print("✓ Tabela 'notification_settings' criada com sucesso!")
         
         # Inserir configuração padrão se não existir
-        print("\n➜ Verificando configuração padrão...")
-        db = next(get_db())
-        
-        existing_settings = db.query(NotificationSettings).first()
-        if existing_settings:
-            print(f"✓ Configuração padrão já existe (ID: {existing_settings.id})")
-        else:
-            print("➜ Inserindo configuração padrão...")
-            default_settings = NotificationSettings()
-            db.add(default_settings)
-            db.commit()
-            db.refresh(default_settings)
-            print(f"✓ Configuração padrão inserida com sucesso (ID: {default_settings.id})")
-        
-        db.close()
-        
-        print("\n" + "=" * 60)
-        print("✅ Setup completo! Tabela pronta para usar.")
-        print("=" * 60)
-        
-        # Exibir informações
-        print("\nEndpoints disponíveis:")
-        print("  GET  /api/notification-settings          - Obter configurações")
-        print("  PUT  /api/notification-settings          - Atualizar configurações")
-        print("  POST /api/notification-settings/reset    - Resetar para padrão")
+        print("➜ Verificando configuração padrão...")
+        with engine.connect() as conn:
+            # Verificar se já existe uma configuração
+            result = conn.execute(text("SELECT COUNT(*) FROM notification_settings"))
+            count = result.scalar()
+            
+            if count == 0:
+                # Inserir configuração padrão
+                conn.execute(text("""
+                    INSERT INTO notification_settings (
+                        chamado_enabled,
+                        sistema_enabled,
+                        alerta_enabled,
+                        erro_enabled,
+                        som_habilitado,
+                        som_tipo,
+                        estilo_exibicao,
+                        posicao,
+                        duracao,
+                        tamanho,
+                        mostrar_icone,
+                        mostrar_acao,
+                        criado_em,
+                        atualizado_em
+                    ) VALUES (
+                        TRUE, TRUE, TRUE, TRUE, TRUE, 'notificacao', 'toast', 'top-right', 5, 'medio', TRUE, TRUE, NOW(), NOW()
+                    )
+                """))
+                conn.commit()
+                print("✓ Configuração padrão inserida com sucesso")
+            else:
+                print(f"✓ Configuração padrão já existe ({count} registro(s))")
         
         return True
         
     except SQLAlchemyError as e:
-        print(f"\n✗ Erro de banco de dados: {e}")
+        print(f"✗ Erro de banco de dados: {e}")
         return False
     except Exception as e:
-        print(f"\n✗ Erro inesperado: {e}")
+        print(f"✗ Erro ao criar tabela notification_settings: {e}")
         import traceback
         traceback.print_exc()
         return False
