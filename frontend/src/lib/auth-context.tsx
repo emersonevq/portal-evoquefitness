@@ -286,12 +286,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       // Create user object from response
       const now = Date.now();
+      const firstName = data.nome || "";
+      const lastName = data.sobrenome || "";
+      const fullName = `${firstName} ${lastName}`.trim();
+
       const userData: User = {
         id: data.id,
         email: data.email,
-        name: `${data.nome} ${data.sobrenome}`,
-        firstName: data.nome,
-        lastName: data.sobrenome,
+        name: fullName || data.email,
+        firstName: firstName || data.email.split("@")[0],
+        lastName: lastName,
         nivel_acesso: data.nivel_acesso,
         setores: Array.isArray(data.setores) ? data.setores : [],
         bi_subcategories: Array.isArray(data.bi_subcategories)
