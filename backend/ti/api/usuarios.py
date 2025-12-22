@@ -56,12 +56,18 @@ def listar_usuarios(db: Session = Depends(get_db)):
             for u in users:
                 if u.bloqueado is None:
                     u.bloqueado = False
+                # Ensure nome and sobrenome are non-empty strings
+                user_nome = (u.nome or "").strip()
+                user_sobrenome = (u.sobrenome or "").strip()
+                if not user_nome:
+                    user_nome = u.email.split("@")[0] if u.email else u.usuario
+
                 setores_list = compute_setores(u)
                 bi_subcategories_list = compute_bi_subcategories(u)
                 rows.append({
                     "id": u.id,
-                    "nome": u.nome,
-                    "sobrenome": u.sobrenome,
+                    "nome": user_nome,
+                    "sobrenome": user_sobrenome,
                     "usuario": u.usuario,
                     "email": u.email,
                     "nivel_acesso": u.nivel_acesso,
@@ -84,11 +90,17 @@ def listar_usuarios(db: Session = Depends(get_db)):
             rows = []
             for r in res.fetchall():
                 s = r[6]
+                # Ensure nome and sobrenome are non-empty strings
+                user_nome = (r[1] or "").strip()
+                user_sobrenome = (r[2] or "").strip()
+                if not user_nome:
+                    user_nome = r[4].split("@")[0] if r[4] else r[3]
+
                 setores_list = [str(s)] if s else []
                 rows.append({
                     "id": r[0],
-                    "nome": r[1],
-                    "sobrenome": r[2],
+                    "nome": user_nome,
+                    "sobrenome": user_sobrenome,
                     "usuario": r[3],
                     "email": r[4],
                     "nivel_acesso": r[5],
@@ -163,10 +175,17 @@ def listar_bloqueados(db: Session = Depends(get_db)):
                     bi_subcategories_list = [str(x) if x is not None else "" for x in raw]
             except Exception:
                 bi_subcategories_list = None
+
+            # Ensure nome and sobrenome are non-empty strings
+            user_nome = (u.nome or "").strip()
+            user_sobrenome = (u.sobrenome or "").strip()
+            if not user_nome:
+                user_nome = u.email.split("@")[0] if u.email else u.usuario
+
             rows.append({
                 "id": u.id,
-                "nome": u.nome,
-                "sobrenome": u.sobrenome,
+                "nome": user_nome,
+                "sobrenome": user_sobrenome,
                 "usuario": u.usuario,
                 "email": u.email,
                 "nivel_acesso": u.nivel_acesso,
@@ -245,10 +264,16 @@ def atualizar_usuario(user_id: int, payload: dict, db: Session = Depends(get_db)
         except Exception:
             bi_subcategories_list = None
 
+        # Ensure nome and sobrenome are non-empty strings
+        user_nome = (updated.nome or "").strip()
+        user_sobrenome = (updated.sobrenome or "").strip()
+        if not user_nome:
+            user_nome = updated.email.split("@")[0] if updated.email else updated.usuario
+
         return {
             "id": updated.id,
-            "nome": updated.nome,
-            "sobrenome": updated.sobrenome,
+            "nome": user_nome,
+            "sobrenome": user_sobrenome,
             "usuario": updated.usuario,
             "email": updated.email,
             "nivel_acesso": updated.nivel_acesso,
@@ -330,10 +355,16 @@ def get_usuario(user_id: int, db: Session = Depends(get_db)):
         except Exception:
             bi_subcategories_list = None
 
+        # Ensure nome and sobrenome are non-empty strings
+        user_nome = (user.nome or "").strip()
+        user_sobrenome = (user.sobrenome or "").strip()
+        if not user_nome:
+            user_nome = user.email.split("@")[0] if user.email else user.usuario
+
         return {
             "id": user.id,
-            "nome": user.nome,
-            "sobrenome": user.sobrenome,
+            "nome": user_nome,
+            "sobrenome": user_sobrenome,
             "usuario": user.usuario,
             "email": user.email,
             "nivel_acesso": user.nivel_acesso,
@@ -414,10 +445,17 @@ def force_logout(user_id: int, db: Session = Depends(get_db)):
                 setores_list = [str(user.setor)]
         except Exception:
             setores_list = [str(user.setor)] if user.setor else []
+
+        # Ensure nome and sobrenome are non-empty strings
+        user_nome = (user.nome or "").strip()
+        user_sobrenome = (user.sobrenome or "").strip()
+        if not user_nome:
+            user_nome = user.email.split("@")[0] if user.email else user.usuario
+
         return {
             "id": user.id,
-            "nome": user.nome,
-            "sobrenome": user.sobrenome,
+            "nome": user_nome,
+            "sobrenome": user_sobrenome,
             "usuario": user.usuario,
             "email": user.email,
             "nivel_acesso": user.nivel_acesso,
@@ -485,10 +523,16 @@ def auth0_login(payload: dict, db: Session = Depends(get_db)):
             except:
                 bi_subcategories_list = None
 
+        # Ensure nome and sobrenome are non-empty strings
+        user_nome = (user.nome or "").strip()
+        user_sobrenome = (user.sobrenome or "").strip()
+        if not user_nome:
+            user_nome = user.email.split("@")[0] if user.email else user.usuario
+
         return {
             "id": user.id,
-            "nome": user.nome,
-            "sobrenome": user.sobrenome,
+            "nome": user_nome,
+            "sobrenome": user_sobrenome,
             "usuario": user.usuario,
             "email": user.email,
             "nivel_acesso": user.nivel_acesso,
@@ -550,10 +594,16 @@ def msal_login(payload: dict, db: Session = Depends(get_db)):
             except:
                 bi_subcategories_list = None
 
+        # Ensure nome and sobrenome are non-empty strings
+        user_nome = (user.nome or "").strip()
+        user_sobrenome = (user.sobrenome or "").strip()
+        if not user_nome:
+            user_nome = user.email.split("@")[0] if user.email else user.usuario
+
         return {
             "id": user.id,
-            "nome": user.nome,
-            "sobrenome": user.sobrenome,
+            "nome": user_nome,
+            "sobrenome": user_sobrenome,
             "usuario": user.usuario,
             "email": user.email,
             "nivel_acesso": user.nivel_acesso,

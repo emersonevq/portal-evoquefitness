@@ -223,10 +223,16 @@ def auth0_exchange(request: Auth0ExchangeRequest, db: Session = Depends(get_db))
         print(f"[AUTH0-EXCHANGE] User sectors: {setores_list}")
         print(f"[AUTH0-EXCHANGE] User access level: {user.nivel_acesso}")
 
+        # Ensure nome and sobrenome are never empty strings
+        user_nome = (user.nome or "").strip()
+        user_sobrenome = (user.sobrenome or "").strip()
+        if not user_nome:
+            user_nome = user.email.split("@")[0]
+
         response = {
             "id": user.id,
-            "nome": user.nome,
-            "sobrenome": user.sobrenome,
+            "nome": user_nome,
+            "sobrenome": user_sobrenome,
             "email": user.email,
             "nivel_acesso": user.nivel_acesso,
             "setores": setores_list,
@@ -356,10 +362,16 @@ def auth0_login(request: Auth0LoginRequest, db: Session = Depends(get_db)):
             except Exception:
                 bi_subcategories_list = None
 
+        # Ensure nome and sobrenome are never empty strings
+        user_nome = (user.nome or "").strip()
+        user_sobrenome = (user.sobrenome or "").strip()
+        if not user_nome:
+            user_nome = user.email.split("@")[0]
+
         response = {
             "id": user.id,
-            "nome": user.nome,
-            "sobrenome": user.sobrenome,
+            "nome": user_nome,
+            "sobrenome": user_sobrenome,
             "email": user.email,
             "nivel_acesso": user.nivel_acesso,
             "setores": setores_list,
@@ -446,7 +458,13 @@ def get_auth0_user(request: Auth0UserRequest, db: Session = Depends(get_db)):
                 detail="User not found"
             )
 
-        print(f"[AUTH0-USER] ✓ User found: {user.nome} {user.sobrenome}")
+        # Ensure nome and sobrenome are never empty strings
+        user_nome = (user.nome or "").strip()
+        user_sobrenome = (user.sobrenome or "").strip()
+        if not user_nome:
+            user_nome = user.email.split("@")[0]
+
+        print(f"[AUTH0-USER] ✓ User found: {user_nome} {user_sobrenome}")
 
         # Parse sectors
         setores_list = []
@@ -458,8 +476,8 @@ def get_auth0_user(request: Auth0UserRequest, db: Session = Depends(get_db)):
 
         response = {
             "id": user.id,
-            "nome": user.nome,
-            "sobrenome": user.sobrenome,
+            "nome": user_nome,
+            "sobrenome": user_sobrenome,
             "email": user.email,
             "nivel_acesso": user.nivel_acesso,
             "setores": setores_list,
