@@ -134,8 +134,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         </div>
       )}
       <header className="sticky top-0 z-40 border-b border-border/60 bg-background/70 backdrop-blur">
-        <div className="h-1 w-full brand-gradient" />
-        <div className="container flex items-center justify-between py-3 gap-2">
+        <div className="h-0.5 w-full brand-gradient" />
+        <div className="container flex items-center justify-between py-2 gap-2">
           <Link
             to="/"
             className="flex items-center gap-2 font-extrabold tracking-tight"
