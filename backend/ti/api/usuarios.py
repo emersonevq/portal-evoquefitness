@@ -175,10 +175,17 @@ def listar_bloqueados(db: Session = Depends(get_db)):
                     bi_subcategories_list = [str(x) if x is not None else "" for x in raw]
             except Exception:
                 bi_subcategories_list = None
+
+            # Ensure nome and sobrenome are non-empty strings
+            user_nome = (u.nome or "").strip()
+            user_sobrenome = (u.sobrenome or "").strip()
+            if not user_nome:
+                user_nome = u.email.split("@")[0] if u.email else u.usuario
+
             rows.append({
                 "id": u.id,
-                "nome": u.nome,
-                "sobrenome": u.sobrenome,
+                "nome": user_nome,
+                "sobrenome": user_sobrenome,
                 "usuario": u.usuario,
                 "email": u.email,
                 "nivel_acesso": u.nivel_acesso,
