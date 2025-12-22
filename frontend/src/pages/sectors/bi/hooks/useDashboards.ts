@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { apiFetch } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -28,11 +28,23 @@ export function useDashboards() {
   const [error, setError] = useState<string | null>(null);
   const [categories, setCategories] = useState<DashboardCategory[]>([]);
   const prevCategoriesRef = useRef<DashboardCategory[] | null>(null);
+  const isFetchingRef = useRef(false);
+  const hasInitializedRef = useRef(false);
   const { user } = useAuth();
 
   useEffect(() => {
+    // Se já inicializou e não há mudanças no usuário, não refetch
+    if (hasInitializedRef.current) return;
+
     const fetchDashboards = async () => {
+      // Prevent multiple simultaneous fetches
+      if (isFetchingRef.current) {
+        console.log("[BI] ⏸️  Fetch já em progresso, ignorando nova requisição");
+        return;
+      }
+
       try {
+        isFetchingRef.current = true;
         setLoading(true);
         setError(null);
 
@@ -124,18 +136,36 @@ export function useDashboards() {
           );
           prevCategoriesRef.current = grouped;
         }
+
+        // Marca como inicializado
+        hasInitializedRef.current = true;
       } catch (err) {
         const message =
           err instanceof Error ? err.message : "Erro desconhecido";
         console.error("[BI] ❌ Erro ao buscar dashboards:", message);
         setError(message);
+        // Em caso de erro, permite tentar novamente
+        hasInitializedRef.current = false;
       } finally {
+        isFetchingRef.current = false;
         setLoading(false);
       }
     };
 
     fetchDashboards();
-  }, [user?.id]);
+  }, []); // Removida a dependência de userPermissionSignature - busca apenas uma vez
+
+  // Efeito separado para monitorar mudanças no usuário (apenas se realmente necessário)
+  useEffect(() => {
+    // Se o usuário mudou, resetamos o estado para buscar novos dashboards
+    if (user && hasInitializedRef.current) {
+      console.log("[BI] 👤 Usuário alterado, resetando dashboards...");
+      hasInitializedRef.current = false;
+      prevCategoriesRef.current = null;
+      setCategories([]);
+      setLoading(true);
+    }
+  }, [user?.id]); // Apenas quando o ID do usuário muda
 
   const getDashboardById = (dashboardId: string): Dashboard | undefined => {
     for (const category of categories) {
@@ -147,10 +177,19 @@ export function useDashboards() {
     return undefined;
   };
 
+  // Função para forçar refresh manual (se necessário)
+  const refreshDashboards = () => {
+    hasInitializedRef.current = false;
+    prevCategoriesRef.current = null;
+    setLoading(true);
+    setCategories([]);
+  };
+
   return {
     categories,
     loading,
     error,
     getDashboardById,
+    refreshDashboards,
   };
 }
