@@ -320,10 +320,16 @@ def authenticate_user(db: Session, identifier: str, senha: str) -> dict:
     except Exception:
         bi_subcategories_list = None
 
+    # Ensure nome and sobrenome are never empty strings
+    user_nome = (user.nome or "").strip()
+    user_sobrenome = (user.sobrenome or "").strip()
+    if not user_nome:
+        user_nome = user.email.split("@")[0] if user.email else user.usuario
+
     return {
         "id": user.id,
-        "nome": user.nome,
-        "sobrenome": user.sobrenome,
+        "nome": user_nome,
+        "sobrenome": user_sobrenome,
         "usuario": user.usuario,
         "email": user.email,
         "nivel_acesso": user.nivel_acesso,
