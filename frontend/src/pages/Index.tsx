@@ -233,21 +233,24 @@ export default function Index() {
                   }`}
                 >
                   <div
-                    className={`card-surface rounded-xl p-3 sm:p-4 transition-all duration-300 border border-border/60 hover:border-primary/50 focus:outline-none focus:ring-2 focus:ring-ring overflow-hidden relative hover:shadow-md hover:-translate-y-0.5`}
+                    className={`card-surface rounded-2xl p-5 sm:p-6 transition-all duration-300 border border-border/60 hover:border-primary/50 focus:outline-none focus:ring-2 focus:ring-ring overflow-hidden relative hover:shadow-lg hover:-translate-y-1 backdrop-blur-sm bg-background/60`}
                     aria-disabled={user ? String(!allowed) : undefined}
                   >
+                    {/* Gradient overlay on hover */}
+                    <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-accent/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+
                     {/* Content */}
                     <div className="relative z-10">
                       {/* Icon Container */}
-                      <div className="inline-flex items-center justify-center w-9 h-9 bg-primary/10 rounded-lg mb-2 group-hover:bg-primary/20 transition-colors duration-300">
-                        <s.icon className="w-5 h-5 text-primary" />
+                      <div className="inline-flex items-center justify-center w-12 h-12 bg-primary/10 rounded-xl mb-3 group-hover:bg-primary/20 transition-all duration-300 group-hover:scale-110">
+                        <s.icon className="w-6 h-6 text-primary" />
                       </div>
 
                       {/* Text Content */}
-                      <h3 className="font-semibold text-sm text-foreground mb-1 group-hover:text-primary transition-colors duration-300">
+                      <h3 className="font-bold text-base text-foreground mb-2 group-hover:text-primary transition-colors duration-300">
                         {s.title}
                       </h3>
-                      <p className="text-xs text-muted-foreground leading-relaxed line-clamp-1">
+                      <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2 group-hover:line-clamp-3 transition-all duration-300">
                         {s.description}
                       </p>
                     </div>
