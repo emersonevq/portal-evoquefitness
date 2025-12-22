@@ -32,7 +32,7 @@
 
 3. Clique em **"Create"**
 
-### Passo 3: Acessar Dashboard
+### Passo 3: Acessar Dashboard  s
 
 1. Após criação, você será automaticamente levado ao **Auth0 Dashboard**
 2. Salve a URL do seu tenant: `https://YOUR_TENANT_NAME.us.auth0.com`
