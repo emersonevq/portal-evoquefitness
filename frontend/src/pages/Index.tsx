@@ -129,29 +129,30 @@ export default function Index() {
         </div>
       )}
 
-      {/* Hero */}
-      <section className="relative overflow-hidden">
-        <div className="container py-8 sm:py-16">
-          <div className="rounded-2xl brand-gradient px-4 py-8 sm:px-12 sm:py-16 shadow-xl">
-            <div className="text-center">
-              <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-primary-foreground drop-shadow-md">
+      {/* Hero Section */}
+      <section className="relative overflow-hidden py-8 sm:py-12">
+        <div className="container relative z-10">
+          <div className="rounded-3xl brand-gradient px-8 sm:px-12 py-12 sm:py-16 shadow-2xl border border-white/20 backdrop-blur-sm overflow-hidden">
+            <div className="relative z-10 text-center max-w-2xl mx-auto">
+              {/* Main heading */}
+              <h1 className="text-4xl sm:text-5xl font-black tracking-tight text-primary-foreground mb-3 drop-shadow-lg">
                 Portal Evoque
               </h1>
-              <p className="mt-3 sm:mt-4 text-sm sm:text-base text-primary-foreground/90">
-                Explore nossos setores e eleve sua experiência com serviços
-                personalizados!
+
+              {/* Subtitle */}
+              <p className="text-base sm:text-lg text-primary-foreground/90 mb-7">
+                Acesse seus setores e gerencie suas operações com facilidade
               </p>
-              <div className="mt-6 sm:mt-8 flex items-center justify-center">
+
+              {/* CTA Button */}
+              <div className="flex items-center justify-center">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button
-                      size="lg"
-                      className="rounded-full bg-background text-foreground hover:bg-background/90"
-                    >
-                      Escolher portal <ChevronDown className="size-4" />
+                    <Button className="rounded-full bg-white text-primary hover:bg-white/90 shadow-xl hover:shadow-2xl transition-all duration-300 font-bold px-9 h-12 text-base">
+                      Escolher portal <ChevronDown className="size-6 ml-2" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="center">
+                  <DropdownMenuContent align="center" className="w-40">
                     {sectors.map((s) => {
                       const allowed = canAccess(s.slug);
                       const href = user
@@ -160,12 +161,13 @@ export default function Index() {
                       return (
                         <Link key={s.slug} to={href}>
                           <DropdownMenuItem
-                            className={
+                            className={`cursor-pointer text-sm transition-all ${
                               !user || allowed
                                 ? ""
                                 : "opacity-50 pointer-events-none"
-                            }
+                            }`}
                           >
+                            <s.icon className="w-3 h-3 mr-2" />
                             {s.title}
                           </DropdownMenuItem>
                         </Link>
@@ -179,12 +181,39 @@ export default function Index() {
         </div>
       </section>
 
-      {/* Sectors Grid */}
-      <section id="setores" className="pb-16">
-        <div className="container">
-          <h2 className="text-xl sm:text-2xl font-bold mb-6">Nossos setores</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-            {sectors.map((s) => {
+      {/* Sectors Grid Section */}
+      <section id="setores" className="relative flex-1 py-5 sm:py-7">
+        {/* Decorative background */}
+        <div className="absolute inset-0 overflow-hidden">
+          {/* Gradient background */}
+          <div className="absolute inset-0 bg-gradient-to-b from-muted/40 via-muted/20 to-background" />
+
+          {/* Floating elements */}
+          <div className="absolute top-1/2 right-0 w-96 h-96 bg-primary/5 rounded-full blur-3xl -translate-y-1/2" />
+          <div className="absolute top-1/3 left-0 w-80 h-80 bg-accent/5 rounded-full blur-3xl" />
+
+          {/* Grid pattern */}
+          <div
+            className="absolute inset-0 opacity-[0.02]"
+            style={{
+              backgroundImage: `linear-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px),
+                               linear-gradient(90deg, rgba(255, 255, 255, 0.1) 1px, transparent 1px)`,
+              backgroundSize: "64px 64px",
+            }}
+          />
+        </div>
+
+        <div className="container relative z-10">
+          {/* Section Header */}
+          <div className="text-center mb-5 sm:mb-6">
+            <h2 className="text-xl sm:text-2xl font-bold mb-1 text-foreground">
+              Nossos Setores
+            </h2>
+          </div>
+
+          {/* Cards Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6">
+            {sectors.map((s, idx) => {
               const allowed = canAccess(s.slug);
               const href = user
                 ? `/setor/${s.slug}`
@@ -193,14 +222,31 @@ export default function Index() {
                 <Link
                   to={href}
                   key={s.slug}
-                  className={`card-surface group rounded-xl p-5 transition hover:shadow-lg hover:border-primary/50 focus:outline-none focus:ring-2 focus:ring-ring ${user && !allowed ? "opacity-50 pointer-events-none" : ""}`}
-                  aria-disabled={user ? String(!allowed) : undefined}
+                  className={`group relative ${
+                    user && !allowed
+                      ? "opacity-50 pointer-events-none cursor-not-allowed"
+                      : "cursor-pointer"
+                  }`}
                 >
-                  <div className="flex items-center gap-3">
-                    <s.icon className="size-8 text-primary" />
-                    <div>
-                      <h3 className="font-semibold">{s.title}</h3>
-                      <p className="text-sm text-muted-foreground mt-1">
+                  <div
+                    className={`card-surface rounded-2xl p-6 sm:p-7 h-full transition-all duration-300 border border-border/60 hover:border-primary/50 focus:outline-none focus:ring-2 focus:ring-ring overflow-hidden relative hover:shadow-lg hover:-translate-y-1 backdrop-blur-sm bg-background/60 flex flex-col`}
+                    aria-disabled={user ? String(!allowed) : undefined}
+                  >
+                    {/* Gradient overlay on hover */}
+                    <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-accent/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+
+                    {/* Content */}
+                    <div className="relative z-10 flex flex-col flex-1">
+                      {/* Icon Container */}
+                      <div className="inline-flex items-center justify-center w-14 h-14 bg-primary/10 rounded-xl mb-4 group-hover:bg-primary/20 transition-all duration-300 group-hover:scale-110">
+                        <s.icon className="w-7 h-7 text-primary" />
+                      </div>
+
+                      {/* Text Content */}
+                      <h3 className="font-bold text-base text-foreground mb-2 group-hover:text-primary transition-colors duration-300 flex-1">
+                        {s.title}
+                      </h3>
+                      <p className="text-sm text-muted-foreground leading-relaxed line-clamp-3">
                         {s.description}
                       </p>
                     </div>

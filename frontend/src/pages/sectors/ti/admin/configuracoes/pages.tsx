@@ -2,20 +2,6 @@ import { SLA as SLAConfig } from "./SLAConfig";
 import { PrioridadesProblemas as PrioridadesComponent } from "./PrioridadesProblemas";
 import NotificationSettingsConfig from "./NotificationSettingsConfig";
 
-export function SLA() {
-  return <SLAConfig />;
-}
-
-export function Prioridades() {
-  return <PrioridadesComponent />;
-}
-export function Notificacoes() {
-  return <NotificationSettingsConfig />;
-}
-export function Acoes() {
-  return <Panel title="Ações do Sistema" />;
-}
-
 function Panel({ title }: { title: string }) {
   return (
     <div className="card-surface rounded-xl p-4 text-sm">
@@ -25,4 +11,20 @@ function Panel({ title }: { title: string }) {
       </p>
     </div>
   );
+}
+
+export function SLA() {
+  return <SLAConfig />;
+}
+
+export function Prioridades() {
+  return <PrioridadesComponent />;
+}
+
+export function Notificacoes() {
+  return <NotificationSettingsConfig />;
+}
+
+export function Acoes() {
+  return <Panel title="Ações do Sistema" />;
 }

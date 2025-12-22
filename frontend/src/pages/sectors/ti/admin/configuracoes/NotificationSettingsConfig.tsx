@@ -74,15 +74,22 @@ export default function NotificationSettingsConfig() {
     setError(null);
     try {
       const res = await apiFetch("/notification-settings");
+      console.log(
+        "[NotificationSettings] GET /notification-settings:",
+        res.status,
+      );
       if (res.ok) {
         const data = await res.json();
+        console.log("[NotificationSettings] Dados recebidos:", data);
         setSettings(data);
       } else {
-        setError("Erro ao carregar configurações");
+        const errData = await res.json().catch(() => ({}));
+        console.error("[NotificationSettings] Erro:", res.status, errData);
+        setError(`Erro ao carregar configurações (${res.status})`);
       }
     } catch (err) {
+      console.error("[NotificationSettings] Exception:", err);
       setError("Erro ao conectar com o servidor");
-      console.error(err);
     } finally {
       setLoading(false);
     }

@@ -12,6 +12,7 @@ import {
   Puzzle,
   Settings,
   ChevronRight,
+  Zap,
 } from "lucide-react";
 import NotificationBell from "./components/NotificationBell";
 import { useAutoRecalculateSLA } from "@/hooks/useAutoRecalculateSLA";
@@ -29,24 +30,57 @@ const iconMap = {
 const groups = [
   {
     title: "Operação",
+    description: "Gerencie chamados e usuários",
+    color: "from-blue-500/10 to-cyan-500/10",
+    borderColor: "border-blue-500/20",
     items: [
-      { to: "/setor/ti/admin/overview", label: "Visão geral" },
-      { to: "/setor/ti/admin/chamados", label: "Gerenciar chamados" },
-      { to: "/setor/ti/admin/usuarios", label: "Gerenciar usuários" },
+      {
+        to: "/setor/ti/admin/overview",
+        label: "Visão geral",
+        icon: "LayoutDashboard",
+      },
+      {
+        to: "/setor/ti/admin/chamados",
+        label: "Gerenciar chamados",
+        icon: "FileText",
+      },
+      {
+        to: "/setor/ti/admin/usuarios",
+        label: "Gerenciar usuários",
+        icon: "Users",
+      },
     ],
   },
   {
     title: "Monitoramento",
+    description: "Acompanhe a saúde do sistema",
+    color: "from-violet-500/10 to-purple-500/10",
+    borderColor: "border-violet-500/20",
     items: [
-      { to: "/setor/ti/admin/monitoramento", label: "Monitoramento" },
-      { to: "/setor/ti/admin/historico", label: "Histórico" },
+      {
+        to: "/setor/ti/admin/monitoramento",
+        label: "Monitoramento",
+        icon: "Activity",
+      },
+      { to: "/setor/ti/admin/historico", label: "Histórico", icon: "Clock" },
     ],
   },
   {
     title: "Administração",
+    description: "Configure e integre sistemas",
+    color: "from-emerald-500/10 to-teal-500/10",
+    borderColor: "border-emerald-500/20",
     items: [
-      { to: "/setor/ti/admin/integracoes", label: "Integrações" },
-      { to: "/setor/ti/admin/configuracoes", label: "Configurações" },
+      {
+        to: "/setor/ti/admin/integracoes",
+        label: "Integrações",
+        icon: "Puzzle",
+      },
+      {
+        to: "/setor/ti/admin/configuracoes",
+        label: "Configurações",
+        icon: "Settings",
+      },
     ],
   },
 ];
@@ -93,92 +127,122 @@ export default function AdminLayout() {
         </div>
       </section>
 
-      <section className="container py-6 grid grid-cols-1 md:grid-cols-[280px,1fr] gap-6">
+      <section className="container py-6 grid grid-cols-1 md:grid-cols-[300px,1fr] gap-8">
         {/* Sidebar Desktop */}
         <aside className="hidden md:block">
-          <div className="sticky top-24 space-y-2">
-            {groups.map((g) => (
-              <div key={g.title} className="space-y-2">
-                <div className="px-4 py-2">
-                  <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    {g.title}
+          <nav className="sticky top-24 space-y-4">
+            {groups.map((group) => (
+              <div
+                key={group.title}
+                className={`group/section rounded-2xl border ${group.borderColor} bg-gradient-to-br ${group.color} backdrop-blur-sm overflow-hidden transition-all duration-300 hover:border-opacity-50`}
+              >
+                {/* Section Header */}
+                <div className="px-5 pt-5 pb-3 border-b border-white/5">
+                  <h3 className="text-sm font-bold text-foreground mb-1">
+                    {group.title}
                   </h3>
+                  <p className="text-xs text-muted-foreground">
+                    {group.description}
+                  </p>
                 </div>
-                <nav className="space-y-1">
-                  {g.items.map((i) => {
+
+                {/* Menu Items */}
+                <div className="px-2 py-3 space-y-1">
+                  {group.items.map((item) => {
                     const Icon =
-                      iconMap[i.label as keyof typeof iconMap] || FileText;
+                      iconMap[item.label as keyof typeof iconMap] || FileText;
                     return (
                       <NavLink
-                        key={i.to}
-                        to={i.to}
+                        key={item.to}
+                        to={item.to}
                         className={({ isActive }) =>
-                          `group flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all ${
+                          `group/item flex items-center gap-3 px-4 py-3 mx-1 rounded-lg transition-all duration-200 ${
                             isActive
-                              ? "bg-primary text-primary-foreground shadow-lg shadow-primary/25"
-                              : "hover:bg-muted/50 text-muted-foreground hover:text-foreground"
+                              ? "bg-primary text-primary-foreground shadow-md"
+                              : "text-muted-foreground hover:text-foreground hover:bg-white/5"
                           }`
                         }
                       >
                         {({ isActive }) => (
                           <>
-                            <Icon
-                              className={`w-4 h-4 ${isActive ? "" : "group-hover:scale-110 transition-transform"}`}
-                            />
-                            <span className="text-sm font-medium flex-1">
-                              {i.label}
+                            <div
+                              className={`flex-shrink-0 transition-all duration-200 ${
+                                isActive
+                                  ? "scale-110"
+                                  : "group-hover/item:scale-110"
+                              }`}
+                            >
+                              <Icon className="w-5 h-5" />
+                            </div>
+                            <span className="text-sm font-medium flex-1 truncate">
+                              {item.label}
                             </span>
-                            {isActive && <ChevronRight className="w-4 h-4" />}
+                            {isActive && (
+                              <ChevronRight className="w-4 h-4 flex-shrink-0 ml-auto animate-in fade-in slide-in-from-left-2" />
+                            )}
                           </>
                         )}
                       </NavLink>
                     );
                   })}
-                </nav>
+                </div>
               </div>
             ))}
-          </div>
+          </nav>
         </aside>
 
         {/* Content */}
         <div className="min-w-0">
           {/* Mobile menu */}
-          <div className="mb-4 md:hidden">
+          <div className="mb-6 md:hidden">
             <Sheet>
               <SheetTrigger asChild>
-                <Button variant="secondary" className="rounded-xl h-11 gap-2">
+                <Button
+                  variant="secondary"
+                  className="rounded-xl h-11 gap-2 border-border/60 hover:bg-muted/80 transition-all"
+                >
                   <Menu className="size-4" />
                   <span>Menu de navegação</span>
                 </Button>
               </SheetTrigger>
-              <SheetContent side="left" className="w-[85%] sm:w-[350px]">
-                <div className="mt-8 space-y-6">
-                  {groups.map((g) => (
-                    <div key={g.title} className="space-y-2">
-                      <h3 className="px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                        {g.title}
-                      </h3>
-                      <nav className="space-y-1">
-                        {g.items.map((i) => {
-                          const Icon =
-                            iconMap[i.label as keyof typeof iconMap] ||
-                            FileText;
-                          return (
-                            <Link
-                              key={i.to}
-                              to={i.to}
-                              className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-muted/50 transition-colors group"
-                            >
-                              <Icon className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
-                              <span className="text-sm font-medium">
-                                {i.label}
-                              </span>
-                            </Link>
-                          );
-                        })}
-                      </nav>
-                    </div>
-                  ))}
+              <SheetContent side="left" className="w-[85%] sm:w-[350px] p-0">
+                <div className="h-full overflow-y-auto">
+                  <div className="p-6 space-y-5">
+                    {groups.map((group) => (
+                      <div key={group.title} className="space-y-3">
+                        {/* Mobile Section Header */}
+                        <div className="px-4 py-2">
+                          <h3 className="text-sm font-bold text-foreground mb-0.5">
+                            {group.title}
+                          </h3>
+                          <p className="text-xs text-muted-foreground">
+                            {group.description}
+                          </p>
+                        </div>
+
+                        {/* Mobile Menu Items */}
+                        <nav className="space-y-1">
+                          {group.items.map((item) => {
+                            const Icon =
+                              iconMap[item.label as keyof typeof iconMap] ||
+                              FileText;
+                            return (
+                              <Link
+                                key={item.to}
+                                to={item.to}
+                                className="group/mobile flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted/50 active:bg-primary/10 transition-all duration-200"
+                              >
+                                <Icon className="w-5 h-5 text-muted-foreground group-hover/mobile:text-primary transition-colors duration-200" />
+                                <span className="text-sm font-medium group-hover/mobile:text-foreground transition-colors">
+                                  {item.label}
+                                </span>
+                              </Link>
+                            );
+                          })}
+                        </nav>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </SheetContent>
             </Sheet>

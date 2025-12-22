@@ -135,21 +135,21 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       )}
       <header className="sticky top-0 z-40 border-b border-border/60 bg-background/70 backdrop-blur">
         <div className="h-1 w-full brand-gradient" />
-        <div className="container flex items-center justify-between py-3 gap-2">
+        <div className="container flex items-center justify-between py-2.5 gap-2">
           <Link
             to="/"
-            className="flex items-center gap-2 font-extrabold tracking-tight"
+            className="flex items-center gap-1.5 font-bold tracking-tight"
           >
             {!location.pathname.startsWith("/setor/bi") ? (
               <>
                 <img
                   src="https://images.totalpass.com/public/1280x720/czM6Ly90cC1pbWFnZS1hZG1pbi1wcm9kL2d5bXMva2g2OHF6OWNuajloN2lkdnhzcHhhdWx4emFhbWEzYnc3MGx5cDRzZ3p5aTlpZGM0OHRvYnk0YW56azRk"
                   alt="Evoque Fitness Logo"
-                  className="h-6 w-auto rounded-sm shadow-sm"
+                  className="h-5 w-auto rounded-sm shadow-sm"
                   loading="lazy"
                   decoding="async"
                 />
-                <span className="text-lg">Portal Evoque</span>
+                <span className="text-sm hidden sm:inline">Portal Evoque</span>
               </>
             ) : (
               // On BI page, keep header minimal and rely on sidebar logo
@@ -161,7 +161,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             <NavLink
               to="/"
               className={({ isActive }) =>
-                `px-3 py-1.5 rounded-full text-sm font-medium ${
+                `px-2 py-1 rounded-full text-xs font-medium ${
                   isActive
                     ? "bg-primary text-primary-foreground"
                     : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
@@ -173,8 +173,11 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             {user && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="secondary" className="rounded-full">
-                    Portais <ChevronDown className="size-4" />
+                  <Button
+                    variant="secondary"
+                    className="rounded-full px-2 py-1 h-auto text-xs"
+                  >
+                    Portais <ChevronDown className="size-3 ml-1" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
@@ -205,10 +208,10 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 <DropdownMenuTrigger asChild>
                   <Button
                     variant="secondary"
-                    className="ml-2 hidden md:flex items-center gap-2 rounded-full px-3 py-1.5 text-sm"
+                    className="ml-1 hidden md:flex items-center gap-1 rounded-full px-2 py-1 text-xs"
                   >
-                    <div className="h-6 w-6 rounded-full bg-primary/90" />
-                    <span>{user?.name}</span>
+                    <div className="h-5 w-5 rounded-full bg-primary/90" />
+                    <span className="hidden lg:inline">{user?.name}</span>
                     <ChevronDown className="size-3" />
                   </Button>
                 </DropdownMenuTrigger>
@@ -352,9 +355,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           </div>
         </div>
       </header>
-      <main className="flex-1 w-full">{children}</main>
+      <main className="flex-1 w-full flex flex-col">{children}</main>
       <footer className="border-t border-border/60">
-        <div className="container py-6 text-xs text-muted-foreground flex items-center justify-between">
+        <div className="container py-2 text-xs text-muted-foreground flex items-center justify-between">
           <p>© {new Date().getFullYear()} Portal Evoque</p>
           <p>Sistema interno</p>
         </div>
