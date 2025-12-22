@@ -49,6 +49,13 @@ try:
 except Exception as e:
     print(f"⚠️  Erro ao migrar historico_status: {e}")
 
+# Criar tabela de configurações de notificações na inicialização
+try:
+    from ti.scripts.setup_notification_settings import create_notification_settings_table
+    create_notification_settings_table()
+except Exception as e:
+    print(f"⚠️  Erro ao criar tabela notification_settings: {e}")
+
 # Inicializar scheduler de recalculação automática de SLA
 try:
     from ti.services.sla_scheduler import init_scheduler
