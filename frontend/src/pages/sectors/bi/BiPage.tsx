@@ -19,7 +19,7 @@ export default function BiPage() {
         setSelectedDashboardId(firstDashboard.id);
       }
     }
-  }, [loading, selectedDashboardId]);
+  }, [loading, categories, selectedDashboardId]);
 
   // Memoize dashboard lookup to prevent unnecessary re-renders
   const selectedDashboard = useMemo(() => {
