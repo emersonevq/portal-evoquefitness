@@ -3,6 +3,7 @@ from .user import User
 from .unidade import Unidade
 from .problema import Problema
 from .notification import Notification
+from .notification_settings import NotificationSettings
 from .ticket_anexo import TicketAnexo
 from .chamado_anexo import ChamadoAnexo
 from .historico_ticket import HistoricoTicket
@@ -17,6 +18,7 @@ __all__ = [
     "Unidade",
     "Problema",
     "Notification",
+    "NotificationSettings",
     "TicketAnexo",
     "ChamadoAnexo",
     "HistoricoTicket",
