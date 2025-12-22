@@ -145,11 +145,11 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 <img
                   src="https://images.totalpass.com/public/1280x720/czM6Ly90cC1pbWFnZS1hZG1pbi1wcm9kL2d5bXMva2g2OHF6OWNuajloN2lkdnhzcHhhdWx4emFhbWEzYnc3MGx5cDRzZ3p5aTlpZGM0OHRvYnk0YW56azRk"
                   alt="Evoque Fitness Logo"
-                  className="h-6 w-auto rounded-sm shadow-sm"
+                  className="h-5 w-auto rounded-sm shadow-sm"
                   loading="lazy"
                   decoding="async"
                 />
-                <span className="text-lg">Portal Evoque</span>
+                <span className="text-sm hidden sm:inline">Portal Evoque</span>
               </>
             ) : (
               // On BI page, keep header minimal and rely on sidebar logo
