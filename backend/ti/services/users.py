@@ -114,10 +114,16 @@ def criar_usuario(db: Session, payload: UserCreate) -> UserCreatedOut:
     db.commit()
     db.refresh(novo)
 
+    # Ensure nome and sobrenome are non-empty strings
+    user_nome = (novo.nome or "").strip()
+    user_sobrenome = (novo.sobrenome or "").strip()
+    if not user_nome:
+        user_nome = novo.email.split("@")[0] if novo.email else novo.usuario
+
     return UserCreatedOut(
         id=novo.id,
-        nome=novo.nome,
-        sobrenome=novo.sobrenome,
+        nome=user_nome,
+        sobrenome=user_sobrenome,
         usuario=novo.usuario,
         email=novo.email,
         nivel_acesso=novo.nivel_acesso,
