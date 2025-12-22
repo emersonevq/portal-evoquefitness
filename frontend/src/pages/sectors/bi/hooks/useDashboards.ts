@@ -39,9 +39,7 @@ export function useDashboards() {
     const fetchDashboards = async () => {
       // Prevent multiple simultaneous fetches
       if (isFetchingRef.current) {
-        console.log(
-          "[BI] ⏸️  Fetch já em progresso, ignorando nova requisição",
-        );
+        console.log("[BI] ⏸️  Fetch já em progresso, ignorando nova requisição");
         return;
       }
 
