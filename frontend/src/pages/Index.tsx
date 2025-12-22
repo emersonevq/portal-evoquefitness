@@ -217,7 +217,7 @@ export default function Index() {
           </div>
 
           {/* Cards Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6">
             {sectors.map((s, idx) => {
               const allowed = canAccess(s.slug);
               const href = user
@@ -232,24 +232,24 @@ export default function Index() {
                   }`}
                 >
                   <div
-                    className={`card-surface rounded-2xl p-4 sm:p-5 transition-all duration-300 border border-border/60 hover:border-primary/50 focus:outline-none focus:ring-2 focus:ring-ring overflow-hidden relative hover:shadow-lg hover:-translate-y-0.5 backdrop-blur-sm bg-background/60`}
+                    className={`card-surface rounded-2xl p-6 sm:p-7 h-full transition-all duration-300 border border-border/60 hover:border-primary/50 focus:outline-none focus:ring-2 focus:ring-ring overflow-hidden relative hover:shadow-lg hover:-translate-y-1 backdrop-blur-sm bg-background/60 flex flex-col`}
                     aria-disabled={user ? String(!allowed) : undefined}
                   >
                     {/* Gradient overlay on hover */}
                     <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-accent/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
                     {/* Content */}
-                    <div className="relative z-10">
+                    <div className="relative z-10 flex flex-col flex-1">
                       {/* Icon Container */}
-                      <div className="inline-flex items-center justify-center w-11 h-11 bg-primary/10 rounded-lg mb-2.5 group-hover:bg-primary/20 transition-all duration-300 group-hover:scale-110">
-                        <s.icon className="w-5 h-5 text-primary" />
+                      <div className="inline-flex items-center justify-center w-14 h-14 bg-primary/10 rounded-xl mb-4 group-hover:bg-primary/20 transition-all duration-300 group-hover:scale-110">
+                        <s.icon className="w-7 h-7 text-primary" />
                       </div>
 
                       {/* Text Content */}
-                      <h3 className="font-semibold text-sm text-foreground mb-1 group-hover:text-primary transition-colors duration-300">
+                      <h3 className="font-bold text-base text-foreground mb-2 group-hover:text-primary transition-colors duration-300 flex-1">
                         {s.title}
                       </h3>
-                      <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">
+                      <p className="text-sm text-muted-foreground leading-relaxed line-clamp-3">
                         {s.description}
                       </p>
                     </div>
