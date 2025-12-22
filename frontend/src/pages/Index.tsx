@@ -184,7 +184,7 @@ export default function Index() {
       </section>
 
       {/* Sectors Grid Section */}
-      <section id="setores" className="relative flex-1 py-6 sm:py-8">
+      <section id="setores" className="relative flex-1 py-5 sm:py-7">
         {/* Decorative background */}
         <div className="absolute inset-0 overflow-hidden">
           {/* Gradient background */}
@@ -207,13 +207,10 @@ export default function Index() {
 
         <div className="container relative z-10">
           {/* Section Header */}
-          <div className="text-center mb-6 sm:mb-8">
-            <h2 className="text-2xl sm:text-3xl font-bold mb-1 text-foreground">
+          <div className="text-center mb-5 sm:mb-6">
+            <h2 className="text-xl sm:text-2xl font-bold mb-1 text-foreground">
               Nossos Setores
             </h2>
-            <p className="text-xs sm:text-sm text-muted-foreground">
-              Explore nossos módulos
-            </p>
           </div>
 
           {/* Cards Grid */}
