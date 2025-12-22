@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Layout from "@/components/layout/Layout";
 import DashboardViewer from "./components/DashboardViewer";
 import DashboardSidebar from "./components/DashboardSidebar";
