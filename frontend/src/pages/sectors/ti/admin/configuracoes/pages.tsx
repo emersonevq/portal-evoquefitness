@@ -1,5 +1,6 @@
 import { SLA as SLAConfig } from "./SLAConfig";
 import { PrioridadesProblemas as PrioridadesComponent } from "./PrioridadesProblemas";
+import NotificationsConfig from "./NotificationsConfig";
 
 export function SLA() {
   return <SLAConfig />;
@@ -9,7 +10,7 @@ export function Prioridades() {
   return <PrioridadesComponent />;
 }
 export function Notificacoes() {
-  return <Panel title="Notificações" />;
+  return <NotificationsConfig />;
 }
 export function Sistema() {
   return <Panel title="Sistema" />;
