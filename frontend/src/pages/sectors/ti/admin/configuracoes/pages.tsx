@@ -12,21 +12,6 @@ export function Prioridades() {
 export function Notificacoes() {
   return <NotificationsConfig />;
 }
-export function Sistema() {
-  return <Panel title="Sistema" />;
-}
-export function Seguranca() {
-  return <Panel title="Segurança" />;
-}
-export function Chamados() {
-  return <Panel title="Chamados" />;
-}
-export function Email() {
-  return <Panel title="Configurações de E-mail" />;
-}
-export function Integracoes() {
-  return <Panel title="Integrações" />;
-}
 export function Acoes() {
   return <Panel title="Ações do Sistema" />;
 }
