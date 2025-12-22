@@ -205,42 +205,28 @@ export default function Index() {
                 <Link
                   to={href}
                   key={s.slug}
-                  className={`group relative animate-in fade-in slide-in-from-bottom-6 duration-700 ${
-                    idx % 4 === 0 ? "delay-0" : idx % 4 === 1 ? "delay-75" : idx % 4 === 2 ? "delay-150" : "delay-200"
+                  className={`group relative ${
+                    user && !allowed ? "opacity-50 pointer-events-none cursor-not-allowed" : "cursor-pointer"
                   }`}
-                  style={{
-                    animationFillMode: "both",
-                  }}
                 >
                   <div
-                    className={`card-surface rounded-2xl p-6 sm:p-7 transition-all duration-300 border border-border/60 hover:border-primary/50 focus:outline-none focus:ring-2 focus:ring-ring overflow-hidden relative
-                    ${user && !allowed ? "opacity-50 pointer-events-none cursor-not-allowed" : "hover:shadow-lg hover:-translate-y-1 cursor-pointer"}
-                    `}
+                    className={`card-surface rounded-xl p-3 sm:p-4 transition-all duration-300 border border-border/60 hover:border-primary/50 focus:outline-none focus:ring-2 focus:ring-ring overflow-hidden relative hover:shadow-md hover:-translate-y-0.5`}
                     aria-disabled={user ? String(!allowed) : undefined}
                   >
-                    {/* Gradient overlay on hover */}
-                    <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-accent/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-
                     {/* Content */}
                     <div className="relative z-10">
                       {/* Icon Container */}
-                      <div className="inline-flex items-center justify-center w-12 h-12 bg-primary/10 rounded-xl mb-4 group-hover:bg-primary/20 transition-colors duration-300">
-                        <s.icon className="w-6 h-6 text-primary group-hover:scale-110 transition-transform duration-300" />
+                      <div className="inline-flex items-center justify-center w-9 h-9 bg-primary/10 rounded-lg mb-2 group-hover:bg-primary/20 transition-colors duration-300">
+                        <s.icon className="w-5 h-5 text-primary" />
                       </div>
 
                       {/* Text Content */}
-                      <h3 className="font-bold text-lg text-foreground mb-2 group-hover:text-primary transition-colors duration-300">
+                      <h3 className="font-semibold text-sm text-foreground mb-1 group-hover:text-primary transition-colors duration-300">
                         {s.title}
                       </h3>
-                      <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2">
+                      <p className="text-xs text-muted-foreground leading-relaxed line-clamp-1">
                         {s.description}
                       </p>
-
-                      {/* Hover Arrow */}
-                      <div className="mt-4 flex items-center text-primary opacity-0 group-hover:opacity-100 transition-all duration-300 transform group-hover:translate-x-1">
-                        <span className="text-xs font-semibold">Acessar</span>
-                        <ChevronDown className="w-4 h-4 ml-1 transform rotate-270 group-hover:translate-x-0.5 transition-transform" />
-                      </div>
                     </div>
                   </div>
                 </Link>
