@@ -429,10 +429,7 @@ export function useAuth() {
     };
   }, []);
 
-  const login = async (
-    identifier: string,
-    password: string,
-  ) => {
+  const login = async (identifier: string, password: string) => {
     try {
       const res = await fetch("/api/usuarios/login", {
         method: "POST",

@@ -9,14 +9,19 @@ import { Loader } from "lucide-react";
 export default function BiPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const { categories, loading, error, getDashboardById } = useDashboards();
-  const [selectedDashboardId, setSelectedDashboardId] = useState<number | null>(null);
+  const [selectedDashboardId, setSelectedDashboardId] = useState<number | null>(
+    null,
+  );
 
   // Set first dashboard when categories load (only initialize, don't change if already selected)
   useEffect(() => {
     if (!loading && categories.length > 0 && selectedDashboardId === null) {
       const firstDashboard = categories[0]?.dashboards[0];
       if (firstDashboard) {
-        console.log("[BI] 🎯 Selecionando primeiro dashboard:", firstDashboard.title);
+        console.log(
+          "[BI] 🎯 Selecionando primeiro dashboard:",
+          firstDashboard.title,
+        );
         setSelectedDashboardId(firstDashboard.id);
       }
     }
@@ -26,7 +31,9 @@ export default function BiPage() {
   const selectedDashboard = useMemo(() => {
     if (selectedDashboardId === null) return null;
     for (const category of categories) {
-      const dashboard = category.dashboards.find(d => d.id === selectedDashboardId);
+      const dashboard = category.dashboards.find(
+        (d) => d.id === selectedDashboardId,
+      );
       if (dashboard) return dashboard;
     }
     return null;
