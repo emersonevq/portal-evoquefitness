@@ -205,10 +205,10 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 <DropdownMenuTrigger asChild>
                   <Button
                     variant="secondary"
-                    className="ml-2 hidden md:flex items-center gap-2 rounded-full px-3 py-1.5 text-sm"
+                    className="ml-1 hidden md:flex items-center gap-1 rounded-full px-2 py-1 text-xs"
                   >
-                    <div className="h-6 w-6 rounded-full bg-primary/90" />
-                    <span>{user?.name}</span>
+                    <div className="h-5 w-5 rounded-full bg-primary/90" />
+                    <span className="hidden lg:inline">{user?.name}</span>
                     <ChevronDown className="size-3" />
                   </Button>
                 </DropdownMenuTrigger>
