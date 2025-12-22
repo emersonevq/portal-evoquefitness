@@ -103,51 +103,68 @@ export default function AdminLayout() {
         </div>
       </section>
 
-      <section className="container py-6 grid grid-cols-1 md:grid-cols-[280px,1fr] gap-6">
+      <section className="container py-6 grid grid-cols-1 md:grid-cols-[300px,1fr] gap-8">
         {/* Sidebar Desktop */}
         <aside className="hidden md:block">
-          <div className="sticky top-24 space-y-2">
-            {groups.map((g) => (
-              <div key={g.title} className="space-y-2">
-                <div className="px-4 py-2">
-                  <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    {g.title}
+          <nav className="sticky top-24 space-y-4">
+            {groups.map((group) => (
+              <div
+                key={group.title}
+                className={`group/section rounded-2xl border ${group.borderColor} bg-gradient-to-br ${group.color} backdrop-blur-sm overflow-hidden transition-all duration-300 hover:border-opacity-50`}
+              >
+                {/* Section Header */}
+                <div className="px-5 pt-5 pb-3 border-b border-white/5">
+                  <h3 className="text-sm font-bold text-foreground mb-1">
+                    {group.title}
                   </h3>
+                  <p className="text-xs text-muted-foreground">
+                    {group.description}
+                  </p>
                 </div>
-                <nav className="space-y-1">
-                  {g.items.map((i) => {
+
+                {/* Menu Items */}
+                <div className="px-2 py-3 space-y-1">
+                  {group.items.map((item) => {
                     const Icon =
-                      iconMap[i.label as keyof typeof iconMap] || FileText;
+                      iconMap[item.label as keyof typeof iconMap] || FileText;
                     return (
                       <NavLink
-                        key={i.to}
-                        to={i.to}
+                        key={item.to}
+                        to={item.to}
                         className={({ isActive }) =>
-                          `group flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all ${
+                          `group/item flex items-center gap-3 px-4 py-3 mx-1 rounded-lg transition-all duration-200 ${
                             isActive
-                              ? "bg-primary text-primary-foreground shadow-lg shadow-primary/25"
-                              : "hover:bg-muted/50 text-muted-foreground hover:text-foreground"
+                              ? "bg-primary text-primary-foreground shadow-md"
+                              : "text-muted-foreground hover:text-foreground hover:bg-white/5"
                           }`
                         }
                       >
                         {({ isActive }) => (
                           <>
-                            <Icon
-                              className={`w-4 h-4 ${isActive ? "" : "group-hover:scale-110 transition-transform"}`}
-                            />
-                            <span className="text-sm font-medium flex-1">
-                              {i.label}
+                            <div
+                              className={`flex-shrink-0 transition-all duration-200 ${
+                                isActive
+                                  ? "scale-110"
+                                  : "group-hover/item:scale-110"
+                              }`}
+                            >
+                              <Icon className="w-5 h-5" />
+                            </div>
+                            <span className="text-sm font-medium flex-1 truncate">
+                              {item.label}
                             </span>
-                            {isActive && <ChevronRight className="w-4 h-4" />}
+                            {isActive && (
+                              <ChevronRight className="w-4 h-4 flex-shrink-0 ml-auto animate-in fade-in slide-in-from-left-2" />
+                            )}
                           </>
                         )}
                       </NavLink>
                     );
                   })}
-                </nav>
+                </div>
               </div>
             ))}
-          </div>
+          </nav>
         </aside>
 
         {/* Content */}
