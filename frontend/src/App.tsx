@@ -39,11 +39,6 @@ import ConfiguracoesLayout from "./pages/sectors/ti/admin/configuracoes/Configur
 import {
   SLA as ConfSLA,
   Notificacoes as ConfNotificacoes,
-  Sistema as ConfSistema,
-  Seguranca as ConfSeguranca,
-  Chamados as ConfChamados,
-  Email as ConfEmail,
-  Integracoes as ConfIntegracoes,
   Acoes as ConfAcoes,
 } from "./pages/sectors/ti/admin/configuracoes/pages";
 import LoginMediaConfig from "./pages/sectors/ti/admin/configuracoes/LoginMediaConfig";
