@@ -122,13 +122,7 @@ const App = () => (
               <Route path="configuracoes" element={<ConfiguracoesLayout />}>
                 <Route index element={<ConfSLA />} />
                 <Route path="sla" element={<ConfSLA />} />
-                <Route path="prioridades" element={<ConfPrioridades />} />
                 <Route path="notificacoes" element={<ConfNotificacoes />} />
-                <Route path="sistema" element={<ConfSistema />} />
-                <Route path="seguranca" element={<ConfSeguranca />} />
-                <Route path="chamados" element={<ConfChamados />} />
-                <Route path="email" element={<ConfEmail />} />
-                <Route path="integracoes" element={<ConfIntegracoes />} />
                 <Route path="midia-login" element={<LoginMediaConfig />} />
                 <Route path="alertas" element={<AlertsConfig />} />
                 <Route path="acoes" element={<ConfAcoes />} />
