@@ -28,6 +28,7 @@ export function useDashboards() {
   const [error, setError] = useState<string | null>(null);
   const [categories, setCategories] = useState<DashboardCategory[]>([]);
   const prevCategoriesRef = useRef<DashboardCategory[] | null>(null);
+  const isFetchingRef = useRef(false);
   const { user } = useAuth();
 
   // Memoize the user permission signature to avoid recalculating in dependency array
