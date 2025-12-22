@@ -130,18 +130,18 @@ export default function Index() {
       )}
 
       {/* Hero Section */}
-      <section className="relative overflow-hidden py-6 sm:py-8">
+      <section className="relative overflow-hidden py-8 sm:py-12">
         <div className="container relative z-10">
-          <div className="rounded-2xl brand-gradient px-6 sm:px-10 py-8 sm:py-10 shadow-xl border border-white/20 backdrop-blur-sm overflow-hidden">
+          <div className="rounded-3xl brand-gradient px-8 sm:px-12 py-12 sm:py-16 shadow-2xl border border-white/20 backdrop-blur-sm overflow-hidden">
             <div className="relative z-10 text-center max-w-2xl mx-auto">
               {/* Main heading */}
-              <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-primary-foreground mb-2 drop-shadow-lg">
+              <h1 className="text-4xl sm:text-5xl font-black tracking-tight text-primary-foreground mb-3 drop-shadow-lg">
                 Portal Evoque
               </h1>
 
               {/* Subtitle */}
-              <p className="text-sm sm:text-base text-primary-foreground/90 mb-5">
-                Acesse seus setores e gerencie suas operações
+              <p className="text-base sm:text-lg text-primary-foreground/90 mb-7">
+                Acesse seus setores e gerencie suas operações com facilidade
               </p>
 
               {/* CTA Button */}
