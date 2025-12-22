@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Layout from "@/components/layout/Layout";
 import DashboardViewer from "./components/DashboardViewer";
 import DashboardSidebar from "./components/DashboardSidebar";
@@ -9,20 +9,38 @@ import { Loader } from "lucide-react";
 export default function BiPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const { categories, loading, error, getDashboardById } = useDashboards();
-  const [selectedDashboard, setSelectedDashboard] = useState<any | null>(null);
+  const [selectedDashboardId, setSelectedDashboardId] = useState<number | null>(
+    null,
+  );
 
-  // Set first dashboard when categories load
+  // Set first dashboard when categories load (only initialize, don't change if already selected)
   useEffect(() => {
-    if (!loading && categories.length > 0 && !selectedDashboard) {
+    if (!loading && categories.length > 0 && selectedDashboardId === null) {
       const firstDashboard = categories[0]?.dashboards[0];
       if (firstDashboard) {
-        setSelectedDashboard(firstDashboard);
+        console.log(
+          "[BI] 🎯 Selecionando primeiro dashboard:",
+          firstDashboard.title,
+        );
+        setSelectedDashboardId(firstDashboard.id);
       }
     }
-  }, [loading, categories, selectedDashboard]);
+  }, [loading, categories, selectedDashboardId]); // ✅ ADICIONADO: categories
+
+  // Memoize dashboard lookup to prevent unnecessary re-renders
+  const selectedDashboard = useMemo(() => {
+    if (selectedDashboardId === null) return null;
+    for (const category of categories) {
+      const dashboard = category.dashboards.find(
+        (d) => d.id === selectedDashboardId,
+      );
+      if (dashboard) return dashboard;
+    }
+    return null;
+  }, [selectedDashboardId, categories]);
 
   const handleSelectDashboard = (dashboard: any) => {
-    console.log("[BI] 🔄 Trocando dashboard...");
+    console.log("[BI] 📄 Trocando dashboard...");
     console.log(
       "[BI] Dashboard anterior:",
       selectedDashboard?.title || "nenhum",
@@ -30,7 +48,7 @@ export default function BiPage() {
     console.log("[BI] Novo dashboard:", dashboard.title);
     console.log("[BI] Report ID:", dashboard.report_id);
     console.log("[BI] Dataset ID:", dashboard.dataset_id);
-    setSelectedDashboard(dashboard);
+    setSelectedDashboardId(dashboard.id);
   };
 
   return (
@@ -73,7 +91,10 @@ export default function BiPage() {
                 {/* Área principal de conteúdo */}
                 <main className="bi-content">
                   {selectedDashboard && (
-                    <DashboardViewer dashboard={selectedDashboard} />
+                    <DashboardViewer
+                      key={selectedDashboard.id}
+                      dashboard={selectedDashboard}
+                    />
                   )}
                 </main>
               </>

@@ -277,9 +277,32 @@ export function useAuth() {
           );
         }
 
-        if (!setoresChanged && !nivelChanged) {
+        // Check for bi_subcategories changes
+        const oldBiSubcategories = current.bi_subcategories || [];
+        const newBiSubcategories = Array.isArray(data.bi_subcategories)
+          ? data.bi_subcategories
+          : [];
+        const biSubcategoriesChanged =
+          JSON.stringify(oldBiSubcategories.slice().sort()) !==
+          JSON.stringify(newBiSubcategories.slice().sort());
+
+        if (biSubcategoriesChanged) {
+          console.log(
+            "[AUTH] ✓ BI_SUBCATEGORIES CHANGED:",
+            oldBiSubcategories.join(", "),
+            "→",
+            newBiSubcategories.join(", "),
+          );
+          permissionDebugger.log(
+            "state",
+            `✓ BI Subcategories CHANGED: ${oldBiSubcategories.join(", ")} → ${newBiSubcategories.join(", ")}`,
+          );
+        }
+
+        if (!setoresChanged && !nivelChanged && !biSubcategoriesChanged) {
           console.debug("[AUTH] ℹ No permission changes detected");
           permissionDebugger.log("api", "ℹ No changes in permissions");
+          return; // Early exit - no need to update state or storage
         }
 
         const base: AuthUser = {
@@ -288,9 +311,7 @@ export function useAuth() {
           name: `${data.nome} ${data.sobrenome}`,
           nivel_acesso: data.nivel_acesso,
           setores: newSetores,
-          bi_subcategories: Array.isArray(data.bi_subcategories)
-            ? data.bi_subcategories
-            : null,
+          bi_subcategories: newBiSubcategories,
           loginTime: now,
           alterar_senha_primeiro_acesso: !!data.alterar_senha_primeiro_acesso,
         };
@@ -298,7 +319,9 @@ export function useAuth() {
           ...base,
           expiresAt: now + SESSION_EXPIRY,
         };
-        console.debug("[AUTH] ✓ Updating user state with new data");
+        console.debug(
+          "[AUTH] ✓ Updating user state with new data (permissions changed)",
+        );
         setUser(base);
 
         try {
@@ -406,10 +429,7 @@ export function useAuth() {
     };
   }, []);
 
-  const login = async (
-    identifier: string,
-    password: string,
-  ) => {
+  const login = async (identifier: string, password: string) => {
     try {
       const res = await fetch("/api/usuarios/login", {
         method: "POST",

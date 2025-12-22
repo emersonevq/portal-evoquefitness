@@ -60,6 +60,7 @@ export default function DashboardViewer({
   const isEmbedding = useRef<boolean>(false);
   const embedQueue = useRef<(() => Promise<void>)[]>([]);
   const cleanupTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const safetyTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Cache e contadores
   const tokenCache = useRef<{
@@ -324,6 +325,20 @@ export default function DashboardViewer({
   );
 
   /**
+   * Retry com delay progressivo
+   */
+  const handleRetry = useCallback(() => {
+    retryCount.current++;
+    const delay = RETRY_DELAY * retryCount.current;
+
+    logger(`Aguardando ${delay}ms antes do retry...`, "info");
+
+    setTimeout(() => {
+      embedReport();
+    }, delay);
+  }, []);
+
+  /**
    * Processo principal de embed com proteção contra race conditions
    */
   const embedReport = useCallback(async (): Promise<void> => {
@@ -441,6 +456,10 @@ export default function DashboardViewer({
         clearTimeout(cleanupTimeoutRef.current);
       }
 
+      if (safetyTimeoutRef.current) {
+        clearTimeout(safetyTimeoutRef.current);
+      }
+
       const svc = ensureService();
 
       svc.reset(embedContainer);
@@ -466,9 +485,8 @@ export default function DashboardViewer({
         setLoadingProgress(85);
         setLoadingPhase("finalizing");
 
-        // Safety timeout: if "rendered" event doesn't fire within 2 seconds after loaded,
-        // force the loading state to clear anyway
-        const safetyTimeout = setTimeout(() => {
+        // Safety timeout: if "rendered" event doesn't fire within 2 seconds after loaded
+        safetyTimeoutRef.current = setTimeout(() => {
           if (embedCycleToken.current === cycleToken && !isRendered) {
             logger(
               "[PowerBI] Forcing loading completion after loaded event timeout",
@@ -496,6 +514,12 @@ export default function DashboardViewer({
         isRendered = true;
         clearTimeout(renderTimeout);
 
+        // Limpar o safety timeout quando renderizado
+        if (safetyTimeoutRef.current) {
+          clearTimeout(safetyTimeoutRef.current);
+          safetyTimeoutRef.current = null;
+        }
+
         logger("[PowerBI] Rendered 🎉", "success");
         setLoadingProgress(100);
 
@@ -515,6 +539,11 @@ export default function DashboardViewer({
         if (embedCycleToken.current !== cycleToken) return;
 
         clearTimeout(renderTimeout);
+        if (safetyTimeoutRef.current) {
+          clearTimeout(safetyTimeoutRef.current);
+          safetyTimeoutRef.current = null;
+        }
+
         const errorMessage =
           event?.detail?.message || event?.message || "Erro desconhecido";
 
@@ -564,24 +593,12 @@ export default function DashboardViewer({
     triggerConfetti,
     onSuccess,
     onError,
+    handleRetry,
   ]);
 
   /**
-   * Retry com delay progressivo
-   */
-  const handleRetry = useCallback(() => {
-    retryCount.current++;
-    const delay = RETRY_DELAY * retryCount.current;
-
-    logger(`Aguardando ${delay}ms antes do retry...`, "info");
-
-    setTimeout(() => {
-      embedReport();
-    }, delay);
-  }, [embedReport, logger]);
-
-  /**
    * Effect principal - detecta mudança de dashboard
+   * CORRIGIDO: Removidas dependências que causavam loop
    */
   useEffect(() => {
     if (dashboard.report_id !== lastEmbedReportId.current) {
@@ -594,7 +611,7 @@ export default function DashboardViewer({
 
       return () => clearTimeout(timeoutId);
     }
-  }, [dashboard.report_id, dashboard.title, embedReport, logger]);
+  }, [dashboard.report_id]); // ✅ APENAS dashboard.report_id
 
   /**
    * Cleanup no unmount
@@ -611,6 +628,10 @@ export default function DashboardViewer({
       if (cleanupTimeoutRef.current) {
         clearTimeout(cleanupTimeoutRef.current);
       }
+
+      if (safetyTimeoutRef.current) {
+        clearTimeout(safetyTimeoutRef.current);
+      }
     };
   }, [cleanupContainer]);
 
@@ -622,8 +643,8 @@ export default function DashboardViewer({
       setIsFullscreen(
         Boolean(
           document.fullscreenElement ||
-            (document as any).webkitFullscreenElement ||
-            (document as any).mozFullScreenElement,
+          (document as any).webkitFullscreenElement ||
+          (document as any).mozFullScreenElement,
         ),
       );
     };
