@@ -138,7 +138,7 @@ export default function NotificationsConfig() {
     if (selectedNotifications.size === 0) return;
     if (
       !confirm(
-        `Tem certeza que deseja deletar ${selectedNotifications.size} notificação(ões)?`
+        `Tem certeza que deseja deletar ${selectedNotifications.size} notificação(ões)?`,
       )
     )
       return;
@@ -188,17 +188,16 @@ export default function NotificationsConfig() {
     if (selectedNotifications.size === filteredNotifications.length) {
       setSelectedNotifications(new Set());
     } else {
-      setSelectedNotifications(
-        new Set(filteredNotifications.map((n) => n.id))
-      );
+      setSelectedNotifications(new Set(filteredNotifications.map((n) => n.id)));
     }
   };
 
-  const filteredNotifications = notifications.filter((n) =>
-    n.titulo.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (n.mensagem &&
-      n.mensagem.toLowerCase().includes(searchQuery.toLowerCase())) ||
-    n.tipo.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredNotifications = notifications.filter(
+    (n) =>
+      n.titulo.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (n.mensagem &&
+        n.mensagem.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      n.tipo.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   const formatDate = (dateString: string) => {
@@ -223,7 +222,10 @@ export default function NotificationsConfig() {
       alerta: "bg-orange-500/10 text-orange-700 border-orange-500/20",
       erro: "bg-red-500/10 text-red-700 border-red-500/20",
     };
-    return typeColors[tipo.toLowerCase()] || "bg-gray-500/10 text-gray-700 border-gray-500/20";
+    return (
+      typeColors[tipo.toLowerCase()] ||
+      "bg-gray-500/10 text-gray-700 border-gray-500/20"
+    );
   };
 
   return (
@@ -246,9 +248,7 @@ export default function NotificationsConfig() {
 
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">
-              Não Lidas
-            </CardTitle>
+            <CardTitle className="text-sm font-medium">Não Lidas</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-yellow-600">
@@ -325,11 +325,7 @@ export default function NotificationsConfig() {
           {/* Action Buttons */}
           {stats.nao_lidas > 0 && (
             <div className="flex flex-wrap gap-2">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={handleMarkAllAsRead}
-              >
+              <Button size="sm" variant="outline" onClick={handleMarkAllAsRead}>
                 <CheckCheck className="w-4 h-4 mr-2" />
                 Marcar Todas como Lidas
               </Button>
@@ -400,7 +396,9 @@ export default function NotificationsConfig() {
               <Card
                 key={notification.id}
                 className={`transition-all ${
-                  !notification.lido ? "border-yellow-500/50 bg-yellow-500/5" : ""
+                  !notification.lido
+                    ? "border-yellow-500/50 bg-yellow-500/5"
+                    : ""
                 } ${selectedNotifications.has(notification.id) ? "border-primary bg-primary/5" : ""}`}
               >
                 <CardContent className="py-4">
@@ -422,7 +420,7 @@ export default function NotificationsConfig() {
                         <Badge
                           variant="outline"
                           className={getNotificationTypeColor(
-                            notification.tipo
+                            notification.tipo,
                           )}
                         >
                           {notification.tipo}
