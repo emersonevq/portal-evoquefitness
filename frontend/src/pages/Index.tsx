@@ -185,20 +185,17 @@ export default function Index() {
       </section>
 
       {/* Sectors Grid Section */}
-      <section id="setores" className="py-12 sm:py-16 bg-muted/30 backdrop-blur-sm">
+      <section id="setores" className="py-4 sm:py-5 bg-muted/30 backdrop-blur-sm">
         <div className="container">
           {/* Section Header */}
-          <div className="text-center mb-8 sm:mb-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
-            <h2 className="text-2xl sm:text-3xl font-bold mb-2 text-foreground">
+          <div className="text-center mb-4 sm:mb-5">
+            <h2 className="text-lg sm:text-xl font-bold mb-1 text-foreground">
               Nossos Setores
             </h2>
-            <p className="text-muted-foreground text-sm sm:text-base max-w-2xl mx-auto">
-              Explore os módulos disponíveis e gerencie suas operações
-            </p>
           </div>
 
           {/* Cards Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             {sectors.map((s, idx) => {
               const allowed = canAccess(s.slug);
               const href = user
