@@ -30,6 +30,15 @@ export function useDashboards() {
   const prevCategoriesRef = useRef<DashboardCategory[] | null>(null);
   const { user } = useAuth();
 
+  // Memoize the user permission signature to avoid JSON.stringify in dependency
+  const userPermissionSignature = useMemo(() => {
+    if (!user) return null;
+    return {
+      userId: user.id,
+      biSubcategories: user.bi_subcategories ? [...user.bi_subcategories].sort() : [],
+    };
+  }, [user?.id, user?.bi_subcategories]);
+
   useEffect(() => {
     const fetchDashboards = async () => {
       try {
