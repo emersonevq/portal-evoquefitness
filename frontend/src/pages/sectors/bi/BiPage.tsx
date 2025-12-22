@@ -21,10 +21,15 @@ export default function BiPage() {
     }
   }, [loading, selectedDashboardId]);
 
-  // Get the dashboard object from ID (will be stable as long as the dashboard exists)
-  const selectedDashboard = selectedDashboardId !== null
-    ? categories.flatMap(c => c.dashboards).find(d => d.id === selectedDashboardId) || null
-    : null;
+  // Memoize dashboard lookup to prevent unnecessary re-renders
+  const selectedDashboard = useMemo(() => {
+    if (selectedDashboardId === null) return null;
+    for (const category of categories) {
+      const dashboard = category.dashboards.find(d => d.id === selectedDashboardId);
+      if (dashboard) return dashboard;
+    }
+    return null;
+  }, [selectedDashboardId, categories]);
 
   const handleSelectDashboard = (dashboard: any) => {
     console.log("[BI] 🔄 Trocando dashboard...");
