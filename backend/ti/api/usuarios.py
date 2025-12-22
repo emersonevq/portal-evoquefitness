@@ -257,10 +257,16 @@ def atualizar_usuario(user_id: int, payload: dict, db: Session = Depends(get_db)
         except Exception:
             bi_subcategories_list = None
 
+        # Ensure nome and sobrenome are non-empty strings
+        user_nome = (updated.nome or "").strip()
+        user_sobrenome = (updated.sobrenome or "").strip()
+        if not user_nome:
+            user_nome = updated.email.split("@")[0] if updated.email else updated.usuario
+
         return {
             "id": updated.id,
-            "nome": updated.nome,
-            "sobrenome": updated.sobrenome,
+            "nome": user_nome,
+            "sobrenome": user_sobrenome,
             "usuario": updated.usuario,
             "email": updated.email,
             "nivel_acesso": updated.nivel_acesso,
