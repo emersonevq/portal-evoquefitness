@@ -32,14 +32,7 @@ export function useDashboards() {
 
   useEffect(() => {
     const fetchDashboards = async () => {
-      // Prevent multiple simultaneous fetches
-      if (isFetchingRef.current) {
-        console.log("[BI] ⏸️  Fetch já em progresso, ignorando nova requisição");
-        return;
-      }
-
       try {
-        isFetchingRef.current = true;
         setLoading(true);
         setError(null);
 
