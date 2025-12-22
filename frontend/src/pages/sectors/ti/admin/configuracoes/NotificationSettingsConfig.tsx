@@ -190,8 +190,7 @@ export default function NotificationSettingsConfig() {
   };
 
   const handleReset = async () => {
-    if (!confirm("Tem certeza que deseja resetar para valores padrão?"))
-      return;
+    if (!confirm("Tem certeza que deseja resetar para valores padrão?")) return;
 
     setSaving(true);
     setError(null);
@@ -232,7 +231,9 @@ export default function NotificationSettingsConfig() {
       <Card>
         <CardContent className="py-8 text-center">
           <AlertCircle className="w-8 h-8 mx-auto mb-2 text-destructive opacity-50" />
-          <p className="text-muted-foreground">Erro ao carregar configurações</p>
+          <p className="text-muted-foreground">
+            Erro ao carregar configurações
+          </p>
         </CardContent>
       </Card>
     );
