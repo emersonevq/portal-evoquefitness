@@ -121,7 +121,7 @@ export function useDashboards() {
     };
 
     fetchDashboards();
-  }, [user, user?.bi_subcategories]);
+  }, [user?.id, JSON.stringify(user?.bi_subcategories)]);
 
   const getDashboardById = (dashboardId: string): Dashboard | undefined => {
     for (const category of categories) {
