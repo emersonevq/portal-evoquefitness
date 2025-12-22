@@ -184,7 +184,7 @@ export default function Index() {
       </section>
 
       {/* Sectors Grid Section */}
-      <section id="setores" className="relative flex-1 py-8 sm:py-10">
+      <section id="setores" className="relative flex-1 py-6 sm:py-8">
         {/* Decorative background */}
         <div className="absolute inset-0 overflow-hidden">
           {/* Gradient background */}
