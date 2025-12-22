@@ -9,17 +9,22 @@ import { Loader } from "lucide-react";
 export default function BiPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const { categories, loading, error, getDashboardById } = useDashboards();
-  const [selectedDashboard, setSelectedDashboard] = useState<any | null>(null);
+  const [selectedDashboardId, setSelectedDashboardId] = useState<number | null>(null);
 
-  // Set first dashboard when categories load
+  // Set first dashboard when categories load (only initialize, don't change if already selected)
   useEffect(() => {
-    if (!loading && categories.length > 0 && !selectedDashboard) {
+    if (!loading && categories.length > 0 && selectedDashboardId === null) {
       const firstDashboard = categories[0]?.dashboards[0];
       if (firstDashboard) {
-        setSelectedDashboard(firstDashboard);
+        setSelectedDashboardId(firstDashboard.id);
       }
     }
-  }, [loading, categories, selectedDashboard]);
+  }, [loading, selectedDashboardId]);
+
+  // Get the dashboard object from ID (will be stable as long as the dashboard exists)
+  const selectedDashboard = selectedDashboardId !== null
+    ? categories.flatMap(c => c.dashboards).find(d => d.id === selectedDashboardId) || null
+    : null;
 
   const handleSelectDashboard = (dashboard: any) => {
     console.log("[BI] 🔄 Trocando dashboard...");
@@ -30,7 +35,7 @@ export default function BiPage() {
     console.log("[BI] Novo dashboard:", dashboard.title);
     console.log("[BI] Report ID:", dashboard.report_id);
     console.log("[BI] Dataset ID:", dashboard.dataset_id);
-    setSelectedDashboard(dashboard);
+    setSelectedDashboardId(dashboard.id);
   };
 
   return (
