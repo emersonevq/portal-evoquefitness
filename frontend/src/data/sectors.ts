@@ -21,7 +21,7 @@ const baseSectors: Sector[] = [
   {
     slug: "compras",
     title: "Portal Financeiro",
-    description: "Gerencie e acompanhe suas solicitações",
+    description: "Gerencie e acompanhe suas solicitações de compras e despesas.",
     icon: ShoppingCart,
   },
   {
