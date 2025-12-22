@@ -147,6 +147,7 @@ export function useDashboards() {
         console.error("[BI] ❌ Erro ao buscar dashboards:", message);
         setError(message);
       } finally {
+        isFetchingRef.current = false;
         setLoading(false);
       }
     };
