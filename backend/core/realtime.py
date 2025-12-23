@@ -82,8 +82,10 @@ def emit_refresh_sync(user_id: int):
         room = f"user:{user_id}"
         print(f"[SIO] emit_refresh_sync: emitting auth:refresh to room={room}")
         # python-socketio's emit method is thread-safe
-        sio.emit("auth:refresh", {"user_id": user_id}, room=room, skip_sid=None)
-        print(f"[SIO] emit_refresh_sync completed for user_id={user_id}")
+        result = sio.emit("auth:refresh", {"user_id": user_id}, room=room, skip_sid=None)
+        print(f"[SIO] emit_refresh_sync completed for user_id={user_id}, result={result}")
+        if result is None:
+            print(f"[SIO] WARNING: emit_refresh_sync returned None - event may not have been sent to any clients in room {room}")
     except Exception as e:
         print(f"[SIO] emit_refresh_sync error for user_id={user_id}: {e}")
         import traceback
