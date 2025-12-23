@@ -401,15 +401,16 @@ export function useAuth() {
     };
 
     const handleAuthRefresh = (e: Event) => {
-      console.debug("[AUTH] auth:refresh event received (IMMEDIATE refresh)");
-      // Refresh IMMEDIATELY without waiting for Socket.IO
+      console.debug("[AUTH] ⚡ auth:refresh event received - IMMEDIATE refresh (no delay)");
+      // Refresh IMMEDIATELY without any delay - this is the main refresh trigger
+      console.debug("[AUTH] Calling refresh() synchronously...");
       refresh().catch((err) => {
         console.error("[AUTH] auth:refresh handler error:", err);
       });
     };
 
     const handleUsersChanged = (e: Event) => {
-      console.debug("[AUTH] users:changed event received");
+      console.debug("[AUTH] 👥 users:changed event received");
       // Trigger immediate refresh
       refresh().catch((err) => {
         console.error("[AUTH] users:changed handler error:", err);
@@ -417,7 +418,7 @@ export function useAuth() {
     };
 
     const handleUserUpdated = (e: Event) => {
-      console.debug("[AUTH] user:updated event received (IMMEDIATE refresh)");
+      console.debug("[AUTH] 👤 user:updated event received - IMMEDIATE refresh");
       // Trigger immediate refresh
       refresh().catch((err) => {
         console.error("[AUTH] user:updated handler error:", err);
