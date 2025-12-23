@@ -223,24 +223,42 @@ def atualizar_usuario(user_id: int, payload: dict, db: Session = Depends(get_db)
             import threading
             import time
 
-            print(f"[API] Starting threads to emit auth:refresh for user_id={updated.id}")
+            print(f"\n{'='*70}")
+            print(f"[API-NOTIFY] 🔔 Starting notification for user_id={updated.id}")
+            print(f"[API-NOTIFY] User email: {updated.email}")
+            print(f"[API-NOTIFY] New nivel_acesso: {updated.nivel_acesso}")
+            print(f"[API-NOTIFY] New _setores: {getattr(updated, '_setores', 'N/A')}")
+            print(f"[API-NOTIFY] New _bi_subcategories: {getattr(updated, '_bi_subcategories', 'N/A')}")
 
             # Send immediately
-            print(f"[API] Sending refresh event immediately...")
-            emit_refresh_sync(updated.id)
+            print(f"[API-NOTIFY] ✓ Sending refresh event immediately via Socket.IO...")
+            try:
+                emit_refresh_sync(updated.id)
+                print(f"[API-NOTIFY] ✓ Immediate refresh event sent successfully for user_id={updated.id}")
+            except Exception as e:
+                print(f"[API-NOTIFY] ✗ Failed to send immediate refresh event: {e}")
+                import traceback
+                traceback.print_exc()
 
             # Also send after a short delay to ensure client is ready
             def delayed_emit():
-                time.sleep(0.2)
-                print(f"[API] Sending delayed refresh event for user_id={updated.id}")
-                emit_refresh_sync(updated.id)
+                try:
+                    time.sleep(0.3)
+                    print(f"[API-NOTIFY] ⏰ Sending delayed (0.3s) refresh event for user_id={updated.id}")
+                    emit_refresh_sync(updated.id)
+                    print(f"[API-NOTIFY] ✓ Delayed refresh event sent successfully for user_id={updated.id}")
+                except Exception as e:
+                    print(f"[API-NOTIFY] ✗ Failed to send delayed refresh event: {e}")
+                    import traceback
+                    traceback.print_exc()
 
             t = threading.Thread(target=delayed_emit, daemon=True)
             t.start()
 
-            print(f"[API] Refresh events queued for user_id={updated.id}")
+            print(f"[API-NOTIFY] ✓ Refresh events queued for user_id={updated.id}")
+            print(f"{'='*70}\n")
         except Exception as ex:
-            print(f"[API] failed to emit auth:refresh: {ex}")
+            print(f"[API-NOTIFY] ✗ failed to emit auth:refresh: {ex}")
             import traceback
             traceback.print_exc()
 

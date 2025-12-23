@@ -115,9 +115,21 @@ export function useAuth() {
     // Socket.IO connection (shared on window so multiple imports don't recreate)
     let socket: any = (window as any).__APP_SOCK__;
     let mounted = true;
+    let socketIdentifyAttempts = 0;
+    const maxIdentifyAttempts = 5;
+
     const setupSocket = async () => {
       if (socket) {
         console.debug("[SIO] Socket already exists, reusing");
+        // Re-identify if we have a user (in case of Auth0 login after socket was created)
+        const curr = readFromStorage();
+        if (curr && curr.id && socket.connected) {
+          console.debug(
+            "[SIO] Re-identifying on socket reuse for Auth0 user",
+            curr.id,
+          );
+          socket.emit("identify", { user_id: curr.id });
+        }
         return socket;
       }
       try {
@@ -140,8 +152,11 @@ export function useAuth() {
           // identify if we have a current user
           const curr = readFromStorage();
           if (curr && curr.id) {
+            socketIdentifyAttempts = 0; // Reset attempts on successful connection
             socket.emit("identify", { user_id: curr.id });
             console.debug("[SIO] ✓ Identify emitted for user", curr.id);
+          } else {
+            console.debug("[SIO] No user found in storage, skipping identify");
           }
         });
         socket.on("disconnect", (reason: any) => {
@@ -217,6 +232,30 @@ export function useAuth() {
     setupSocket().catch((err) => {
       console.error("[SIO] Failed to setup socket:", err);
     });
+
+    // Periodic socket re-identification attempt for Auth0 users
+    const socketReidentifyInterval = setInterval(() => {
+      if (!mounted) return;
+      try {
+        const s = (window as any).__APP_SOCK__;
+        const curr = readFromStorage();
+        if (
+          s &&
+          curr &&
+          curr.id &&
+          s.connected &&
+          socketIdentifyAttempts < maxIdentifyAttempts
+        ) {
+          socketIdentifyAttempts++;
+          console.debug(
+            `[SIO] Re-identifying socket for Auth0 user ${curr.id} (attempt ${socketIdentifyAttempts}/${maxIdentifyAttempts})`,
+          );
+          s.emit("identify", { user_id: curr.id });
+        }
+      } catch (e) {
+        console.debug("[SIO] Socket re-identify check error:", e);
+      }
+    }, 2000); // Try every 2 seconds (max 10 seconds total)
 
     const refresh = async () => {
       try {
@@ -365,21 +404,29 @@ export function useAuth() {
     };
 
     const handleAuthRefresh = (e: Event) => {
-      console.debug("[AUTH] auth:refresh event received");
+      console.debug(
+        "[AUTH] ⚡ auth:refresh event received - IMMEDIATE refresh (no delay)",
+      );
+      // Refresh IMMEDIATELY without any delay - this is the main refresh trigger
+      console.debug("[AUTH] Calling refresh() synchronously...");
       refresh().catch((err) => {
         console.error("[AUTH] auth:refresh handler error:", err);
       });
     };
 
     const handleUsersChanged = (e: Event) => {
-      console.debug("[AUTH] users:changed event received");
+      console.debug("[AUTH] 👥 users:changed event received");
+      // Trigger immediate refresh
       refresh().catch((err) => {
         console.error("[AUTH] users:changed handler error:", err);
       });
     };
 
     const handleUserUpdated = (e: Event) => {
-      console.debug("[AUTH] user:updated event received");
+      console.debug(
+        "[AUTH] 👤 user:updated event received - IMMEDIATE refresh",
+      );
+      // Trigger immediate refresh
       refresh().catch((err) => {
         console.error("[AUTH] user:updated handler error:", err);
       });
@@ -413,6 +460,7 @@ export function useAuth() {
     return () => {
       mounted = false;
       if (pollInterval) clearInterval(pollInterval);
+      clearInterval(socketReidentifyInterval);
       window.removeEventListener(
         "auth:refresh",
         handleAuthRefresh as EventListener,
