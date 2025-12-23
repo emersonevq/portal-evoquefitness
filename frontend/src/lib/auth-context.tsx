@@ -353,7 +353,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           socket.emit("identify", { user_id: userData.id });
         }
       } catch (e) {
-        console.debug("[AUTH] Socket immediate identify failed (may connect later):", e);
+        console.debug(
+          "[AUTH] Socket immediate identify failed (may connect later):",
+          e,
+        );
       }
 
       // Get redirect URL - usar a que foi armazenada ou gerar automática

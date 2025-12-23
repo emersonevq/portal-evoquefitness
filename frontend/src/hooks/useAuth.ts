@@ -124,7 +124,10 @@ export function useAuth() {
         // Re-identify if we have a user (in case of Auth0 login after socket was created)
         const curr = readFromStorage();
         if (curr && curr.id && socket.connected) {
-          console.debug("[SIO] Re-identifying on socket reuse for Auth0 user", curr.id);
+          console.debug(
+            "[SIO] Re-identifying on socket reuse for Auth0 user",
+            curr.id,
+          );
           socket.emit("identify", { user_id: curr.id });
         }
         return socket;
@@ -401,7 +404,9 @@ export function useAuth() {
     };
 
     const handleAuthRefresh = (e: Event) => {
-      console.debug("[AUTH] ⚡ auth:refresh event received - IMMEDIATE refresh (no delay)");
+      console.debug(
+        "[AUTH] ⚡ auth:refresh event received - IMMEDIATE refresh (no delay)",
+      );
       // Refresh IMMEDIATELY without any delay - this is the main refresh trigger
       console.debug("[AUTH] Calling refresh() synchronously...");
       refresh().catch((err) => {
@@ -418,7 +423,9 @@ export function useAuth() {
     };
 
     const handleUserUpdated = (e: Event) => {
-      console.debug("[AUTH] 👤 user:updated event received - IMMEDIATE refresh");
+      console.debug(
+        "[AUTH] 👤 user:updated event received - IMMEDIATE refresh",
+      );
       // Trigger immediate refresh
       refresh().catch((err) => {
         console.error("[AUTH] user:updated handler error:", err);

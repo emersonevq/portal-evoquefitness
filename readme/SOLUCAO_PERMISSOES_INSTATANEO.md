@@ -14,9 +14,11 @@
 ## ✅ Correções Implementadas
 
 ### 1️⃣ **Frontend: Sincronização de Dashboards BI** (`useDashboards.ts`)
+
 **Problema:** O hook não estava monitorando mudanças em `bi_subcategories`, apenas em `user?.id`
 
 **Solução:**
+
 ```typescript
 // ANTES (❌ não detectava mudanças em permissões BI):
 useEffect(() => {
@@ -39,9 +41,11 @@ useEffect(() => {
 ---
 
 ### 2️⃣ **Frontend: Eventos Síncronos Imediatos** (`admin/usuarios/pages.tsx`)
+
 **Problema:** Eventos eram despachados com delay de 100ms, podendo ser perdidos
 
 **Solução:**
+
 ```typescript
 // ANTES (❌ 100ms delay):
 setTimeout(() => {
@@ -59,9 +63,11 @@ window.dispatchEvent(new CustomEvent("user:updated", {...}));
 ---
 
 ### 3️⃣ **Frontend: Handlers Síncronos** (`useAuth.ts`)
+
 **Problema:** Handlers de eventos não eram processoados imediatamente
 
 **Solução:**
+
 ```typescript
 const handleAuthRefresh = (e: Event) => {
   console.debug("[AUTH] ⚡ auth:refresh event - IMMEDIATE refresh");
@@ -74,6 +80,7 @@ const handleAuthRefresh = (e: Event) => {
 ---
 
 ### 4️⃣ **Backend: Logging Detalhado** (`usuarios.py`)
+
 **Novo:** Logging estruturado para confirmar que eventos estão sendo emitidos
 
 ```
@@ -93,10 +100,12 @@ const handleAuthRefresh = (e: Event) => {
 ### Teste 1: Sincronização Instantânea
 
 **Setup:**
+
 1. Navegador 1: Admin logado em `/setor/ti/admin` (página de permissões)
 2. Navegador 2: Usuário comum logado em qualquer página
 
 **Procedimento:**
+
 1. No Browser 1, edite o usuário comum:
    - Altere `Nível de Acesso` de "Funcionário" → "Administrador"
    - Altere `Setores` de "Setor A" → "Setor B"
@@ -104,6 +113,7 @@ const handleAuthRefresh = (e: Event) => {
 3. **Observe o console do Browser 2 (F12):**
 
 **Esperado:**
+
 ```
 [AUTH] ⚡ auth:refresh event - IMMEDIATE refresh
 [AUTH] ⟳ Refreshing user data for id 123
@@ -118,12 +128,14 @@ const handleAuthRefresh = (e: Event) => {
 ### Teste 2: Restrições de Dashboard BI
 
 **Setup:**
+
 1. Crie dois usuários: `user_a` e `user_b`
 2. Atribua:
    - `user_a`: Acesso a BI + Dashboard-001 e Dashboard-002 (ambos)
    - `user_b`: Acesso a BI + apenas Dashboard-001
 
 **Procedimento:**
+
 1. Browser 1: Login com `user_a` → Vá para `/setor/bi`
    - Verá 2 dashboards na sidebar: Dashboard-001, Dashboard-002
 2. Browser 2: Login com `user_b` → Vá para `/setor/bi`
@@ -133,6 +145,7 @@ const handleAuthRefresh = (e: Event) => {
    - Clique em "Salvar"
 
 **Esperado no Browser 2:**
+
 - Aviso: "Nenhum dashboard disponível" (em < 1 segundo)
 - Página recarrega automaticamente
 
@@ -141,11 +154,13 @@ const handleAuthRefresh = (e: Event) => {
 ### Teste 3: Alteração de Dashboard BI em Tempo Real
 
 **Setup:**
+
 1. Admin em Browser 1, usuário em Browser 2
 2. Usuário em Browser 2: Vendo Dashboard-001
 3. Admin em Browser 1: Edita e **remove** Dashboard-001 das permissões
 
 **Esperado:**
+
 - Browser 2: "Nenhum dashboard disponível" (instantâneo)
 - Dashboard-001 desaparece da sidebar
 
@@ -269,6 +284,7 @@ console.log("Socket ID:", socket?.id);
 ```
 
 Esperado:
+
 ```
 Socket conectado? true
 Socket ID: abc123def456...
@@ -283,6 +299,7 @@ WHERE email = 'usuario@example.com';
 ```
 
 Esperado:
+
 ```
 id: 123
 email: usuario@example.com
@@ -317,13 +334,13 @@ socket.emit("identify", { user_id: 123 });
 
 Depois das correções, você deve observar:
 
-| Métrica | Esperado | Antes | Depois |
-|---------|----------|-------|--------|
-| Tempo de sincronização | < 500ms | 30s+ (polling) | **< 500ms** |
-| Eventos instantâneos | Sim | Não | **Sim** |
-| Restrições BI aplicadas | Sim | Não | **Sim** |
-| Necessidade de reload | Não | Sim | **Não** |
-| Socket.IO necessário | Não (fallback) | Não | **Sim, com fallback** |
+| Métrica                 | Esperado       | Antes          | Depois                |
+| ----------------------- | -------------- | -------------- | --------------------- |
+| Tempo de sincronização  | < 500ms        | 30s+ (polling) | **< 500ms**           |
+| Eventos instantâneos    | Sim            | Não            | **Sim**               |
+| Restrições BI aplicadas | Sim            | Não            | **Sim**               |
+| Necessidade de reload   | Não            | Sim            | **Não**               |
+| Socket.IO necessário    | Não (fallback) | Não            | **Sim, com fallback** |
 
 ---
 
@@ -339,12 +356,14 @@ Depois das correções, você deve observar:
 ## ⚡ Resumo Rápido
 
 **O que foi corrigido:**
+
 1. ✅ useDashboards agora re-carrega quando bi_subcategories mudam
 2. ✅ Eventos despachados instantaneamente (sem delay)
 3. ✅ Handlers processam eventos no mesmo ciclo de evento
 4. ✅ Logging detalhado para debug
 
-**Resultado:** 
+**Resultado:**
+
 - Permissões sincronizam em **< 500ms** (não em 30 segundos)
 - Restrições BI são **imediatamente aplicadas**
 - Sem necessidade de reload ou logout/login

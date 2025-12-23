@@ -2,16 +2,17 @@
 
 ## ⚡ Mudanças Rápidas
 
-| Problema | Solução | Arquivo |
-|----------|---------|---------|
-| ❌ Permissões não atualizam instantaneamente | ✅ Hooks monitoram mudanças e re-sincronizam | `useDashboards.ts` |
-| ❌ BI subcategories não limitam dashboards | ✅ Hook detecta mudanças em `bi_subcategories` | `useDashboards.ts` |
-| ❌ Eventos chegam com delay | ✅ Eventos despachados instantaneamente | `admin/usuarios/pages.tsx` |
-| ❌ Sincronização lenta | ✅ Handlers síncronos + fallback de polling | `useAuth.ts` |
+| Problema                                     | Solução                                        | Arquivo                    |
+| -------------------------------------------- | ---------------------------------------------- | -------------------------- |
+| ❌ Permissões não atualizam instantaneamente | ✅ Hooks monitoram mudanças e re-sincronizam   | `useDashboards.ts`         |
+| ❌ BI subcategories não limitam dashboards   | ✅ Hook detecta mudanças em `bi_subcategories` | `useDashboards.ts`         |
+| ❌ Eventos chegam com delay                  | ✅ Eventos despachados instantaneamente        | `admin/usuarios/pages.tsx` |
+| ❌ Sincronização lenta                       | ✅ Handlers síncronos + fallback de polling    | `useAuth.ts`               |
 
 ## 🔧 O Que Mudou
 
 ### 1. **useDashboards.ts** (CRÍTICA)
+
 ```typescript
 // ❌ ANTES: Só monitora user?.id
 useEffect(() => { ... }, [user?.id]);
@@ -25,6 +26,7 @@ useEffect(() => { ... }, [user?.id, user?.bi_subcategories?.join(",")]);
 ---
 
 ### 2. **admin/usuarios/pages.tsx** (CRÍTICA)
+
 ```typescript
 // ❌ ANTES: setTimeout com 100ms de delay
 setTimeout(() => {
@@ -40,6 +42,7 @@ window.dispatchEvent(new CustomEvent("auth:refresh"));
 ---
 
 ### 3. **useAuth.ts** (SUPORTE)
+
 ```typescript
 // ✅ Melhorado: Handlers que chamam refresh() diretamente
 const handleAuthRefresh = (e: Event) => {
@@ -53,6 +56,7 @@ const handleAuthRefresh = (e: Event) => {
 ---
 
 ### 4. **usuarios.py** (SUPORTE)
+
 ```
 // ✅ Logging detalhado para confirmar eventos
 [API-NOTIFY] 🔔 Starting notification for user_id=123
@@ -67,16 +71,19 @@ const handleAuthRefresh = (e: Event) => {
 ## ✅ O Que Funciona Agora
 
 ### 1️⃣ Sincronização Instantânea
+
 - ⏱️ Tempo: **< 500ms** (era 30+ segundos com polling)
 - 🔄 Não precisa recarregar a página
 - 🔔 Evento chega em tempo real via Socket.IO
 
 ### 2️⃣ Restrições BI Aplicadas
+
 - 📊 Usuário vê apenas dashboards permitidos
 - 🔐 Alterar permissões de BI em tempo real
 - 🚫 Acesso negado a dashboards não autorizados
 
 ### 3️⃣ Múltiplas Sincronizações
+
 - ✅ **Via Socket.IO** (rápido, recomendado)
 - ✅ **Via Polling** (fallback, 30s, se Socket.IO falhar)
 - ✅ **Via eventos manuais** (admin pode forçar refresh)
@@ -88,18 +95,21 @@ const handleAuthRefresh = (e: Event) => {
 ### Teste 1: Permissões Instantâneas (5 minutos)
 
 **Setup:**
+
 1. Abra 2 navegadores
    - Browser A: `/setor/ti/admin` (admin)
    - Browser B: Qualquer página (usuário comum)
 2. Abra DevTools nos dois (F12)
 
 **Passos:**
+
 1. No Browser A, edite o usuário do Browser B:
    - Altere "Nível de Acesso" para "Administrador"
    - Clique "Salvar"
 2. No Browser B, veja o console
 
 **Esperado:**
+
 ```
 ✅ [AUTH] ⚡ auth:refresh event - IMMEDIATE refresh
 ✅ [AUTH] ✓ NIVEL_ACESSO CHANGED: Funcionário → Administrador
@@ -111,6 +121,7 @@ const handleAuthRefresh = (e: Event) => {
 ### Teste 2: Restrições BI (10 minutos)
 
 **Setup:**
+
 1. Crie/edite um usuário com acesso a BI
 2. Em admin, atribua APENAS 1 dashboard:
    - ✅ Portal de BI
@@ -118,10 +129,12 @@ const handleAuthRefresh = (e: Event) => {
    - ❌ Não marque outros dashboards
 
 **Teste:**
+
 1. Usuário logado em `/setor/bi`
 2. Sidebar deve mostrar **APENAS 1 dashboard**
 
 **Esperado:**
+
 ```
 ✅ Sidebar mostra: [Vendas]
 ❌ Sidebar não mostra: [Financeiro], [RH], [Estoque]
@@ -132,6 +145,7 @@ const handleAuthRefresh = (e: Event) => {
 ## 🔍 Se Algo Não Funcionar
 
 ### 1. Verifique logs do servidor
+
 ```bash
 # Procure por:
 [API-NOTIFY] 🔔 Starting notification
@@ -139,6 +153,7 @@ const handleAuthRefresh = (e: Event) => {
 ```
 
 ### 2. Verifique Socket.IO no navegador
+
 ```javascript
 // Console do navegador (F12):
 (window as any).__APP_SOCK__?.connected // Deve ser true
@@ -146,6 +161,7 @@ const handleAuthRefresh = (e: Event) => {
 ```
 
 ### 3. Force um refresh manual
+
 ```javascript
 // Console do navegador (F12):
 window.dispatchEvent(new CustomEvent("auth:refresh"));
@@ -156,13 +172,13 @@ window.dispatchEvent(new CustomEvent("auth:refresh"));
 
 ## 📊 Comparativo: Antes vs Depois
 
-| Aspecto | Antes | Depois |
-|---------|-------|--------|
-| **Tempo de sincronização** | 30+ segundos | **< 500ms** |
-| **Restrições BI** | Não funcionavam | **Aplicadas em tempo real** |
-| **Necessidade de reload** | Sim (obrigatório) | **Não (automático)** |
-| **Eventos** | Com delay (100ms) | **Instantâneos** |
-| **Socket.IO requerido** | Não era realmente usado | **Funciona + fallback** |
+| Aspecto                    | Antes                   | Depois                      |
+| -------------------------- | ----------------------- | --------------------------- |
+| **Tempo de sincronização** | 30+ segundos            | **< 500ms**                 |
+| **Restrições BI**          | Não funcionavam         | **Aplicadas em tempo real** |
+| **Necessidade de reload**  | Sim (obrigatório)       | **Não (automático)**        |
+| **Eventos**                | Com delay (100ms)       | **Instantâneos**            |
+| **Socket.IO requerido**    | Não era realmente usado | **Funciona + fallback**     |
 
 ---
 
@@ -206,6 +222,7 @@ readme/
 ## 💡 Resumo Final
 
 **As mudanças garantem que:**
+
 - ✅ Permissões sincronizam em **< 500ms** (instantâneo)
 - ✅ Restrições de BI são **aplicadas em tempo real**
 - ✅ Não precisa fazer logout/login para sincronizar

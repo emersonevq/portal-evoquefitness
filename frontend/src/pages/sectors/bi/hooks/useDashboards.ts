@@ -39,7 +39,9 @@ export function useDashboards() {
     const fetchDashboards = async () => {
       // Prevent multiple simultaneous fetches
       if (isFetchingRef.current) {
-        console.log("[BI] ⏸️  Fetch já em progresso, ignorando nova requisição");
+        console.log(
+          "[BI] ⏸️  Fetch já em progresso, ignorando nova requisição",
+        );
         return;
       }
 
@@ -159,7 +161,9 @@ export function useDashboards() {
   useEffect(() => {
     // Se o usuário mudou OU as permissões de BI mudaram, resetamos o estado para buscar novos dashboards
     if (user && hasInitializedRef.current) {
-      console.log("[BI] 👤 Usuário ou permissões alteradas, resetando dashboards...");
+      console.log(
+        "[BI] 👤 Usuário ou permissões alteradas, resetando dashboards...",
+      );
       console.log("[BI] Novas bi_subcategories:", user.bi_subcategories);
       hasInitializedRef.current = false;
       prevCategoriesRef.current = null;
