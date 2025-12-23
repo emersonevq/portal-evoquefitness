@@ -155,17 +155,18 @@ export function useDashboards() {
     fetchDashboards();
   }, []); // Removida a dependência de userPermissionSignature - busca apenas uma vez
 
-  // Efeito separado para monitorar mudanças no usuário (apenas se realmente necessário)
+  // Efeito separado para monitorar mudanças no usuário OU nas suas permissões
   useEffect(() => {
-    // Se o usuário mudou, resetamos o estado para buscar novos dashboards
+    // Se o usuário mudou OU as permissões de BI mudaram, resetamos o estado para buscar novos dashboards
     if (user && hasInitializedRef.current) {
-      console.log("[BI] 👤 Usuário alterado, resetando dashboards...");
+      console.log("[BI] 👤 Usuário ou permissões alteradas, resetando dashboards...");
+      console.log("[BI] Novas bi_subcategories:", user.bi_subcategories);
       hasInitializedRef.current = false;
       prevCategoriesRef.current = null;
       setCategories([]);
       setLoading(true);
     }
-  }, [user?.id]); // Apenas quando o ID do usuário muda
+  }, [user?.id, user?.bi_subcategories?.join(",")]); // Monitora ID e BI subcategories
 
   const getDashboardById = (dashboardId: string): Dashboard | undefined => {
     for (const category of categories) {
