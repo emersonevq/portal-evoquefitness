@@ -342,6 +342,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Store user data in sessionStorage
       sessionStorage.setItem("evoque-fitness-auth", JSON.stringify(userData));
 
+      // Attempt to identify on Socket.IO immediately after Auth0 login
+      try {
+        const socket = (window as any).__APP_SOCK__;
+        if (socket && socket.connected && userData.id) {
+          console.debug(
+            "[AUTH] Identifying socket immediately after Auth0 login for user",
+            userData.id,
+          );
+          socket.emit("identify", { user_id: userData.id });
+        }
+      } catch (e) {
+        console.debug("[AUTH] Socket immediate identify failed (may connect later):", e);
+      }
+
       // Get redirect URL - usar a que foi armazenada ou gerar automática
       let redirectUrl = sessionStorage.getItem("auth0_redirect_after_login");
       if (!redirectUrl) {
