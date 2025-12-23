@@ -227,13 +227,21 @@ def atualizar_usuario(user_id: int, payload: dict, db: Session = Depends(get_db)
 
             # Send immediately
             print(f"[API] Sending refresh event immediately...")
-            emit_refresh_sync(updated.id)
+            try:
+                emit_refresh_sync(updated.id)
+                print(f"[API] ✓ Immediate refresh event sent successfully for user_id={updated.id}")
+            except Exception as e:
+                print(f"[API] ✗ Failed to send immediate refresh event: {e}")
 
             # Also send after a short delay to ensure client is ready
             def delayed_emit():
-                time.sleep(0.2)
-                print(f"[API] Sending delayed refresh event for user_id={updated.id}")
-                emit_refresh_sync(updated.id)
+                try:
+                    time.sleep(0.2)
+                    print(f"[API] Sending delayed refresh event for user_id={updated.id}")
+                    emit_refresh_sync(updated.id)
+                    print(f"[API] ✓ Delayed refresh event sent successfully for user_id={updated.id}")
+                except Exception as e:
+                    print(f"[API] ✗ Failed to send delayed refresh event: {e}")
 
             t = threading.Thread(target=delayed_emit, daemon=True)
             t.start()
