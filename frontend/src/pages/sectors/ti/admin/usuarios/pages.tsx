@@ -673,6 +673,19 @@ export function Permissoes() {
 
   const saveEdit = async () => {
     if (!editing) return;
+
+    // Validação: se tem setor BI, deve ter pelo menos um dashboard selecionado
+    const hasBiSector = editSetores.includes(normalize("Portal de BI"));
+    if (
+      hasBiSector &&
+      (!editBiSubcategories || editBiSubcategories.length === 0)
+    ) {
+      alert(
+        "⚠️ Você selecionou o setor Portal de BI mas não escolheu nenhum dashboard. Por favor, selecione pelo menos um dashboard ou desmarque o setor BI.",
+      );
+      return;
+    }
+
     const payload = {
       nome: editNome,
       sobrenome: editSobrenome,
