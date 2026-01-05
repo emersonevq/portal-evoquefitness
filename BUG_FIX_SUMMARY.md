@@ -9,6 +9,7 @@ Quando um administrador criava um usuário e tentava limitar o acesso a dashboar
 A lógica de filtragem de dashboards no frontend (`useDashboards.ts`) tinha uma falha:
 
 **Código Original:**
+
 ```typescript
 if (
   user &&
@@ -17,8 +18,8 @@ if (
   user.bi_subcategories.length > 0
 ) {
   // Filtrar por dashboards selecionados
-  filteredDashboards = dashboards.filter(dash => 
-    user.bi_subcategories.includes(dash.dashboard_id)
+  filteredDashboards = dashboards.filter((dash) =>
+    user.bi_subcategories.includes(dash.dashboard_id),
   );
 } else {
   // ❌ BUG: Se bi_subcategories está vazio/null, MOSTRAVA TODOS!
@@ -27,6 +28,7 @@ if (
 ```
 
 **Cenário do Bug:**
+
 1. ✅ Admin cria usuário COM setor BI
 2. ❌ Admin não seleciona nenhum dashboard específico (ou seleciona e depois desmarca tudo)
 3. ✅ Admin salva → `_bi_subcategories = null` no banco
@@ -35,15 +37,17 @@ if (
 ## Soluções Implementadas
 
 ### 1. **Frontend: Corrigir Lógica de Filtragem** ✅
+
 **Arquivo:** `frontend/src/pages/sectors/bi/hooks/useDashboards.ts`
 
 Nova lógica:
+
 ```typescript
 if (user && Array.isArray(user.bi_subcategories)) {
   if (user.bi_subcategories.length > 0) {
     // Filtrar por dashboards específicos
-    filteredDashboards = dashboards.filter(dash =>
-      user.bi_subcategories.includes(dash.dashboard_id)
+    filteredDashboards = dashboards.filter((dash) =>
+      user.bi_subcategories.includes(dash.dashboard_id),
     );
   } else {
     // ✅ CORREÇÃO: Array vazio = acesso negado a NENHUM dashboard
@@ -56,46 +60,57 @@ if (user && Array.isArray(user.bi_subcategories)) {
 ```
 
 **Diferenças:**
+
 - `null/undefined` → Mostrar todos os dashboards (sem restrição)
 - `[]` (array vazio) → Mostrar NENHUM dashboard (usuário tem setor BI mas sem acesso)
 - `["dash1", "dash2"]` → Filtrar apenas esses dashboards
 
 ### 2. **Frontend: Validação no Formulário de Edição** ✅
+
 **Arquivo:** `frontend/src/pages/sectors/ti/admin/usuarios/pages.tsx`
 
 Adicionada validação antes de salvar:
+
 - Se admin marca setor "Portal de BI", deve selecionar pelo menos um dashboard
 - Se não selecionar nenhum, mostra aviso e impede salvamento
 
 ```typescript
 const hasBiSector = editSetores.includes(normalize("Portal de BI"));
 if (hasBiSector && (!editBiSubcategories || editBiSubcategories.length === 0)) {
-  alert("⚠️ Você selecionou o setor Portal de BI mas não escolheu nenhum dashboard...");
+  alert(
+    "⚠️ Você selecionou o setor Portal de BI mas não escolheu nenhum dashboard...",
+  );
   return;
 }
 ```
 
 ### 3. **Frontend: Validação no Formulário de Criação** ✅
+
 **Arquivo:** `frontend/src/pages/sectors/ti/admin/usuarios/pages.tsx`
 
 Mesma validação aplicada ao criar novo usuário.
 
 ### 4. **Backend: Diferenciar NULL vs Array Vazio** ✅
+
 **Arquivo:** `backend/ti/services/users.py`
 
 Modificada função `_set_bi_subcategories` para:
+
 - Se recebe array COM items → Armazena como JSON string: `"['dash1', 'dash2']"`
 - Se recebe array VAZIO `[]` → Armazena como JSON string vazio: `"[]"`
 - Se recebe `null` → Armazena como NULL no banco
 
 Isso permite distinguir entre:
+
 - Usuário SEM restrição BI (NULL)
 - Usuário COM restrição BI mas sem nenhum dashboard (array vazio JSON)
 
 ### 5. **Backend: Melhorar Logs para Debug** ✅
+
 **Arquivo:** `backend/ti/api/usuarios.py`
 
 Adicionados logs detalhados no endpoint PUT para rastrear:
+
 - O que foi enviado no payload
 - O que foi salvo no banco
 - Como foi parseado ao retornar
@@ -103,6 +118,7 @@ Adicionados logs detalhados no endpoint PUT para rastrear:
 ## Como Testar a Correção
 
 ### Teste 1: Criar Usuário com Permissões BI Restritas
+
 1. ✅ Acesse o painel administrativo
 2. ✅ Crie um novo usuário
 3. ✅ Marque o setor "Portal de BI"
@@ -113,6 +129,7 @@ Adicionados logs detalhados no endpoint PUT para rastrear:
 8. ✅ Acesse "Portal de BI" → Deveria ver **apenas** o dashboard selecionado
 
 ### Teste 2: Editar Usuário e Alterar Permissões
+
 1. ✅ Crie um usuário COM BI setor e um dashboard
 2. ✅ Edite o usuário
 3. ✅ Adicione outro dashboard no setor BI
@@ -121,6 +138,7 @@ Adicionados logs detalhados no endpoint PUT para rastrear:
 6. ✅ Verifique se consegue acessar AMBOS os dashboards
 
 ### Teste 3: Tentar Salvar sem Dashboard Selecionado
+
 1. ✅ Crie um usuário SEM setor BI
 2. ✅ Edite o usuário
 3. ✅ Marque o setor "Portal de BI"
@@ -129,6 +147,7 @@ Adicionados logs detalhados no endpoint PUT para rastrear:
 6. ✅ Deveria mostrar um aviso "⚠️ Você selecionou o setor Portal de BI mas não escolheu nenhum dashboard"
 
 ### Teste 4: Verificar Database Diretamente (Opcional)
+
 Para usuários que querem verificar o banco de dados:
 
 ```sql
@@ -137,6 +156,7 @@ SELECT id, usuario, _bi_subcategories FROM user WHERE usuario = 'seu_usuario';
 ```
 
 Possíveis valores de `_bi_subcategories`:
+
 - `NULL` → Sem restrição BI
 - `[]` → Com setor BI mas sem dashboards permitidos
 - `["dashboard-id-1", "dashboard-id-2"]` → Com acesso a dashboards específicos
@@ -166,6 +186,7 @@ Possíveis valores de `_bi_subcategories`:
 ---
 
 Se encontrar problemas, verifique:
+
 1. Os logs do backend (procure por `[API]` e `[_set_bi_subcategories]`)
 2. O banco de dados: `SELECT _bi_subcategories FROM user`
 3. Verifique se o navegador está usando cache antigo (Ctrl+Shift+Delete)

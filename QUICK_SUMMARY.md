@@ -1,11 +1,13 @@
 # ⚡ Resumo da Correção - Permissões BI
 
 ## O Problema
+
 Ao criar um usuário com acesso ao setor **Portal de BI** sem selecionar nenhum dashboard, ele conseguia acessar **TODOS** os dashboards (deveria ter acesso a **NENHUM**).
 
 ## A Solução em 3 Pontos
 
 ### 1️⃣ Frontend - Corrigir Filtragem
+
 **Arquivo:** `frontend/src/pages/sectors/bi/hooks/useDashboards.ts`
 
 - Se `bi_subcategories = []` (array vazio) → Mostrar NENHUM dashboard
@@ -13,12 +15,15 @@ Ao criar um usuário com acesso ao setor **Portal de BI** sem selecionar nenhum 
 - Se `bi_subcategories = null` → Mostrar TODOS (sem restrição)
 
 ### 2️⃣ Frontend - Adicionar Validação
+
 **Arquivo:** `frontend/src/pages/sectors/ti/admin/usuarios/pages.tsx`
 
 Ao salvar usuário: Se marca setor BI, DEVE selecionar um dashboard
+
 - Caso contrário, mostra aviso: "⚠️ Você selecionou o setor Portal de BI mas não escolheu nenhum dashboard"
 
 ### 3️⃣ Backend - Melhorar Armazenamento
+
 **Arquivo:** `backend/ti/services/users.py`
 
 - Array vazio `[]` é armazenado como JSON string: `"[]"`
@@ -28,6 +33,7 @@ Ao salvar usuário: Se marca setor BI, DEVE selecionar um dashboard
 ## Como Testar (5 Minutos)
 
 ### ✅ Teste 1: Criar Usuário Restringido
+
 ```
 1. Admin > Criar usuário
 2. Setor: ☑️ Portal de BI
@@ -39,6 +45,7 @@ Ao salvar usuário: Se marca setor BI, DEVE selecionar um dashboard
 ```
 
 ### ✅ Teste 2: Validação
+
 ```
 1. Tentar criar usuário
 2. Setor: ☑️ Portal de BI
@@ -48,8 +55,9 @@ Ao salvar usuário: Se marca setor BI, DEVE selecionar um dashboard
 ```
 
 ### ✅ Teste 3: Verificar Database
+
 ```sql
-SELECT _bi_subcategories FROM user 
+SELECT _bi_subcategories FROM user
 WHERE usuario = 'seu_usuario_teste';
 
 -- Esperado:
@@ -58,22 +66,24 @@ WHERE usuario = 'seu_usuario_teste';
 
 ## Arquivos Modificados
 
-| Arquivo | Mudança |
-|---------|---------|
-| `frontend/src/pages/sectors/bi/hooks/useDashboards.ts` | Lógica de filtragem |
-| `frontend/src/pages/sectors/ti/admin/usuarios/pages.tsx` | Validações |
-| `backend/ti/services/users.py` | Armazenamento de permissões |
-| `backend/ti/api/usuarios.py` | Logs melhorados |
+| Arquivo                                                  | Mudança                     |
+| -------------------------------------------------------- | --------------------------- |
+| `frontend/src/pages/sectors/bi/hooks/useDashboards.ts`   | Lógica de filtragem         |
+| `frontend/src/pages/sectors/ti/admin/usuarios/pages.tsx` | Validações                  |
+| `backend/ti/services/users.py`                           | Armazenamento de permissões |
+| `backend/ti/api/usuarios.py`                             | Logs melhorados             |
 
 ## Logs para Debugar
 
 ### No Frontend (F12 > Console)
+
 ```
 [BI] 🔐 Filtrando dashboards por permissão do usuário
 [BI] ✅ X dashboards após filtragem
 ```
 
 ### No Backend
+
 ```
 [_set_bi_subcategories] Setting _bi_subcategories to: [...]
 [API] bi_subcategories parsed from '...' -> [...]
@@ -96,12 +106,14 @@ curl "http://localhost:3001/api/usuarios/{user_id}/debug-bi"
 ## Status da Correção
 
 ✅ **Correção Implementada**
+
 - Frontend corrigido
 - Validações adicionadas
 - Backend melhorado
 - Logs adicionados
 
-⏳ **Próximo Passo:** 
+⏳ **Próximo Passo:**
+
 - Execute os testes em `TEST_LOCALLY.md`
 - Verifique se tudo funciona corretamente
 
