@@ -62,24 +62,34 @@ export function useDashboards() {
 
         // Filter dashboards based on user permissions
         let filteredDashboards = dashboards;
-        if (
-          user &&
-          user.bi_subcategories &&
-          Array.isArray(user.bi_subcategories) &&
-          user.bi_subcategories.length > 0
-        ) {
-          console.log(
-            `[BI] 🔐 Filtrando dashboards por permissão do usuário:`,
-            user.bi_subcategories,
-          );
-          filteredDashboards = dashboards.filter((dash) =>
-            user.bi_subcategories.includes(dash.dashboard_id),
-          );
-          console.log(
-            `[BI] ✅ ${filteredDashboards.length} dashboards após filtragem`,
-          );
+
+        if (user && Array.isArray(user.bi_subcategories)) {
+          // User has bi_subcategories defined (even if empty array)
+          if (user.bi_subcategories.length > 0) {
+            // User has specific dashboards allowed
+            console.log(
+              `[BI] 🔐 Filtrando dashboards por permissão do usuário:`,
+              user.bi_subcategories,
+            );
+            filteredDashboards = dashboards.filter((dash) =>
+              user.bi_subcategories.includes(dash.dashboard_id),
+            );
+            console.log(
+              `[BI] ✅ ${filteredDashboards.length} dashboards após filtragem`,
+            );
+          } else {
+            // User has BI sector but no dashboards selected - restrict all
+            console.log(
+              "[BI] 🔒 Usuário tem setor BI mas sem dashboards selecionados - acesso negado",
+            );
+            filteredDashboards = [];
+          }
         } else {
-          console.log("[BI] ⚠️ Usuário sem permissões de BI definidas");
+          // User doesn't have bi_subcategories defined - show all (backward compatible)
+          console.log(
+            "[BI] 📚 Usuário sem restrições de BI - mostrando todos os dashboards",
+          );
+          filteredDashboards = dashboards;
         }
 
         // Group dashboards by category
