@@ -276,10 +276,15 @@ def atualizar_usuario(user_id: int, payload: dict, db: Session = Depends(get_db)
 
         try:
             bi_subcategories_list = None
-            if getattr(updated, "_bi_subcategories", None):
-                raw = json.loads(updated._bi_subcategories)
+            bi_raw = getattr(updated, "_bi_subcategories", None)
+            if bi_raw:
+                raw = json.loads(bi_raw)
                 bi_subcategories_list = [str(x) if x is not None else "" for x in raw]
-        except Exception:
+                print(f"[API] bi_subcategories parsed from '{bi_raw}' -> {bi_subcategories_list}")
+            else:
+                print(f"[API] _bi_subcategories is None/empty -> bi_subcategories_list is None")
+        except Exception as e:
+            print(f"[API] Error parsing _bi_subcategories: {e}")
             bi_subcategories_list = None
 
         # Ensure nome and sobrenome are non-empty strings
