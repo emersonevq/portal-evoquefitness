@@ -674,11 +674,13 @@ export function Permissoes() {
     // Store the original sector names without normalizing - match with sector titles
     if (u.setores && Array.isArray(u.setores) && u.setores.length > 0) {
       // Map normalized back to original titles from sectors data
-      setEditSetores(u.setores.map((x) => {
-        const normalized = normalize(String(x));
-        const found = sectors.find((s) => normalize(s.title) === normalized);
-        return found ? found.title : String(x);
-      }));
+      setEditSetores(
+        u.setores.map((x) => {
+          const normalized = normalize(String(x));
+          const found = sectors.find((s) => normalize(s.title) === normalized);
+          return found ? found.title : String(x);
+        }),
+      );
     } else {
       setEditSetores(u.setor ? [matchSectorTitle(u.setor) || u.setor] : []);
     }
