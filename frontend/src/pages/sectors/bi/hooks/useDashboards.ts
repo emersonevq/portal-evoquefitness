@@ -29,7 +29,6 @@ export function useDashboards() {
   const [categories, setCategories] = useState<DashboardCategory[]>([]);
   const prevCategoriesRef = useRef<DashboardCategory[] | null>(null);
   const isFetchingRef = useRef(false);
-  const hasInitializedRef = useRef(false);
   const { user } = useAuth();
 
   useEffect(() => {
