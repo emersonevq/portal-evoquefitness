@@ -55,6 +55,7 @@ useEffect(() => {
 **File**: `frontend/src/pages/sectors/bi/hooks/useDashboards.ts`
 
 **Before**:
+
 ```typescript
 // First effect with empty dependencies - never runs again!
 useEffect(() => {
@@ -73,6 +74,7 @@ useEffect(() => {
 ```
 
 **After**:
+
 ```typescript
 // Single effect that runs whenever permissions change
 useEffect(() => {
