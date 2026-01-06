@@ -95,11 +95,11 @@ export function CriarUsuario() {
   };
 
   const toggleSector = (name: string) => {
-    const key = normalize(name);
+    // Store the original name, not normalized - backend will normalize
     setSelSectors((prev) =>
-      prev.includes(key) ? prev.filter((n) => n !== key) : [...prev, key],
+      prev.includes(name) ? prev.filter((n) => n !== name) : [...prev, name],
     );
-    if (name === "Portal de bi" && !isBiSelected) {
+    if (name === "Portal de BI" && !isBiSelected) {
       setSelBiSubcategories("");
     }
   };
