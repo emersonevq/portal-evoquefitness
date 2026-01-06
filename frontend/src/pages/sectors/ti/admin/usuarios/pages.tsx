@@ -82,7 +82,7 @@ export function CriarUsuario() {
 
   const allSectors = useMemo(() => sectors.map((s) => s.title), []);
   const biSector = useMemo(() => sectors.find((s) => s.slug === "bi"), []);
-  const isBiSelected = selSectors.includes(normalize("Portal de BI"));
+  const isBiSelected = selSectors.includes("Portal de BI");
 
   useEffect(() => {
     loadBISubcategories().then(setBiSubcategories);
