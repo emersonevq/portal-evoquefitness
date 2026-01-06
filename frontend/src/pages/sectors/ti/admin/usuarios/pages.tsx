@@ -82,7 +82,7 @@ export function CriarUsuario() {
 
   const allSectors = useMemo(() => sectors.map((s) => s.title), []);
   const biSector = useMemo(() => sectors.find((s) => s.slug === "bi"), []);
-  const isBiSelected = selSectors.includes(normalize("Portal de BI"));
+  const isBiSelected = selSectors.includes("Portal de BI");
 
   useEffect(() => {
     loadBISubcategories().then(setBiSubcategories);
@@ -95,11 +95,11 @@ export function CriarUsuario() {
   };
 
   const toggleSector = (name: string) => {
-    const key = normalize(name);
+    // Store the original name, not normalized - backend will normalize
     setSelSectors((prev) =>
-      prev.includes(key) ? prev.filter((n) => n !== key) : [...prev, key],
+      prev.includes(name) ? prev.filter((n) => n !== name) : [...prev, name],
     );
-    if (name === "Portal de bi" && !isBiSelected) {
+    if (name === "Portal de BI" && !isBiSelected) {
       setSelBiSubcategories("");
     }
   };
@@ -173,7 +173,7 @@ export function CriarUsuario() {
     }
 
     // Validação: se tem setor BI, deve ter selecionado um dashboard
-    const hasBiSector = selSectors.includes(normalize("Portal de BI"));
+    const hasBiSector = selSectors.includes("Portal de BI");
     if (hasBiSector && !selBiSubcategories) {
       alert(
         "⚠️ Você selecionou o setor Portal de BI mas não escolheu um dashboard. Por favor, selecione um dashboard ou desmarque o setor BI.",
@@ -337,7 +337,7 @@ export function CriarUsuario() {
                   <input
                     type="checkbox"
                     className="h-4 w-4 rounded border-border bg-background"
-                    checked={selSectors.includes(normalize(s))}
+                    checked={selSectors.includes(s)}
                     onChange={() => toggleSector(s)}
                   />
                   {s}
@@ -595,14 +595,14 @@ export function Permissoes() {
 
   const allSectors = useMemo(() => sectors.map((s) => s.title), []);
   const biSector = useMemo(() => sectors.find((s) => s.slug === "bi"), []);
-  const isEditBiSelected = editSetores.includes(normalize("Portal de BI"));
+  const isEditBiSelected = editSetores.includes("Portal de BI");
 
   const toggleEditSector = (name: string) => {
-    const key = normalize(name);
+    // Store the original name, not normalized - backend will normalize
     setEditSetores((prev) =>
-      prev.includes(key) ? prev.filter((n) => n !== key) : [...prev, key],
+      prev.includes(name) ? prev.filter((n) => n !== name) : [...prev, name],
     );
-    if (name === "Portal de bi" && !isEditBiSelected) {
+    if (name === "Portal de BI" && !isEditBiSelected) {
       setEditBiSubcategories([]);
     }
   };
@@ -671,10 +671,18 @@ export function Permissoes() {
     setEditEmail(u.email);
     setEditUsuario(u.usuario);
     setEditNivel(u.nivel_acesso);
+    // Store the original sector names without normalizing - match with sector titles
     if (u.setores && Array.isArray(u.setores) && u.setores.length > 0) {
-      setEditSetores(u.setores.map((x) => normalize(String(x))));
+      // Map normalized back to original titles from sectors data
+      setEditSetores(
+        u.setores.map((x) => {
+          const normalized = normalize(String(x));
+          const found = sectors.find((s) => normalize(s.title) === normalized);
+          return found ? found.title : String(x);
+        }),
+      );
     } else {
-      setEditSetores(u.setor ? [normalize(u.setor)] : []);
+      setEditSetores(u.setor ? [matchSectorTitle(u.setor) || u.setor] : []);
     }
     setEditBiSubcategories((u as any).bi_subcategories || []);
     setEditForceReset(false);
@@ -684,7 +692,7 @@ export function Permissoes() {
     if (!editing) return;
 
     // Validação: se tem setor BI, deve ter pelo menos um dashboard selecionado
-    const hasBiSector = editSetores.includes(normalize("Portal de BI"));
+    const hasBiSector = editSetores.includes("Portal de BI");
     if (
       hasBiSector &&
       (!editBiSubcategories || editBiSubcategories.length === 0)
@@ -1143,7 +1151,7 @@ export function Permissoes() {
                       <input
                         type="checkbox"
                         className="h-4 w-4 rounded border-border bg-background"
-                        checked={editSetores.includes(normalize(s))}
+                        checked={editSetores.includes(s)}
                         onChange={() => toggleEditSector(s)}
                       />
                       <span>{s}</span>

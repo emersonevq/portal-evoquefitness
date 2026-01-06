@@ -3,6 +3,7 @@ import json
 import os
 import secrets
 import string
+import unicodedata
 from sqlalchemy.orm import Session
 from werkzeug.security import generate_password_hash
 from ti.models import User
@@ -137,10 +138,10 @@ import unicodedata
 def _normalize_str(s: str) -> str:
     if not s:
         return s
-    # Remove accents and normalize whitespace
+    # Remove accents, normalize whitespace, and convert to lowercase
     nfkd = unicodedata.normalize('NFKD', s)
     only_ascii = ''.join([c for c in nfkd if not unicodedata.combining(c)])
-    return only_ascii.replace('\u00a0', ' ').strip()
+    return only_ascii.replace('\u00a0', ' ').strip().lower()
 
 
 def _set_setores(user: User, setores):
