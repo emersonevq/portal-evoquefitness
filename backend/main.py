@@ -463,3 +463,18 @@ _http.include_router(dashboard_permissions_router)
 
 # Wrap with Socket.IO ASGI app (exports as 'app')
 app = mount_socketio(_http)
+
+
+# Register event loop for Socket.IO sync-to-async bridge
+import asyncio
+from core.realtime import set_event_loop
+
+@_http.on_event("startup")
+async def startup_event():
+    """Register the event loop for Socket.IO event emission from sync context"""
+    try:
+        loop = asyncio.get_event_loop()
+        set_event_loop(loop)
+        print(f"[STARTUP] ✓ Event loop registered for Socket.IO: {loop}")
+    except Exception as e:
+        print(f"[STARTUP] ⚠️  Failed to register event loop: {e}")
