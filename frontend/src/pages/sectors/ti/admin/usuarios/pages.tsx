@@ -671,10 +671,16 @@ export function Permissoes() {
     setEditEmail(u.email);
     setEditUsuario(u.usuario);
     setEditNivel(u.nivel_acesso);
+    // Store the original sector names without normalizing - match with sector titles
     if (u.setores && Array.isArray(u.setores) && u.setores.length > 0) {
-      setEditSetores(u.setores.map((x) => normalize(String(x))));
+      // Map normalized back to original titles from sectors data
+      setEditSetores(u.setores.map((x) => {
+        const normalized = normalize(String(x));
+        const found = sectors.find((s) => normalize(s.title) === normalized);
+        return found ? found.title : String(x);
+      }));
     } else {
-      setEditSetores(u.setor ? [normalize(u.setor)] : []);
+      setEditSetores(u.setor ? [matchSectorTitle(u.setor) || u.setor] : []);
     }
     setEditBiSubcategories((u as any).bi_subcategories || []);
     setEditForceReset(false);
