@@ -684,7 +684,7 @@ export function Permissoes() {
     if (!editing) return;
 
     // Validação: se tem setor BI, deve ter pelo menos um dashboard selecionado
-    const hasBiSector = editSetores.includes(normalize("Portal de BI"));
+    const hasBiSector = editSetores.includes("Portal de BI");
     if (
       hasBiSector &&
       (!editBiSubcategories || editBiSubcategories.length === 0)
