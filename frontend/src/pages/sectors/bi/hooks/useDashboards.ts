@@ -170,7 +170,6 @@ export function useDashboards() {
 
   // Função para forçar refresh manual (se necessário)
   const refreshDashboards = () => {
-    hasInitializedRef.current = false;
     prevCategoriesRef.current = null;
     setLoading(true);
     setCategories([]);
