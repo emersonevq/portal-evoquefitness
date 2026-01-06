@@ -1,6 +1,7 @@
 import socketio
 import asyncio
 import threading
+import concurrent.futures
 from typing import Optional
 
 # Single Socket.IO server instance for the whole app
