@@ -3,6 +3,7 @@ import json
 import os
 import secrets
 import string
+import unicodedata
 from sqlalchemy.orm import Session
 from werkzeug.security import generate_password_hash
 from ti.models import User
