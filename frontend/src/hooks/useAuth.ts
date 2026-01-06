@@ -195,24 +195,30 @@ export function useAuth() {
 
         // Server-side permission/profile update for this user
         socket.on("auth:refresh", (data: any) => {
-          console.debug(
-            "[SIO] ✓ Received auth:refresh event from server",
+          console.log(
+            "[SIO] 🔔 Received auth:refresh event from server",
             data,
           );
           try {
             const uid = data?.user_id;
             const curr = readFromStorage();
+            console.log(
+              "[SIO] Checking if event is for current user. Event uid:",
+              uid,
+              "Current user id:",
+              curr?.id,
+            );
             if (curr && curr.id && uid === curr.id) {
-              console.debug(
-                "[SIO] ✓ Event is for current user",
+              console.log(
+                "[SIO] ✓ Event IS for current user",
                 uid,
-                "- will refresh permissions",
+                "- TRIGGERING refresh permissions",
               );
               // Dispatch the refresh event to trigger permission updates
               window.dispatchEvent(new CustomEvent("auth:refresh"));
             } else {
-              console.debug(
-                "[SIO] Event is for different user or no current user. uid:",
+              console.log(
+                "[SIO] ⚠️  Event is NOT for current user. Event uid:",
                 uid,
                 "curr.id:",
                 curr?.id,
