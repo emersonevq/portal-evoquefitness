@@ -1,10 +1,19 @@
 import socketio
-
-import socketio
 import asyncio
+import threading
+from typing import Optional
 
 # Single Socket.IO server instance for the whole app
 sio = socketio.AsyncServer(async_mode="asgi", cors_allowed_origins="*")
+
+# Global event loop for async operations from sync context
+_event_loop: Optional[asyncio.AbstractEventLoop] = None
+
+
+def set_event_loop(loop: asyncio.AbstractEventLoop):
+    """Set the event loop for sync-to-async bridge"""
+    global _event_loop
+    _event_loop = loop
 
 
 def mount_socketio(app):
@@ -67,8 +76,7 @@ def emit_logout_sync(user_id: int):
     try:
         room = f"user:{user_id}"
         print(f"[SIO] emit_logout_sync: emitting auth:logout to room={room}")
-        # python-socketio's emit method is thread-safe
-        sio.emit("auth:logout", {"user_id": user_id}, room=room, skip_sid=None)
+        _emit_event_from_sync("auth:logout", {"user_id": user_id}, room)
         print(f"[SIO] emit_logout_sync completed for user_id={user_id}")
     except Exception as e:
         print(f"[SIO] emit_logout_sync error for user_id={user_id}: {e}")
@@ -81,12 +89,48 @@ def emit_refresh_sync(user_id: int):
     try:
         room = f"user:{user_id}"
         print(f"[SIO] emit_refresh_sync: emitting auth:refresh to room={room}")
-        # python-socketio's emit method is thread-safe
-        result = sio.emit("auth:refresh", {"user_id": user_id}, room=room, skip_sid=None)
-        print(f"[SIO] emit_refresh_sync completed for user_id={user_id}, result={result}")
-        if result is None:
-            print(f"[SIO] WARNING: emit_refresh_sync returned None - event may not have been sent to any clients in room {room}")
+        _emit_event_from_sync("auth:refresh", {"user_id": user_id}, room)
+        print(f"[SIO] emit_refresh_sync completed for user_id={user_id}")
     except Exception as e:
         print(f"[SIO] emit_refresh_sync error for user_id={user_id}: {e}")
+        import traceback
+        traceback.print_exc()
+
+
+def _emit_event_from_sync(event: str, data: dict, room: str):
+    """Bridge to emit Socket.IO events from sync context."""
+    global _event_loop
+
+    async def _do_emit():
+        try:
+            print(f"[SIO] _do_emit: sending {event} to room {room}")
+            await sio.emit(event, data, room=room)
+            print(f"[SIO] _do_emit: {event} sent successfully to room {room}")
+        except Exception as e:
+            print(f"[SIO] _do_emit error: {e}")
+            import traceback
+            traceback.print_exc()
+
+    # Try to use running loop or create a new task
+    try:
+        if _event_loop and not _event_loop.is_closed():
+            # Schedule on the existing loop
+            future = asyncio.run_coroutine_threadsafe(_do_emit(), _event_loop)
+            # Wait with a timeout
+            future.result(timeout=2.0)
+            print(f"[SIO] Event scheduled successfully on existing loop")
+        else:
+            print(f"[SIO] No event loop available, attempting direct approach")
+            # Fallback: try to run in a new thread's event loop
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            try:
+                loop.run_until_complete(_do_emit())
+            finally:
+                loop.close()
+    except concurrent.futures.TimeoutError:
+        print(f"[SIO] Timeout waiting for event to be emitted")
+    except Exception as e:
+        print(f"[SIO] Error scheduling event: {e}")
         import traceback
         traceback.print_exc()
