@@ -1149,7 +1149,7 @@ export function Permissoes() {
                       <input
                         type="checkbox"
                         className="h-4 w-4 rounded border-border bg-background"
-                        checked={editSetores.includes(normalize(s))}
+                        checked={editSetores.includes(s)}
                         onChange={() => toggleEditSector(s)}
                       />
                       <span>{s}</span>
