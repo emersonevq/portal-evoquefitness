@@ -337,7 +337,7 @@ export function CriarUsuario() {
                   <input
                     type="checkbox"
                     className="h-4 w-4 rounded border-border bg-background"
-                    checked={selSectors.includes(normalize(s))}
+                    checked={selSectors.includes(s)}
                     onChange={() => toggleSector(s)}
                   />
                   {s}
