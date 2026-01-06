@@ -595,14 +595,14 @@ export function Permissoes() {
 
   const allSectors = useMemo(() => sectors.map((s) => s.title), []);
   const biSector = useMemo(() => sectors.find((s) => s.slug === "bi"), []);
-  const isEditBiSelected = editSetores.includes(normalize("Portal de BI"));
+  const isEditBiSelected = editSetores.includes("Portal de BI");
 
   const toggleEditSector = (name: string) => {
-    const key = normalize(name);
+    // Store the original name, not normalized - backend will normalize
     setEditSetores((prev) =>
-      prev.includes(key) ? prev.filter((n) => n !== key) : [...prev, key],
+      prev.includes(name) ? prev.filter((n) => n !== name) : [...prev, name],
     );
-    if (name === "Portal de bi" && !isEditBiSelected) {
+    if (name === "Portal de BI" && !isEditBiSelected) {
       setEditBiSubcategories([]);
     }
   };
