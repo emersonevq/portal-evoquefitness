@@ -147,7 +147,7 @@ const App = () => (
               path="/setor/financeiro"
               element={
                 <RequireLogin>
-                  <FinanceiroPage />
+                  <PortalFinanceiroPage />
                 </RequireLogin>
               }
             />
