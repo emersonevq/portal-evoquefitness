@@ -128,14 +128,6 @@ const App = () => (
               </Route>
             </Route>
             <Route
-              path="/setor/compras"
-              element={
-                <RequireLogin>
-                  <ComprasPage />
-                </RequireLogin>
-              }
-            />
-            <Route
               path="/setor/manutencao"
               element={
                 <RequireLogin>
