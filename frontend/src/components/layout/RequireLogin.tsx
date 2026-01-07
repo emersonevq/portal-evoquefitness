@@ -149,6 +149,7 @@ export default function RequireLogin({
     const mapa: Record<string, string> = {
       ti: "TI",
       compras: "Compras",
+      "portal-financeiro": "Portal Financeiro",
       manutencao: "Manutencao",
       bi: "BI",
       financeiro: "Financeiro",
