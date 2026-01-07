@@ -16,7 +16,8 @@ export default function PortalFinanceiroPage() {
               {sector?.title || "Portal Financeiro"}
             </h1>
             <p className="mt-2 text-primary-foreground/90 max-w-2xl">
-              {sector?.description || "Gerencie e acompanhe suas solicitações de compras e despesas."}
+              {sector?.description ||
+                "Gerencie e acompanhe suas solicitações de compras e despesas."}
             </p>
           </div>
         </div>
@@ -71,9 +72,10 @@ export default function PortalFinanceiroPage() {
           <Card className="card-surface rounded-xl border border-border/40 p-6 sm:p-8">
             <h3 className="text-lg font-semibold mb-3">Informações</h3>
             <p className="text-muted-foreground text-sm">
-              O Portal Financeiro oferece ferramentas completas para gerenciar solicitações de compra, 
-              acompanhar despesas e gerar relatórios detalhados. Funcionalidades adicionais serão 
-              adicionadas conforme sua orientação.
+              O Portal Financeiro oferece ferramentas completas para gerenciar
+              solicitações de compra, acompanhar despesas e gerar relatórios
+              detalhados. Funcionalidades adicionais serão adicionadas conforme
+              sua orientação.
             </p>
           </Card>
         </div>
