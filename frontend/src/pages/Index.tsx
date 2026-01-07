@@ -105,6 +105,7 @@ export default function Index() {
   const slugToKey: Record<string, string> = {
     ti: "TI",
     compras: "Compras",
+    "portal-financeiro": "Portal Financeiro",
     manutencao: "Manutencao",
     bi: "BI",
   };

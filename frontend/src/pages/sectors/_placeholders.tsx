@@ -28,7 +28,6 @@ function SectorPlaceholder({ slug }: { slug: string }) {
   );
 }
 
-export const ComprasPage = () => <SectorPlaceholder slug="compras" />;
 export const ManutencaoPage = () => <SectorPlaceholder slug="manutencao" />;
 export const FinanceiroPage = () => <SectorPlaceholder slug="financeiro" />;
 export const MarketingPage = () => <SectorPlaceholder slug="marketing" />;

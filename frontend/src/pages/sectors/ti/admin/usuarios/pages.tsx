@@ -42,7 +42,8 @@ const normalize = (s: string) => {
       .normalize("NFKD")
       .replace(/[\u0300-\u036f]/g, "")
       .replace(/\u00a0/g, " ")
-      .trim();
+      .trim()
+      .toLowerCase();
   } catch {
     return s;
   }

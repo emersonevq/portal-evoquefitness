@@ -19,7 +19,7 @@ const baseSectors: Sector[] = [
     icon: Server,
   },
   {
-    slug: "compras",
+    slug: "portal-financeiro",
     title: "Portal Financeiro",
     description:
       "Gerencie e acompanhe suas solicitações de compras e despesas.",

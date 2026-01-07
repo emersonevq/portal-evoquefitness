@@ -18,10 +18,9 @@ import AccessDenied from "./pages/AccessDenied";
 import SectorPage from "./pages/Sector";
 import BiPage from "./pages/sectors/bi/BiPage";
 import TiPage from "./pages/sectors/ti/TiPage";
+import PortalFinanceiroPage from "./pages/sectors/portal-financeiro/PortalFinanceiroPage";
 import {
-  ComprasPage,
   ManutencaoPage,
-  FinanceiroPage,
   MarketingPage,
   ProdutosPage,
   ComercialPage,
@@ -129,14 +128,6 @@ const App = () => (
               </Route>
             </Route>
             <Route
-              path="/setor/compras"
-              element={
-                <RequireLogin>
-                  <ComprasPage />
-                </RequireLogin>
-              }
-            />
-            <Route
               path="/setor/manutencao"
               element={
                 <RequireLogin>
@@ -148,7 +139,7 @@ const App = () => (
               path="/setor/financeiro"
               element={
                 <RequireLogin>
-                  <FinanceiroPage />
+                  <PortalFinanceiroPage />
                 </RequireLogin>
               }
             />
