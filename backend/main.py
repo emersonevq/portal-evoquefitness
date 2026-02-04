@@ -11,7 +11,7 @@ from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 from fastapi.middleware.cors import CORSMiddleware
 from io import BytesIO
-from ti.api import chamados_router, unidades_router, problemas_router, notifications_router, notification_settings_router, alerts_router, email_debug_router, powerbi_router, metrics_router
+from ti.api import chamados_router, unidades_router, problemas_router, notifications_router, notification_settings_router, alerts_router, email_debug_router, powerbi_router, metrics_router, sla_router
 from ti.api.usuarios import router as usuarios_router
 from ti.api.dashboard_permissions import router as dashboard_permissions_router
 from auth0.routes import router as auth0_router
@@ -71,6 +71,13 @@ try:
     create_notification_settings_table()
 except Exception as e:
     print(f"⚠️  Erro ao criar tabela notification_settings: {e}")
+
+# Criar tabela de pausas SLA na inicialização
+try:
+    from ti.scripts.create_sla_pausa_table import create_sla_pausa_table
+    create_sla_pausa_table()
+except Exception as e:
+    print(f"⚠️  Erro ao criar tabela sla_pausas: {e}")
 
 
 
@@ -424,6 +431,7 @@ _http.include_router(alerts_router, prefix="/api")
 _http.include_router(email_debug_router, prefix="/api")
 _http.include_router(powerbi_router, prefix="/api")
 _http.include_router(metrics_router, prefix="/api")
+_http.include_router(sla_router, prefix="/api")
 _http.include_router(dashboard_permissions_router, prefix="")
 
 # Compatibility mount without prefix, in case the server is run without proxy
@@ -438,6 +446,7 @@ _http.include_router(alerts_router)
 _http.include_router(email_debug_router)
 _http.include_router(powerbi_router)
 _http.include_router(metrics_router)
+_http.include_router(sla_router)
 _http.include_router(dashboard_permissions_router)
 
 # Wrap with Socket.IO ASGI app (exports as 'app')

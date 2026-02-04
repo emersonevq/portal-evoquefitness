@@ -11,7 +11,7 @@ from ti.schemas.chamado import (
     ALLOWED_STATUSES,
 )
 from ti.services.chamados import criar_chamado as service_criar
-from ti.services.sla import SLACalculator
+from ti.services.sla import SLACalculator, SLAPausaManager
 from ti.services.sla_cache import SLACacheManager
 from ti.models.sla_config import HistoricoSLA
 from core.realtime import sio
@@ -742,6 +742,13 @@ def atualizar_status(chamado_id: int, payload: ChamadoStatusUpdate, db: Session 
         db.add(ch)
         db.commit()  # garante persistência do status antes dos logs
         db.refresh(ch)
+
+        # GERENCIAMENTO DE PAUSAS: Detecta transições e cria/finaliza pausas
+        try:
+            mudanca_resultado = SLAPausaManager.registrar_mudanca_status(db, chamado_id, prev, novo)
+        except Exception as e:
+            print(f"[SLA PAUSA] Erro ao registrar mudança de status: {e}")
+            mudanca_resultado = {}
 
         # DECREMENTAR CONTADOR DE HOJE SE CANCELADO
         if novo == "Cancelado" and prev != "Cancelado":

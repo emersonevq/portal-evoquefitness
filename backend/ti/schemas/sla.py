@@ -259,3 +259,48 @@ class SLAFeriadoOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class SLAPausaCreate(BaseModel):
+    """Schema para criar pausa SLA"""
+    chamado_id: int = Field(..., description="ID do chamado")
+    motivo: str | None = Field(None, description="Motivo da pausa (ex: Em análise)")
+
+    class Config:
+        from_attributes = True
+
+
+class SLAPausaUpdate(BaseModel):
+    """Schema para atualizar pausa SLA"""
+    motivo: str | None = Field(None, description="Motivo da pausa")
+
+    class Config:
+        from_attributes = True
+
+
+class SLAPausaOut(BaseModel):
+    """Schema de saída para pausa SLA"""
+    id: int
+    chamado_id: int
+    pausado_em: datetime
+    retomado_em: datetime | None
+    motivo: str | None
+    ativa: bool
+    criado_em: datetime | None
+    atualizado_em: datetime | None
+
+    class Config:
+        from_attributes = True
+
+
+class MudancaStatusResponse(BaseModel):
+    """Resposta ao registrar mudança de status com informações de SLA"""
+    chamado_id: int
+    status_anterior: str
+    status_novo: str
+    acao_sla: str | None
+    pausa_id: int | None
+    mensagem: str
+
+    class Config:
+        from_attributes = True

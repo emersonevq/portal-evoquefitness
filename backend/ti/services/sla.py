@@ -1,10 +1,11 @@
 from __future__ import annotations
 from datetime import datetime, time, timedelta
-from sqlalchemy.orm import Session
-from sqlalchemy import and_, or_
+from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import and_, or_, desc
 from ti.models.sla_config import SLAConfiguration, SLABusinessHours, HistoricoSLA
 from ti.models.historico_status import HistoricoStatus
 from ti.models.chamado import Chamado
+from ti.models.sla_pausa import SLAPausa
 from core.utils import now_brazil_naive
 
 
@@ -60,20 +61,22 @@ class SLACalculator:
         start: datetime,
         end: datetime,
         db: Session,
-        historicos_cache: dict | None = None
+        historicos_cache: dict | None = None,
+        pausas: list[dict] | None = None
     ) -> float:
         """
-        Calcula horas de NEGÓCIO excluindo períodos em "Em análise".
+        Calcula horas de NEGÓCIO excluindo períodos em pausas (SLAPausa).
 
         Lógica:
         1. Calcula horas de negócio total (start até end)
-        2. Identifica períodos onde status = "Em análise"
-        3. Subtrai horas em "Em análise" do total
+        2. Identifica períodos de pausa no intervalo
+        3. Subtrai horas de pausa do total
 
-        Parâmetro historicos_cache: dict {chamado_id: [historicos]}
-        Se fornecido, evita queries ao banco (otimização para bulk)
+        Parâmetros:
+        - pausas: lista de dicts {pausado_em, retomado_em, motivo, ativa}
+                 Se fornecido, evita queries ao banco
 
-        Retorna: horas de negócio SEM contar pausa
+        Retorna: horas de negócio SEM contar pausas
         """
         if start >= end:
             return 0.0
@@ -81,44 +84,56 @@ class SLACalculator:
         # 1. Calcula tempo total em horas de negócio
         tempo_total = SLACalculator.calculate_business_hours(start, end, db)
 
-        # 2. Busca períodos em "Em análise"
-        from ti.models.historico_status import HistoricoStatus
+        # 2. Busca períodos de pausa
+        pausas_no_intervalo = []
 
-        if historicos_cache and chamado_id in historicos_cache:
-            # Usa cache se disponível (bulk operation)
-            historicos_analise = [
-                h for h in historicos_cache[chamado_id]
-                if h.status.lower() in ["em análise", "em analise"]
-                and h.data_inicio and h.data_fim
-                and h.data_inicio >= start
-                and h.data_fim <= end
-            ]
+        if pausas is not None:
+            # Usa pausas fornecidas (otimização para bulk)
+            for p in pausas:
+                if not (p.get("pausado_em") and p.get("retomado_em")):
+                    continue
+                pausa_inicio = p["pausado_em"]
+                pausa_fim = p["retomado_em"]
+
+                # Verifica se a pausa se sobrepõe com o intervalo
+                if pausa_fim > start and pausa_inicio < end:
+                    pausas_no_intervalo.append({
+                        "pausado_em": max(pausa_inicio, start),
+                        "retomado_em": min(pausa_fim, end)
+                    })
         else:
             # Query ao banco (operação individual)
-            historicos_analise = db.query(HistoricoStatus).filter(
-                and_(
-                    HistoricoStatus.chamado_id == chamado_id,
-                    HistoricoStatus.status.in_(["Em análise", "Em Análise"]),
-                    HistoricoStatus.data_inicio.isnot(None),
-                    HistoricoStatus.data_fim.isnot(None),
-                    HistoricoStatus.data_inicio >= start,
-                    HistoricoStatus.data_fim <= end,
-                )
-            ).all()
+            try:
+                pausas_db = db.query(SLAPausa).filter(
+                    and_(
+                        SLAPausa.chamado_id == chamado_id,
+                        SLAPausa.pausado_em < end,
+                        SLAPausa.retomado_em.isnot(None),
+                        SLAPausa.retomado_em > start
+                    )
+                ).all()
 
-        # 3. Subtrai horas em "Em análise"
-        tempo_analise_total = 0.0
-        for hist in historicos_analise:
-            if hist.data_inicio and hist.data_fim:
-                tempo_analise = SLACalculator.calculate_business_hours(
-                    hist.data_inicio,
-                    hist.data_fim,
-                    db
-                )
-                tempo_analise_total += tempo_analise
+                for p in pausas_db:
+                    pausas_no_intervalo.append({
+                        "pausado_em": max(p.pausado_em, start),
+                        "retomado_em": min(p.retomado_em, end)
+                    })
+            except Exception:
+                # Se falhar na query, continua sem descontar pausas
+                pass
+
+        # 3. Subtrai horas em pausa
+        tempo_pausa_total = 0.0
+        for pausa in pausas_no_intervalo:
+            tempo_pausa = SLACalculator.calculate_business_hours(
+                pausa["pausado_em"],
+                pausa["retomado_em"],
+                db
+            )
+            tempo_pausa_total += tempo_pausa
 
         # Retorna tempo total menos pausa
-        tempo_sla = tempo_total - tempo_analise_total
+        tempo_sla = tempo_total - tempo_pausa_total
         return max(0, tempo_sla)  # Nunca negativo
 
     @staticmethod
@@ -317,16 +332,19 @@ class SLACalculator:
         data_conclusao = chamado.data_conclusao
         resolucao_metric = None
 
-        # Desconta tempo em "Em análise" para chamados não pausados
+        # Busca pausas do banco para usar nos cálculos
+        pausas = SLAPausaManager.get_pausas_para_calculo(db, chamado.id)
+
+        # Desconta tempo em pausas para todos os chamados
         if chamado.status not in SLAStatusDeterminer.PAUSED_STATUSES:
             data_final = data_conclusao if data_conclusao else agora
             tempo_resolucao_horas = SLACalculator.calculate_business_hours_excluding_paused(
-                chamado.id, data_abertura, data_final, db
+                chamado.id, data_abertura, data_final, db, pausas=pausas
             )
         else:
             # Pausado: não conta tempo desde abertura até agora
             tempo_resolucao_horas = SLACalculator.calculate_business_hours_excluding_paused(
-                chamado.id, data_abertura, agora, db
+                chamado.id, data_abertura, agora, db, pausas=pausas
             )
 
         resolucao_status = SLAStatusDeterminer.determine_status(
@@ -401,6 +419,309 @@ class SLACalculator:
             db.commit()
             db.refresh(historico)
             return historico
+        except Exception as e:
+            db.rollback()
+            raise e
+
+    @staticmethod
+    def get_chamados_with_pausas(
+        db: Session,
+        data_inicio: datetime,
+        data_fim: datetime,
+        prioridade: str | None = None,
+        limit: int = 1000
+    ) -> list[Chamado]:
+        """
+        Retorna chamados com pausas carregadas em uma única query (eager loading).
+        Evita N+1 query problem.
+
+        Args:
+            db: Sessão do banco
+            data_inicio: Data de início do período
+            data_fim: Data de fim do período
+            prioridade: Filtro opcional por prioridade
+            limit: Limite de registros (padrão 1000)
+
+        Returns:
+            Lista de Chamado com pausas_sla já carregadas na memória
+        """
+        try:
+            query = db.query(Chamado).options(
+                joinedload(Chamado.pausas_sla)
+            ).filter(
+                and_(
+                    Chamado.data_abertura >= data_inicio,
+                    Chamado.data_abertura <= data_fim
+                )
+            )
+
+            if prioridade:
+                query = query.filter(Chamado.prioridade == prioridade)
+
+            return query.order_by(desc(Chamado.data_abertura)).limit(limit).all()
+        except Exception as e:
+            import logging
+            logging.error(f"[SLA] Erro ao buscar chamados com pausas: {e}")
+            return []
+
+
+# ===== CACHE GLOBAL DE FERIADOS =====
+_feriados_cache = None
+_cache_timestamp = None
+CACHE_TTL = timedelta(hours=1)
+
+
+def get_feriados_cached(db: Session, force_refresh: bool = False) -> list:
+    """
+    Retorna feriados com cache.
+    Evita recarregar feriados do banco a cada request.
+
+    Args:
+        db: Sessão do banco
+        force_refresh: Se True, força atualizar o cache
+
+    Returns:
+        Lista de feriados no período (passado + futuro)
+    """
+    global _feriados_cache, _cache_timestamp
+
+    now = now_brazil_naive()
+
+    # Verifica se cache é válido
+    if (not force_refresh and
+        _feriados_cache is not None and
+        _cache_timestamp is not None and
+        now - _cache_timestamp < CACHE_TTL):
+        return _feriados_cache
+
+    # Atualiza cache - busca feriados do ano anterior até próximo ano
+    from ti.models.sla_config import SLAFeriado
+
+    try:
+        feriados = db.query(SLAFeriado).filter(
+            SLAFeriado.ativo
+        ).order_by(SLAFeriado.data).all()
+
+        _feriados_cache = [f.data for f in feriados]  # Armazena apenas as datas
+        _cache_timestamp = now
+
+        import logging
+        logging.info(f"[SLA] Cache de feriados atualizado: {len(_feriados_cache)} feriados")
+
+        return _feriados_cache
+    except Exception as e:
+        import logging
+        logging.error(f"[SLA] Erro ao carregar feriados em cache: {e}")
+        return _feriados_cache or []  # Retorna cache antigo se houver erro
+
+
+def invalidar_cache_feriados():
+    """Invalida o cache de feriados"""
+    global _feriados_cache, _cache_timestamp
+    _feriados_cache = None
+    _cache_timestamp = None
+    import logging
+    logging.info("[SLA] Cache de feriados invalidado")
+
+
+# ===== MÉTODOS CRUD DE PAUSA SLA =====
+class SLAPausaManager:
+    """Gerenciador de pausas SLA"""
+
+    @staticmethod
+    def criar_pausa(
+        db: Session,
+        chamado_id: int,
+        motivo: str | None = "Em análise"
+    ) -> SLAPausa:
+        """
+        Cria uma nova pausa SLA para um chamado.
+        """
+        try:
+            pausa = SLAPausa(
+                chamado_id=chamado_id,
+                pausado_em=now_brazil_naive(),
+                motivo=motivo,
+                ativa=True,
+                criado_em=now_brazil_naive(),
+                atualizado_em=now_brazil_naive(),
+            )
+            db.add(pausa)
+            db.commit()
+            db.refresh(pausa)
+            return pausa
+        except Exception as e:
+            db.rollback()
+            raise e
+
+    @staticmethod
+    def finalizar_pausa(db: Session, pausa_id: int) -> bool:
+        """
+        Finaliza uma pausa SLA (marca como inativa e define retomado_em).
+        """
+        try:
+            pausa = db.query(SLAPausa).filter(SLAPausa.id == pausa_id).first()
+            if pausa and pausa.ativa:
+                pausa.retomado_em = now_brazil_naive()
+                pausa.ativa = False
+                pausa.atualizado_em = now_brazil_naive()
+                db.commit()
+                db.refresh(pausa)
+                return True
+            return False
+        except Exception as e:
+            db.rollback()
+            raise e
+
+    @staticmethod
+    def finalizar_pausas_ativas_chamado(db: Session, chamado_id: int) -> int:
+        """
+        Finaliza todas as pausas ativas de um chamado.
+        Retorna a quantidade de pausas finalizadas.
+        """
+        try:
+            pausas_ativas = db.query(SLAPausa).filter(
+                and_(
+                    SLAPausa.chamado_id == chamado_id,
+                    SLAPausa.ativa
+                )
+            ).all()
+
+            count = 0
+            agora = now_brazil_naive()
+            for pausa in pausas_ativas:
+                pausa.retomado_em = agora
+                pausa.ativa = False
+                pausa.atualizado_em = agora
+                count += 1
+
+            if count > 0:
+                db.commit()
+            return count
+        except Exception as e:
+            db.rollback()
+            raise e
+
+    @staticmethod
+    def get_pausas_ativas_chamado(db: Session, chamado_id: int) -> list[SLAPausa]:
+        """
+        Retorna todas as pausas ativas de um chamado.
+        """
+        try:
+            return db.query(SLAPausa).filter(
+                and_(
+                    SLAPausa.chamado_id == chamado_id,
+                    SLAPausa.ativa
+                )
+            ).all()
+        except Exception:
+            return []
+
+    @staticmethod
+    def get_pausas_chamado(db: Session, chamado_id: int) -> list[SLAPausa]:
+        """
+        Retorna todas as pausas de um chamado (ativas e inativas),
+        ordenadas pela mais recente primeiro.
+        """
+        try:
+            return db.query(SLAPausa).filter(
+                SLAPausa.chamado_id == chamado_id
+            ).order_by(SLAPausa.pausado_em.desc()).all()
+        except Exception:
+            return []
+
+    @staticmethod
+    def get_pausas_para_calculo(db: Session, chamado_id: int) -> list[dict]:
+        """
+        Retorna pausas no formato esperado pelo calculator.
+        Cada pausa é um dicionário com: pausado_em, retomado_em, motivo, ativa.
+        """
+        try:
+            pausas = SLAPausaManager.get_pausas_chamado(db, chamado_id)
+            resultado = []
+            agora = now_brazil_naive()
+
+            for p in pausas:
+                resultado.append({
+                    "pausado_em": p.pausado_em,
+                    "retomado_em": p.retomado_em or (agora if p.ativa else None),
+                    "motivo": p.motivo,
+                    "ativa": p.ativa
+                })
+            return resultado
+        except Exception:
+            return []
+
+    @staticmethod
+    def _is_paused_status(status: str) -> bool:
+        """
+        Verifica se um status é considerado 'pausado' (aguardando resposta do cliente).
+        """
+        paused_statuses = ["Em análise", "Aguardando"]
+        return status in paused_statuses
+
+    @staticmethod
+    def registrar_mudanca_status(
+        db: Session,
+        chamado_id: int,
+        status_anterior: str,
+        status_novo: str,
+        usuario_id: int | None = None
+    ) -> dict:
+        """
+        Registra mudança de status e gerencia pausas SLA.
+
+        Lógica:
+        - Se vai para status pausado: criar pausa
+        - Se sai de status pausado: finalizar pausas ativas
+        - Recalcular SLA imediatamente
+        - Retornar resposta com info de pausa criada/finalizada
+
+        Retorna: {
+            "chamado_id": int,
+            "status_anterior": str,
+            "status_novo": str,
+            "acao_sla": str | None,  # "pausado" ou "retomado"
+            "pausa_id": int | None,  # ID da pausa criada (se pausado)
+            "pausas_finalizadas": int,  # Quantidade de pausas finalizadas (se retomado)
+            "mensagem": str
+        }
+        """
+        try:
+            acao = None
+            pausa_id = None
+            pausas_finalizadas = 0
+
+            era_pausado = SLAPausaManager._is_paused_status(status_anterior)
+            vai_pausar = SLAPausaManager._is_paused_status(status_novo)
+
+            # Se vai para status pausado (e não estava pausado)
+            if vai_pausar and not era_pausado:
+                pausa = SLAPausaManager.criar_pausa(
+                    db,
+                    chamado_id,
+                    motivo=status_novo
+                )
+                pausa_id = pausa.id
+                acao = "pausado"
+
+            # Se sai de status pausado (e estava pausado)
+            elif era_pausado and not vai_pausar:
+                pausas_finalizadas = SLAPausaManager.finalizar_pausas_ativas_chamado(db, chamado_id)
+                if pausas_finalizadas > 0:
+                    acao = "retomado"
+
+            # Retorna resposta padronizada
+            return {
+                "chamado_id": chamado_id,
+                "status_anterior": status_anterior,
+                "status_novo": status_novo,
+                "acao_sla": acao,
+                "pausa_id": pausa_id,
+                "pausas_finalizadas": pausas_finalizadas,
+                "mensagem": f"SLA {acao}" if acao else "Status atualizado"
+            }
+
         except Exception as e:
             db.rollback()
             raise e
