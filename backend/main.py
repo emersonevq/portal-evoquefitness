@@ -16,7 +16,6 @@ from ti.api.usuarios import router as usuarios_router
 from ti.api.dashboard_permissions import router as dashboard_permissions_router
 from auth0.routes import router as auth0_router
 from core.realtime import mount_socketio
-from modules.sla import sla_router, start_scheduler, stop_scheduler
 import json
 from typing import Any, List, Dict
 import uuid
@@ -58,24 +57,6 @@ try:
 except Exception as e:
     print(f"⚠️  Erro ao criar tabela metrics_cache_db: {e}")
 
-# Criar tabelas do módulo SLA na inicialização
-try:
-    from modules.sla.setup_sla_tables import create_sla_tables
-    if create_sla_tables():
-        print("✅ Tabelas SLA criadas/verificadas com sucesso")
-    else:
-        print("⚠️  Erro ao criar tabelas SLA")
-except Exception as e:
-    print(f"⚠️  Erro ao criar tabelas SLA: {e}")
-
-# Executar migração de colunas faltantes SLA
-try:
-    from modules.sla.migrate_add_timestamps import migrate_add_timestamps, cleanup_historico_status
-    migrate_add_timestamps()
-    cleanup_historico_status()
-    print("✅ Colunas SLA verificadas/criadas com sucesso")
-except Exception as e:
-    print(f"⚠️  Erro ao migrar colunas SLA: {e}")
 
 # Executar migração do historico_status na inicialização
 try:
