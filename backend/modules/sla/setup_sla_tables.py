@@ -1,11 +1,11 @@
-"""Script para criar tabelas SLA no banco de dados"""
+"""Script para criar e inicializar tabelas SLA no banco de dados"""
 
 from sqlalchemy.orm import Session
 from core.db import engine, SessionLocal
 from .models import SlaConfiguration, SlaFeriado, SlaBusinessHours, SlaCalculationLog, SlaPausa
 import logging
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("sla.setup")
 
 
 def create_sla_tables():
@@ -25,6 +25,7 @@ def create_sla_tables():
         try:
             config_count = db.query(SlaConfiguration).count()
             if config_count == 0:
+                logger.info("[SLA] Criando configurações padrão...")
                 db.add(SlaConfiguration(
                     prioridade="alta",
                     tempo_resposta_horas=2,
@@ -53,5 +54,12 @@ def create_sla_tables():
         
         return True
     except Exception as e:
-        logger.error(f"[SLA] Erro ao criar tabelas: {e}")
+        logger.error(f"[SLA] Erro ao criar tabelas: {e}", exc_info=True)
         return False
+
+
+if __name__ == "__main__":
+    import logging
+    logging.basicConfig(level=logging.INFO)
+    create_sla_tables()
+    print("Setup SLA concluído!")
