@@ -83,9 +83,9 @@ class SlaPausa(Base):
         Index("idx_sla_pausa_ativa", "chamado_id", "ativa"),
         {'extend_existing': True}
     )
-    
+
     id = Column(Integer, primary_key=True, index=True)
-    chamado_id = Column(Integer, nullable=False, index=True)
+    chamado_id = Column(Integer, ForeignKey("chamado.id", ondelete="CASCADE"), nullable=False, index=True)
     pausado_em = Column(DateTime, nullable=False, default=datetime.now)
     retomado_em = Column(DateTime, nullable=True)
     motivo = Column(String(100), default="Em análise")
