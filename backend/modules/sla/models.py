@@ -31,7 +31,8 @@ class SlaConfiguration(Base):
 class SlaFeriado(Base):
     """Feriados que não contam no SLA"""
     __tablename__ = "sla_feriados"
-    
+    __table_args__ = {'extend_existing': True}
+
     id = Column(Integer, primary_key=True, index=True)
     data = Column(DateTime, nullable=False, unique=True)
     nome = Column(String(100), nullable=False)
