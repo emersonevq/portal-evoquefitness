@@ -1,8 +1,12 @@
-import React, { useEffect, useState } from 'react';
-import { slaService, SlaMetrics, SlaDashboard as ISlaDashboard } from '../../services/slaService';
-import { SlaMetricsCard } from './SlaMetricsCard';
-import { SlaAlertsList } from './SlaAlertsList';
-import { RefreshCw, AlertTriangle } from 'lucide-react';
+import React, { useEffect, useState } from "react";
+import {
+  slaService,
+  SlaMetrics,
+  SlaDashboard as ISlaDashboard,
+} from "../../services/slaService";
+import { SlaMetricsCard } from "./SlaMetricsCard";
+import { SlaAlertsList } from "./SlaAlertsList";
+import { RefreshCw, AlertTriangle } from "lucide-react";
 
 export const SlaDashboard: React.FC = () => {
   const [metrics, setMetrics] = useState<SlaMetrics | null>(null);
@@ -25,8 +29,8 @@ export const SlaDashboard: React.FC = () => {
       setDashboard(dashboardData);
       setLastUpdate(new Date());
     } catch (err) {
-      console.error('Erro ao carregar dados SLA:', err);
-      setError('Erro ao carregar dados de SLA');
+      console.error("Erro ao carregar dados SLA:", err);
+      setError("Erro ao carregar dados de SLA");
     } finally {
       setLoading(false);
     }
@@ -88,11 +92,12 @@ export const SlaDashboard: React.FC = () => {
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Dashboard SLA</h1>
           <p className="text-gray-600 text-sm mt-1">
-            {dashboard && `Período: ${new Date(dashboard.periodo_inicio).toLocaleDateString('pt-BR')} a ${new Date(dashboard.periodo_fim).toLocaleDateString('pt-BR')}`}
+            {dashboard &&
+              `Período: ${new Date(dashboard.periodo_inicio).toLocaleDateString("pt-BR")} a ${new Date(dashboard.periodo_fim).toLocaleDateString("pt-BR")}`}
           </p>
           {lastUpdate && (
             <p className="text-gray-500 text-xs mt-1">
-              Atualizado em {lastUpdate.toLocaleTimeString('pt-BR')}
+              Atualizado em {lastUpdate.toLocaleTimeString("pt-BR")}
             </p>
           )}
         </div>
@@ -109,28 +114,39 @@ export const SlaDashboard: React.FC = () => {
       {dashboard && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="bg-white rounded-lg shadow p-4">
-            <div className="text-gray-600 text-sm font-medium">Total de Chamados</div>
-            <div className="text-3xl font-bold text-gray-900 mt-1">{dashboard.total_chamados}</div>
+            <div className="text-gray-600 text-sm font-medium">
+              Total de Chamados
+            </div>
+            <div className="text-3xl font-bold text-gray-900 mt-1">
+              {dashboard.total_chamados}
+            </div>
             <div className="text-xs text-gray-500 mt-2">
-              {dashboard.total_chamados_ativos} ativos, {dashboard.total_chamados_concluidos} concluídos
+              {dashboard.total_chamados_ativos} ativos,{" "}
+              {dashboard.total_chamados_concluidos} concluídos
             </div>
           </div>
 
           <div className="bg-white rounded-lg shadow p-4">
             <div className="text-gray-600 text-sm font-medium">Em Risco</div>
-            <div className="text-3xl font-bold text-yellow-600 mt-1">{dashboard.chamados_em_risco}</div>
+            <div className="text-3xl font-bold text-yellow-600 mt-1">
+              {dashboard.chamados_em_risco}
+            </div>
             <div className="text-xs text-gray-500 mt-2">Atenção necessária</div>
           </div>
 
           <div className="bg-white rounded-lg shadow p-4">
             <div className="text-gray-600 text-sm font-medium">Vencidos</div>
-            <div className="text-3xl font-bold text-red-600 mt-1">{dashboard.chamados_vencidos}</div>
+            <div className="text-3xl font-bold text-red-600 mt-1">
+              {dashboard.chamados_vencidos}
+            </div>
             <div className="text-xs text-gray-500 mt-2">SLA vencido</div>
           </div>
 
           <div className="bg-white rounded-lg shadow p-4">
             <div className="text-gray-600 text-sm font-medium">Pausados</div>
-            <div className="text-3xl font-bold text-blue-600 mt-1">{dashboard.chamados_pausados}</div>
+            <div className="text-3xl font-bold text-blue-600 mt-1">
+              {dashboard.chamados_pausados}
+            </div>
             <div className="text-xs text-gray-500 mt-2">Aguardando análise</div>
           </div>
         </div>
@@ -178,7 +194,8 @@ export const SlaDashboard: React.FC = () => {
       {/* Footer */}
       {dashboard?.proximo_recalculo && (
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-800">
-          Próximo cálculo automático: {new Date(dashboard.proximo_recalculo).toLocaleTimeString('pt-BR')}
+          Próximo cálculo automático:{" "}
+          {new Date(dashboard.proximo_recalculo).toLocaleTimeString("pt-BR")}
         </div>
       )}
     </div>

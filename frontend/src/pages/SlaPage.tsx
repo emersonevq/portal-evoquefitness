@@ -1,5 +1,5 @@
-import React from 'react';
-import { SlaDashboard } from '../components/sla';
+import React from "react";
+import { SlaDashboard } from "../components/sla";
 
 export const SlaPage: React.FC = () => {
   return (

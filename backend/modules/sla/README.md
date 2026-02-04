@@ -11,13 +11,14 @@ Sistema completo de Service Level Agreement para gerenciamento de chamados com c
 ✅ Recálculo automático a cada 5 minutos  
 ✅ Cache de feriados e configurações  
 ✅ Persistência completa de pausas no banco de dados  
-✅ Logs detalhados de todos os cálculos  
+✅ Logs detalhados de todos os cálculos
 
 ## Instalação
 
 ### 1. Backend
 
 As dependências já foram adicionadas ao `requirements.txt`:
+
 - apscheduler==3.10.4
 
 As tabelas serão criadas automaticamente na inicialização da aplicação.
@@ -25,6 +26,7 @@ As tabelas serão criadas automaticamente na inicialização da aplicação.
 ### 2. Frontend
 
 Os componentes React já foram criados em `src/components/sla/`:
+
 - `SlaDashboard.tsx` - Dashboard principal
 - `SlaMetricsCard.tsx` - Card de métricas
 - `SlaAlertsList.tsx` - Lista de alertas
@@ -44,6 +46,7 @@ BUSINESS_DAYS: List[int] = [0, 1, 2, 3, 4]  # Dias úteis (seg-sex)
 ### SLA por Prioridade
 
 As configurações padrão são criadas automaticamente:
+
 - **Alta**: Resposta 2h, Resolução 8h
 - **Média**: Resposta 4h, Resolução 24h
 - **Baixa**: Resposta 8h, Resolução 48h
@@ -139,20 +142,20 @@ POST /api/sla/cache/invalidar
 
 ## Status do Chamado e SLA
 
-| Status | SLA |
-|--------|-----|
-| Aberto | ✅ Conta |
-| Em andamento | ✅ Conta |
-| Em análise | ⏸️ Pausado |
-| Concluído | ⏹️ Finalizado |
-| Cancelado | ⏹️ Finalizado |
+| Status       | SLA           |
+| ------------ | ------------- |
+| Aberto       | ✅ Conta      |
+| Em andamento | ✅ Conta      |
+| Em análise   | ⏸️ Pausado    |
+| Concluído    | ⏹️ Finalizado |
+| Cancelado    | ⏹️ Finalizado |
 
 ## Integração com Frontend
 
 ### 1. Importar Componente
 
 ```tsx
-import { SlaDashboard } from '@/components/sla';
+import { SlaDashboard } from "@/components/sla";
 
 export default function Page() {
   return <SlaDashboard />;
@@ -162,7 +165,7 @@ export default function Page() {
 ### 2. Usar Serviço
 
 ```tsx
-import { slaService } from '@/services/slaService';
+import { slaService } from "@/services/slaService";
 
 // Obter resumo
 const metrics = await slaService.getDashboardResumo();
