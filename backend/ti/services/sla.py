@@ -5,6 +5,7 @@ from sqlalchemy import and_, or_
 from ti.models.sla_config import SLAConfiguration, SLABusinessHours, HistoricoSLA
 from ti.models.historico_status import HistoricoStatus
 from ti.models.chamado import Chamado
+from ti.models.sla_pausa import SLAPausa
 from core.utils import now_brazil_naive
 
 
