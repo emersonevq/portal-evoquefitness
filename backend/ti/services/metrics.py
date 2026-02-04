@@ -3,8 +3,6 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func, and_, or_
 from ti.models.chamado import Chamado
 from ti.models.historico_status import HistoricoStatus
-from ti.models.sla_config import HistoricoSLA, SLAConfiguration
-from ti.services.sla_cache import SLACacheManager
 from core.utils import now_brazil_naive
 import threading
 
