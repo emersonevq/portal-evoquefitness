@@ -465,6 +465,65 @@ class SLACalculator:
             return []
 
 
+# ===== CACHE GLOBAL DE FERIADOS =====
+_feriados_cache = None
+_cache_timestamp = None
+CACHE_TTL = timedelta(hours=1)
+
+
+def get_feriados_cached(db: Session, force_refresh: bool = False) -> list:
+    """
+    Retorna feriados com cache.
+    Evita recarregar feriados do banco a cada request.
+
+    Args:
+        db: Sessão do banco
+        force_refresh: Se True, força atualizar o cache
+
+    Returns:
+        Lista de feriados no período (passado + futuro)
+    """
+    global _feriados_cache, _cache_timestamp
+
+    now = now_brazil_naive()
+
+    # Verifica se cache é válido
+    if (not force_refresh and
+        _feriados_cache is not None and
+        _cache_timestamp is not None and
+        now - _cache_timestamp < CACHE_TTL):
+        return _feriados_cache
+
+    # Atualiza cache - busca feriados do ano anterior até próximo ano
+    from ti.models.sla_config import SLAFeriado
+
+    try:
+        feriados = db.query(SLAFeriado).filter(
+            SLAFeriado.ativo
+        ).order_by(SLAFeriado.data).all()
+
+        _feriados_cache = [f.data for f in feriados]  # Armazena apenas as datas
+        _cache_timestamp = now
+
+        import logging
+        logging.info(f"[SLA] Cache de feriados atualizado: {len(_feriados_cache)} feriados")
+
+        return _feriados_cache
+    except Exception as e:
+        import logging
+        logging.error(f"[SLA] Erro ao carregar feriados em cache: {e}")
+        return _feriados_cache or []  # Retorna cache antigo se houver erro
+
+
+def invalidar_cache_feriados():
+    """Invalida o cache de feriados"""
+    global _feriados_cache, _cache_timestamp
+    _feriados_cache = None
+    _cache_timestamp = None
+    import logging
+    logging.info("[SLA] Cache de feriados invalidado")
+
+
 # ===== MÉTODOS CRUD DE PAUSA SLA =====
 class SLAPausaManager:
     """Gerenciador de pausas SLA"""
