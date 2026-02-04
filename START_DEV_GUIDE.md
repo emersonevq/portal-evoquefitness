@@ -46,6 +46,7 @@ start-dev.bat
 ### Passo 2: Janelas separadas
 
 O script abrirá duas janelas do terminal:
+
 - Uma para o **Backend** (porta 3001)
 - Uma para o **Frontend** (porta 3005)
 
@@ -94,6 +95,7 @@ VITE_PROXY_TARGET=http://127.0.0.1:3001
 ```
 
 Se você precisar customizar:
+
 - Edite o arquivo `.env` na raiz do projeto
 - Reinicie os servidores
 
@@ -112,12 +114,14 @@ Address already in use
 **Solução**: Mude a porta nos scripts ou mate o processo usando a porta:
 
 **Linux/macOS**:
+
 ```bash
 lsof -ti:3001 | xargs kill -9  # Backend
 lsof -ti:3005 | xargs kill -9  # Frontend
 ```
 
 **Windows**:
+
 ```cmd
 netstat -ano | findstr :3001
 taskkill /PID <PID> /F
@@ -126,6 +130,7 @@ taskkill /PID <PID> /F
 ### Backend não inicializa
 
 Verifique se está na pasta correta:
+
 ```bash
 cd backend
 pip install -r requirements.txt  # Instalar dependências se necessário
@@ -134,6 +139,7 @@ pip install -r requirements.txt  # Instalar dependências se necessário
 ### Frontend não inicializa
 
 Verifique as dependências:
+
 ```bash
 cd frontend
 npm install  # Reinstalar packages
