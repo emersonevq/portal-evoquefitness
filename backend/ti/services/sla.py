@@ -61,20 +61,22 @@ class SLACalculator:
         start: datetime,
         end: datetime,
         db: Session,
-        historicos_cache: dict | None = None
+        historicos_cache: dict | None = None,
+        pausas: list[dict] | None = None
     ) -> float:
         """
-        Calcula horas de NEGÓCIO excluindo períodos em "Em análise".
+        Calcula horas de NEGÓCIO excluindo períodos em pausas (SLAPausa).
 
         Lógica:
         1. Calcula horas de negócio total (start até end)
-        2. Identifica períodos onde status = "Em análise"
-        3. Subtrai horas em "Em análise" do total
+        2. Identifica períodos de pausa no intervalo
+        3. Subtrai horas de pausa do total
 
-        Parâmetro historicos_cache: dict {chamado_id: [historicos]}
-        Se fornecido, evita queries ao banco (otimização para bulk)
+        Parâmetros:
+        - pausas: lista de dicts {pausado_em, retomado_em, motivo, ativa}
+                 Se fornecido, evita queries ao banco
 
-        Retorna: horas de negócio SEM contar pausa
+        Retorna: horas de negócio SEM contar pausas
         """
         if start >= end:
             return 0.0
@@ -82,44 +84,56 @@ class SLACalculator:
         # 1. Calcula tempo total em horas de negócio
         tempo_total = SLACalculator.calculate_business_hours(start, end, db)
 
-        # 2. Busca períodos em "Em análise"
-        from ti.models.historico_status import HistoricoStatus
+        # 2. Busca períodos de pausa
+        pausas_no_intervalo = []
 
-        if historicos_cache and chamado_id in historicos_cache:
-            # Usa cache se disponível (bulk operation)
-            historicos_analise = [
-                h for h in historicos_cache[chamado_id]
-                if h.status.lower() in ["em análise", "em analise"]
-                and h.data_inicio and h.data_fim
-                and h.data_inicio >= start
-                and h.data_fim <= end
-            ]
+        if pausas is not None:
+            # Usa pausas fornecidas (otimização para bulk)
+            for p in pausas:
+                if not (p.get("pausado_em") and p.get("retomado_em")):
+                    continue
+                pausa_inicio = p["pausado_em"]
+                pausa_fim = p["retomado_em"]
+
+                # Verifica se a pausa se sobrepõe com o intervalo
+                if pausa_fim > start and pausa_inicio < end:
+                    pausas_no_intervalo.append({
+                        "pausado_em": max(pausa_inicio, start),
+                        "retomado_em": min(pausa_fim, end)
+                    })
         else:
             # Query ao banco (operação individual)
-            historicos_analise = db.query(HistoricoStatus).filter(
-                and_(
-                    HistoricoStatus.chamado_id == chamado_id,
-                    HistoricoStatus.status.in_(["Em análise", "Em Análise"]),
-                    HistoricoStatus.data_inicio.isnot(None),
-                    HistoricoStatus.data_fim.isnot(None),
-                    HistoricoStatus.data_inicio >= start,
-                    HistoricoStatus.data_fim <= end,
-                )
-            ).all()
+            try:
+                pausas_db = db.query(SLAPausa).filter(
+                    and_(
+                        SLAPausa.chamado_id == chamado_id,
+                        SLAPausa.pausado_em < end,
+                        SLAPausa.retomado_em.isnot(None),
+                        SLAPausa.retomado_em > start
+                    )
+                ).all()
 
-        # 3. Subtrai horas em "Em análise"
-        tempo_analise_total = 0.0
-        for hist in historicos_analise:
-            if hist.data_inicio and hist.data_fim:
-                tempo_analise = SLACalculator.calculate_business_hours(
-                    hist.data_inicio,
-                    hist.data_fim,
-                    db
-                )
-                tempo_analise_total += tempo_analise
+                for p in pausas_db:
+                    pausas_no_intervalo.append({
+                        "pausado_em": max(p.pausado_em, start),
+                        "retomado_em": min(p.retomado_em, end)
+                    })
+            except Exception:
+                # Se falhar na query, continua sem descontar pausas
+                pass
+
+        # 3. Subtrai horas em pausa
+        tempo_pausa_total = 0.0
+        for pausa in pausas_no_intervalo:
+            tempo_pausa = SLACalculator.calculate_business_hours(
+                pausa["pausado_em"],
+                pausa["retomado_em"],
+                db
+            )
+            tempo_pausa_total += tempo_pausa
 
         # Retorna tempo total menos pausa
-        tempo_sla = tempo_total - tempo_analise_total
+        tempo_sla = tempo_total - tempo_pausa_total
         return max(0, tempo_sla)  # Nunca negativo
 
     @staticmethod
