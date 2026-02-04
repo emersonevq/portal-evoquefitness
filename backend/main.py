@@ -474,3 +474,10 @@ async def startup_event():
         print(f"[STARTUP] ✓ Event loop registered for Socket.IO: {loop}")
     except Exception as e:
         print(f"[STARTUP] ⚠️  Failed to register event loop: {e}")
+
+    # Start SLA Scheduler
+    try:
+        start_scheduler()
+        print("[STARTUP] ✓ SLA Scheduler iniciado com sucesso")
+    except Exception as e:
+        print(f"[STARTUP] ⚠️  Erro ao iniciar SLA Scheduler: {e}")
