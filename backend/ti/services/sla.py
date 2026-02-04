@@ -534,3 +534,77 @@ class SLAPausaManager:
             return resultado
         except Exception:
             return []
+
+    @staticmethod
+    def _is_paused_status(status: str) -> bool:
+        """
+        Verifica se um status é considerado 'pausado' (aguardando resposta do cliente).
+        """
+        paused_statuses = ["Em análise", "Aguardando"]
+        return status in paused_statuses
+
+    @staticmethod
+    def registrar_mudanca_status(
+        db: Session,
+        chamado_id: int,
+        status_anterior: str,
+        status_novo: str,
+        usuario_id: int | None = None
+    ) -> dict:
+        """
+        Registra mudança de status e gerencia pausas SLA.
+
+        Lógica:
+        - Se vai para status pausado: criar pausa
+        - Se sai de status pausado: finalizar pausas ativas
+        - Recalcular SLA imediatamente
+        - Retornar resposta com info de pausa criada/finalizada
+
+        Retorna: {
+            "chamado_id": int,
+            "status_anterior": str,
+            "status_novo": str,
+            "acao_sla": str | None,  # "pausado" ou "retomado"
+            "pausa_id": int | None,  # ID da pausa criada (se pausado)
+            "pausas_finalizadas": int,  # Quantidade de pausas finalizadas (se retomado)
+            "mensagem": str
+        }
+        """
+        try:
+            acao = None
+            pausa_id = None
+            pausas_finalizadas = 0
+
+            era_pausado = SLAPausaManager._is_paused_status(status_anterior)
+            vai_pausar = SLAPausaManager._is_paused_status(status_novo)
+
+            # Se vai para status pausado (e não estava pausado)
+            if vai_pausar and not era_pausado:
+                pausa = SLAPausaManager.criar_pausa(
+                    db,
+                    chamado_id,
+                    motivo=status_novo
+                )
+                pausa_id = pausa.id
+                acao = "pausado"
+
+            # Se sai de status pausado (e estava pausado)
+            elif era_pausado and not vai_pausar:
+                pausas_finalizadas = SLAPausaManager.finalizar_pausas_ativas_chamado(db, chamado_id)
+                if pausas_finalizadas > 0:
+                    acao = "retomado"
+
+            # Retorna resposta padronizada
+            return {
+                "chamado_id": chamado_id,
+                "status_anterior": status_anterior,
+                "status_novo": status_novo,
+                "acao_sla": acao,
+                "pausa_id": pausa_id,
+                "pausas_finalizadas": pausas_finalizadas,
+                "mensagem": f"SLA {acao}" if acao else "Status atualizado"
+            }
+
+        except Exception as e:
+            db.rollback()
+            raise e
