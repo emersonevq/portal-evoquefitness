@@ -38,9 +38,6 @@ import {
   Tooltip,
   XAxis,
   YAxis,
-  Pie,
-  PieChart,
-  Cell,
   Legend,
 } from "recharts";
 
@@ -105,8 +102,6 @@ function Metric({
     </div>
   );
 }
-
-const COLORS = ["#fa6400", "#334155"];
 
 const colorStyles = {
   orange: "bg-orange-500",
