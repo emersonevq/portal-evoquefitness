@@ -48,7 +48,8 @@ class SlaFeriado(Base):
 class SlaBusinessHours(Base):
     """Horário comercial por dia da semana"""
     __tablename__ = "sla_business_hours"
-    
+    __table_args__ = {'extend_existing': True}
+
     id = Column(Integer, primary_key=True, index=True)
     dia_semana = Column(Integer, nullable=False)
     hora_inicio = Column(String(5), nullable=False, default="08:00")
