@@ -1,42 +1,47 @@
-from pydantic_settings import BaseSettings
+"""Configurações do módulo SLA"""
+
 from typing import List
-import os
+from dataclasses import dataclass
 
-
-class Settings(BaseSettings):
-    """Configurações da aplicação SLA"""
-    
-    # Database (herda do main backend)
-    DATABASE_URL: str = os.getenv(
-        "DATABASE_URL",
-        "mysql+pymysql://root:@localhost:3306/evoque"
-    )
+@dataclass
+class SlaSettings:
+    """Configurações gerais do SLA"""
     
     # Horário comercial
-    BUSINESS_HOUR_START: int = 8
-    BUSINESS_HOUR_END: int = 18
-    BUSINESS_DAYS: List[int] = [0, 1, 2, 3, 4]  # 0=Segunda, 4=Sexta
+    BUSINESS_HOUR_START: int = 8          # Hora de início (08:00)
+    BUSINESS_HOUR_END: int = 18           # Hora de término (18:00)
+    BUSINESS_DAYS: List[int] = None       # Dias úteis (seg-sex): [0,1,2,3,4]
+    
+    # Cache
+    CACHE_TTL_MINUTES: int = 60           # TTL do cache em minutos
     
     # Scheduler
-    SLA_RECALC_INTERVAL_MINUTES: int = 5
-    SLA_CHECK_RISK_INTERVAL_MINUTES: int = 10
+    SCHEDULER_INTERVAL_MINUTES: int = 5   # Intervalo de recálculo
+    SCHEDULER_ENABLED: bool = True        # Ativar scheduler
     
-    # SLA Thresholds
-    SLA_RISCO_PERCENTUAL: int = 80
-
-    # SLA Period - Considera apenas chamados dos últimos N dias
-    SLA_CALCULO_DIAS_ATRAS: int = 30  # Recálculo automático considera últimos 30 dias
-
-    # Cache
-    CACHE_TTL_MINUTES: int = 60
-    
-    # API
-    API_PREFIX: str = "/api"
-    DEBUG: bool = False
-    
-    class Config:
-        env_file = ".env"
-        extra = "ignore"
+    def __post_init__(self):
+        if self.BUSINESS_DAYS is None:
+            self.BUSINESS_DAYS = [0, 1, 2, 3, 4]  # Segunda a sexta
 
 
-settings = Settings()
+# Instância global
+settings = SlaSettings()
+
+
+# Status mapeamento
+STATUS_SLA_MAPPING = {
+    "Aberto": "ativo",              # ✅ Conta
+    "Em andamento": "ativo",        # ✅ Conta  
+    "Em análise": "pausado",        # ⏸️ Pausado
+    "Concluído": "finalizado",      # ⏹️ Finalizado
+    "Cancelado": "finalizado",      # ⏹️ Finalizado
+}
+
+# Estados que contam para SLA
+SLA_COUNTING_STATUSES = ["Aberto", "Em andamento"]
+
+# Estados que pausam o SLA
+SLA_PAUSED_STATUSES = ["Em análise"]
+
+# Estados que finalizam o SLA
+SLA_FINISHED_STATUSES = ["Concluído", "Cancelado"]
