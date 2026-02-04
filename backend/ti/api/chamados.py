@@ -743,6 +743,13 @@ def atualizar_status(chamado_id: int, payload: ChamadoStatusUpdate, db: Session 
         db.commit()  # garante persistência do status antes dos logs
         db.refresh(ch)
 
+        # GERENCIAMENTO DE PAUSAS: Detecta transições e cria/finaliza pausas
+        try:
+            mudanca_resultado = SLAPausaManager.registrar_mudanca_status(db, chamado_id, prev, novo)
+        except Exception as e:
+            print(f"[SLA PAUSA] Erro ao registrar mudança de status: {e}")
+            mudanca_resultado = {}
+
         # DECREMENTAR CONTADOR DE HOJE SE CANCELADO
         if novo == "Cancelado" and prev != "Cancelado":
             from ti.services.cache_manager_incremental import ChamadosTodayCounter
