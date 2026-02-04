@@ -7,7 +7,6 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   Loader,
-  RefreshCw,
   Calendar,
   X,
 } from "lucide-react";
