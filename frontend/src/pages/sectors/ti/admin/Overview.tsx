@@ -213,6 +213,16 @@ export default function Overview() {
     gcTime: 60 * 60 * 1000,
   });
 
+  // Query para dados de SLA (últimos 30 dias)
+  const { data: slaData, isLoading: slaLoading } = useQuery({
+    queryKey: ["metrics-sla"],
+    queryFn: async () => {
+      return await slaService.getDashboard();
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutos
+    gcTime: 30 * 60 * 1000, // 30 minutos
+  });
+
   // Atualiza estado local quando dados do React Query chegam
   useEffect(() => {
     if (basicMetricsData) {
