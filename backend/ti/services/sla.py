@@ -423,6 +423,47 @@ class SLACalculator:
             db.rollback()
             raise e
 
+    @staticmethod
+    def get_chamados_with_pausas(
+        db: Session,
+        data_inicio: datetime,
+        data_fim: datetime,
+        prioridade: str | None = None,
+        limit: int = 1000
+    ) -> list[Chamado]:
+        """
+        Retorna chamados com pausas carregadas em uma única query (eager loading).
+        Evita N+1 query problem.
+
+        Args:
+            db: Sessão do banco
+            data_inicio: Data de início do período
+            data_fim: Data de fim do período
+            prioridade: Filtro opcional por prioridade
+            limit: Limite de registros (padrão 1000)
+
+        Returns:
+            Lista de Chamado com pausas_sla já carregadas na memória
+        """
+        try:
+            query = db.query(Chamado).options(
+                joinedload(Chamado.pausas_sla)
+            ).filter(
+                and_(
+                    Chamado.data_abertura >= data_inicio,
+                    Chamado.data_abertura <= data_fim
+                )
+            )
+
+            if prioridade:
+                query = query.filter(Chamado.prioridade == prioridade)
+
+            return query.order_by(desc(Chamado.data_abertura)).limit(limit).all()
+        except Exception as e:
+            import logging
+            logging.error(f"[SLA] Erro ao buscar chamados com pausas: {e}")
+            return []
+
 
 # ===== MÉTODOS CRUD DE PAUSA SLA =====
 class SLAPausaManager:
