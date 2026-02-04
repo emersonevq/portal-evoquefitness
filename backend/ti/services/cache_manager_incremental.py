@@ -19,7 +19,6 @@ from sqlalchemy.orm import Session
 from sqlalchemy import and_
 from ti.models.chamado import Chamado
 from ti.models.metrics_cache import MetricsCacheDB
-from ti.models.sla_config import SLAConfiguration
 from ti.models.historico_status import HistoricoStatus
 from core.utils import now_brazil_naive
 import json
@@ -303,74 +302,8 @@ class IncrementalMetricsCache:
             # Obtém métricas atuais do cache
             metricas_atuais = IncrementalMetricsCache.get_metrics(db)
             
-            # Calcula o status SLA deste chamado
-            from ti.services.sla import SLACalculator
-            sla_config = SLACalculator.get_sla_config_by_priority(db, chamado.prioridade)
-            
-            if not sla_config:
-                return
-            
-            # Determina se está dentro/fora SLA
-            agora = now_brazil_naive()
-            data_abertura = chamado.data_abertura or agora
-            data_final = chamado.data_conclusao if chamado.data_conclusao else agora
-
-            tempo_resolucao = SLACalculator.calculate_business_hours_excluding_paused(
-                chamado.id,
-                data_abertura,
-                data_final,
-                db
-            )
-            
-            esta_dentro_sla = tempo_resolucao <= sla_config.tempo_resolucao_horas
-            
-            # Atualiza métricas (incremental)
-            novo_dentro = metricas_atuais["dentro_sla"]
-            novo_fora = metricas_atuais["fora_sla"]
-            
-            # Remove contagem anterior do chamado (se existe)
-            historico_anterior = db.query(MetricsCacheDB).filter(
-                MetricsCacheDB.cache_key == f"chamado_sla_status:{chamado_id}"
-            ).first()
-            
-            estava_dentro = True
-            if historico_anterior:
-                try:
-                    data_anterior = json.loads(historico_anterior.cache_value)
-                    estava_dentro = data_anterior.get("dentro_sla", True)
-                    
-                    # Remove contagem anterior
-                    if estava_dentro:
-                        novo_dentro -= 1
-                    else:
-                        novo_fora -= 1
-                except:
-                    pass
-            
-            # Adiciona nova contagem
-            if esta_dentro_sla:
-                novo_dentro += 1
-            else:
-                novo_fora += 1
-            
-            # Calcula novo percentual
-            total = novo_dentro + novo_fora
-            novo_percentual_dentro = int((novo_dentro / total) * 100) if total > 0 else 0
-            novo_percentual_fora = 100 - novo_percentual_dentro
-            
-            # Atualiza cache mensal
-            metricas_atuais["dentro_sla"] = novo_dentro
-            metricas_atuais["fora_sla"] = novo_fora
-            metricas_atuais["percentual_dentro"] = novo_percentual_dentro
-            metricas_atuais["percentual_fora"] = novo_percentual_fora
-            metricas_atuais["total"] = total
-            
-            IncrementalMetricsCache._save_metrics(db, metricas_atuais)
-            
-            # Armazena status do chamado para próximas atualizações
-            IncrementalMetricsCache._save_chamado_status(
-                db, chamado_id, dentro_sla=esta_dentro_sla
-            )
+            # SLA foi removido - apenas invalida o cache
+            IncrementalMetricsCache.invalidate_cache(db)
         
         except Exception as e:
             print(f"[CACHE] Erro ao atualizar métricas para chamado {chamado_id}: {e}")
@@ -379,7 +312,6 @@ class IncrementalMetricsCache:
     def _calculate_month(db: Session) -> Dict[str, Any]:
         """Calcula métricas mensais do zero com debouncing"""
         try:
-            from ti.services.sla_metrics_unified import UnifiedSLAMetricsCalculator
             from ti.services.cache_debouncer import get_debouncer
 
             debouncer = get_debouncer()
