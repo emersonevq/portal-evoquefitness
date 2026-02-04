@@ -357,6 +357,29 @@ def executar_recalculo(db: Session = Depends(get_db)):
 
 
 @router.post(
+    "/scheduler/executar-ilimitado",
+    response_model=RecalculoResponse,
+    summary="Executar recálculo manual SEM limite de data"
+)
+def executar_recalculo_ilimitado(db: Session = Depends(get_db)):
+    """
+    Executa recálculo de SLA de TODOS os chamados sem limite de data.
+
+    **CUIDADO**: Operação pesada! Use apenas em casos especiais de auditoria.
+    Use `/scheduler/executar` para o recálculo padrão (últimos 30 dias).
+    """
+    try:
+        service = SlaService(db)
+        return service.recalcular_todos_chamados_ilimitado()
+    except Exception as e:
+        logger.error(f"Erro ao executar recálculo ilimitado: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erro ao executar recálculo ilimitado"
+        )
+
+
+@router.post(
     "/scheduler/reset-falhas",
     summary="Reset contador de falhas"
 )
