@@ -55,10 +55,9 @@ trap cleanup SIGINT SIGTERM
 print_header "Portal Evoque - Dev Environment"
 
 # Validar que estamos na raiz do projeto
-if [ ! -f "package.json" ] || [ ! -f "backend/main.py" ]; then
+if [ ! -f "backend/main.py" ]; then
     print_error "Este script deve ser executado da raiz do projeto"
     echo "Estrutura esperada:"
-    echo "  - package.json (na raiz)"
     echo "  - backend/main.py (backend FastAPI)"
     echo "  - frontend/package.json (frontend React)"
     exit 1
