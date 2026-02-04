@@ -74,6 +74,18 @@ try:
 except Exception as e:
     print(f"⚠️  Erro ao criar tabela notification_settings: {e}")
 
+# Criar tabelas do módulo SLA na inicialização
+try:
+    from modules.sla.models import SlaConfiguration, SlaFeriado, SlaBusinessHours, SlaCalculationLog, SlaPausa
+    SlaConfiguration.__table__.create(bind=engine, checkfirst=True)
+    SlaFeriado.__table__.create(bind=engine, checkfirst=True)
+    SlaBusinessHours.__table__.create(bind=engine, checkfirst=True)
+    SlaCalculationLog.__table__.create(bind=engine, checkfirst=True)
+    SlaPausa.__table__.create(bind=engine, checkfirst=True)
+    print("✅ Tabelas SLA criadas/verificadas com sucesso")
+except Exception as e:
+    print(f"⚠️  Erro ao criar tabelas SLA: {e}")
+
 
 
 
