@@ -439,15 +439,22 @@ export default function Overview() {
         />
         <Metric
           label="Tempo médio de resposta"
-          value={metrics?.tempo_resposta_mes || "—"}
-          sub={`Este mês (${metrics?.total_chamados_mes || 0} chamados)`}
+          value={slaDashboard ? formatarHora(slaDashboard.tempo_medio_resposta_horas) : "—"}
+          sub={`SLA: ${slaDashboard ? slaDashboard.percentual_sla_resposta.toFixed(1) : 0}%`}
           variant="blue"
           icon={Clock}
         />
         <Metric
-          label="Chamados ativos"
-          value={String(metrics?.abertos_agora || 0)}
-          sub="não concluídos"
+          label="Tempo médio de resolução"
+          value={slaDashboard ? formatarHora(slaDashboard.tempo_medio_resolucao_horas) : "—"}
+          sub={`SLA: ${slaDashboard ? slaDashboard.percentual_sla_resolucao.toFixed(1) : 0}%`}
+          variant="green"
+          icon={CheckCircle2}
+        />
+        <Metric
+          label="Chamados em risco/vencidos"
+          value={String((slaDashboard?.chamados_em_risco || 0) + (slaDashboard?.chamados_vencidos || 0))}
+          sub={`${slaDashboard?.chamados_em_risco || 0} risco, ${slaDashboard?.chamados_vencidos || 0} vencidos`}
           variant="purple"
           icon={AlertCircle}
         />
