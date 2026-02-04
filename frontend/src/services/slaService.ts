@@ -75,7 +75,7 @@ class SlaService {
   async getDashboardResumo(): Promise<SlaDashboardResumo> {
     try {
       const response = await api.get<SlaDashboardResumo>(
-        `${this.baseUrl}/dashboard/resumo`
+        `${this.baseUrl}/dashboard/resumo`,
       );
       return response.data;
     } catch (error) {
@@ -84,10 +84,7 @@ class SlaService {
     }
   }
 
-  async getDashboard(
-    dataInicio?: Date,
-    dataFim?: Date
-  ): Promise<SlaDashboard> {
+  async getDashboard(dataInicio?: Date, dataFim?: Date): Promise<SlaDashboard> {
     try {
       const params = new URLSearchParams();
       if (dataInicio) params.append("data_inicio", dataInicio.toISOString());
@@ -119,14 +116,11 @@ class SlaService {
   async getSlaAlturaStatus(chamadoId: number): Promise<SlaChamadoStatus> {
     try {
       const response = await api.get<SlaChamadoStatus>(
-        `${this.baseUrl}/chamado/${chamadoId}`
+        `${this.baseUrl}/chamado/${chamadoId}`,
       );
       return response.data;
     } catch (error) {
-      console.error(
-        `Erro ao buscar SLA do chamado ${chamadoId}:`,
-        error
-      );
+      console.error(`Erro ao buscar SLA do chamado ${chamadoId}:`, error);
       throw error;
     }
   }

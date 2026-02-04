@@ -15,11 +15,11 @@ Sistema completo de Service Level Agreement (SLA) para gerenciamento de chamados
 
 ## Status do Chamado e SLA
 
-| Status       | SLA         |
-| ------------ | ----------- |
-| Aberto       | ✅ Conta    |
-| Em andamento | ✅ Conta    |
-| Em análise   | ⏸️ Pausado  |
+| Status       | SLA           |
+| ------------ | ------------- |
+| Aberto       | ✅ Conta      |
+| Em andamento | ✅ Conta      |
+| Em análise   | ⏸️ Pausado    |
 | Concluído    | ⏹️ Finalizado |
 | Cancelado    | ⏹️ Finalizado |
 
@@ -32,6 +32,7 @@ As tabelas serão criadas automaticamente na inicialização da aplicação.
 ### 2. Frontend
 
 Os componentes React já foram criados em `src/components/sla/`:
+
 - `SlaDashboard.tsx` - Dashboard principal
 - `src/services/slaService.ts` - Serviço para API
 - `src/hooks/useSLA.ts` - Hooks para state management
@@ -133,10 +134,12 @@ import { useSLADashboard, useSLAChamado } from "@/hooks/useSLA";
 export function MyComponent() {
   const { dashboard, isLoading, error } = useSLADashboard();
   const { slaStatus, formatTempo } = useSLAChamado(123);
-  
+
   return (
     <div>
-      <p>Tempo resposta: {formatTempo(slaStatus?.tempo_decorrido_horas || 0)}</p>
+      <p>
+        Tempo resposta: {formatTempo(slaStatus?.tempo_decorrido_horas || 0)}
+      </p>
     </div>
   );
 }

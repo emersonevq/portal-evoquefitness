@@ -1,6 +1,10 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
-import { slaService, SlaDashboard, SlaChamadoStatus } from "@/services/slaService";
+import {
+  slaService,
+  SlaDashboard,
+  SlaChamadoStatus,
+} from "@/services/slaService";
 
 export function useSLADashboard() {
   const queryClient = useQueryClient();
@@ -55,7 +59,9 @@ export function useSLAChamado(chamadoId: number) {
 
       const handleChamadoUpdated = (data: any) => {
         if (data.chamado_id === chamadoId) {
-          queryClient.invalidateQueries({ queryKey: ["sla-chamado", chamadoId] });
+          queryClient.invalidateQueries({
+            queryKey: ["sla-chamado", chamadoId],
+          });
         }
       };
 

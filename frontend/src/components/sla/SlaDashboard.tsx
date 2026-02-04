@@ -61,7 +61,12 @@ export default function SlaDashboard() {
   const [dashboard, setDashboard] = useState<SlaDashboard | null>(null);
   const [recalculando, setRecalculando] = useState(false);
 
-  const { data: slaData, isLoading, error, refetch } = useQuery({
+  const {
+    data: slaData,
+    isLoading,
+    error,
+    refetch,
+  } = useQuery({
     queryKey: ["sla-dashboard"],
     queryFn: () => slaService.getDashboard(),
     staleTime: 5 * 60 * 1000,
@@ -223,7 +228,9 @@ export default function SlaDashboard() {
       {/* Tempos Médios */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <h3 className="font-semibold text-gray-900 mb-2">Tempo Médio Resposta</h3>
+          <h3 className="font-semibold text-gray-900 mb-2">
+            Tempo Médio Resposta
+          </h3>
           <div className="text-3xl font-bold text-blue-700">
             {formatarTempo(dashboard.tempo_medio_resposta_horas)}
           </div>
@@ -233,7 +240,9 @@ export default function SlaDashboard() {
           </p>
         </div>
         <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-          <h3 className="font-semibold text-gray-900 mb-2">Tempo Médio Resolução</h3>
+          <h3 className="font-semibold text-gray-900 mb-2">
+            Tempo Médio Resolução
+          </h3>
           <div className="text-3xl font-bold text-green-700">
             {formatarTempo(dashboard.tempo_medio_resolucao_horas)}
           </div>
