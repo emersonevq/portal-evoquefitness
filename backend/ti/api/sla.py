@@ -1192,3 +1192,142 @@ def analisar_p90_recomendado(db: Session = Depends(get_db)):
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Erro ao analisar P90: {e}")
+
+
+# ===== ENDPOINTS DE GERENCIAMENTO DE PAUSAS SLA =====
+
+@router.get("/pausas/{chamado_id}", response_model=list[SLAPausaOut])
+def listar_pausas_chamado(chamado_id: int, db: Session = Depends(get_db)):
+    """Lista todas as pausas de um chamado (ativas e inativas)"""
+    try:
+        try:
+            SLAPausa.__table__.create(bind=engine, checkfirst=True)
+        except Exception:
+            pass
+
+        # Verifica se o chamado existe
+        chamado = db.query(Chamado).filter(Chamado.id == chamado_id).first()
+        if not chamado:
+            raise HTTPException(status_code=404, detail="Chamado não encontrado")
+
+        pausas = SLAPausaManager.get_pausas_chamado(db, chamado_id)
+        return pausas
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao listar pausas: {e}")
+
+
+@router.get("/pausas/ativas/{chamado_id}", response_model=list[SLAPausaOut])
+def listar_pausas_ativas(chamado_id: int, db: Session = Depends(get_db)):
+    """Lista apenas as pausas ativas de um chamado"""
+    try:
+        try:
+            SLAPausa.__table__.create(bind=engine, checkfirst=True)
+        except Exception:
+            pass
+
+        # Verifica se o chamado existe
+        chamado = db.query(Chamado).filter(Chamado.id == chamado_id).first()
+        if not chamado:
+            raise HTTPException(status_code=404, detail="Chamado não encontrado")
+
+        pausas = SLAPausaManager.get_pausas_ativas_chamado(db, chamado_id)
+        return pausas
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao listar pausas ativas: {e}")
+
+
+@router.post("/pausas", response_model=SLAPausaOut)
+def criar_pausa(payload: SLAPausaCreate, db: Session = Depends(get_db)):
+    """Cria uma nova pausa SLA para um chamado"""
+    try:
+        try:
+            SLAPausa.__table__.create(bind=engine, checkfirst=True)
+        except Exception:
+            pass
+
+        # Verifica se o chamado existe
+        chamado = db.query(Chamado).filter(Chamado.id == payload.chamado_id).first()
+        if not chamado:
+            raise HTTPException(status_code=404, detail="Chamado não encontrado")
+
+        pausa = SLAPausaManager.criar_pausa(
+            db,
+            payload.chamado_id,
+            motivo=payload.motivo
+        )
+
+        # Invalida cache do SLA
+        SLACacheManager.invalidate_by_chamado(db, payload.chamado_id)
+
+        return pausa
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao criar pausa: {e}")
+
+
+@router.patch("/pausas/{pausa_id}", response_model=SLAPausaOut)
+def atualizar_pausa(pausa_id: int, payload: SLAPausaUpdate, db: Session = Depends(get_db)):
+    """Atualiza uma pausa SLA"""
+    try:
+        try:
+            SLAPausa.__table__.create(bind=engine, checkfirst=True)
+        except Exception:
+            pass
+
+        pausa = db.query(SLAPausa).filter(SLAPausa.id == pausa_id).first()
+        if not pausa:
+            raise HTTPException(status_code=404, detail="Pausa não encontrada")
+
+        # Atualiza o motivo se fornecido
+        if payload.motivo is not None:
+            pausa.motivo = payload.motivo
+            pausa.atualizado_em = now_brazil_naive()
+            db.add(pausa)
+            db.commit()
+            db.refresh(pausa)
+
+        # Invalida cache do SLA
+        SLACacheManager.invalidate_by_chamado(db, pausa.chamado_id)
+
+        return pausa
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao atualizar pausa: {e}")
+
+
+@router.delete("/pausas/{pausa_id}")
+def finalizar_pausa(pausa_id: int, db: Session = Depends(get_db)):
+    """Finaliza uma pausa SLA (marca como inativa)"""
+    try:
+        try:
+            SLAPausa.__table__.create(bind=engine, checkfirst=True)
+        except Exception:
+            pass
+
+        pausa = db.query(SLAPausa).filter(SLAPausa.id == pausa_id).first()
+        if not pausa:
+            raise HTTPException(status_code=404, detail="Pausa não encontrada")
+
+        # Obter o chamado_id antes de finalizar para invalidar cache
+        chamado_id = pausa.chamado_id
+
+        # Finaliza a pausa
+        sucesso = SLAPausaManager.finalizar_pausa(db, pausa_id)
+
+        if sucesso:
+            # Invalida cache do SLA
+            SLACacheManager.invalidate_by_chamado(db, chamado_id)
+            return {"message": "Pausa finalizada com sucesso", "pausa_id": pausa_id}
+        else:
+            raise HTTPException(status_code=400, detail="Pausa não pode ser finalizada (pode estar já finalizada)")
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao finalizar pausa: {e}")
