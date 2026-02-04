@@ -1,6 +1,6 @@
 # Sistema de Gerenciamento de SLA
 
-Sistema completo de Service Level Agreement para gerenciamento de chamados com cálculo automático de horas úteis, pausas e alertas.
+Sistema completo de Service Level Agreement (SLA) para gerenciamento de chamados com cálculo automático de horas úteis, pausas e alertas.
 
 ## Características
 
@@ -13,23 +13,134 @@ Sistema completo de Service Level Agreement para gerenciamento de chamados com c
 ✅ Persistência completa de pausas no banco de dados  
 ✅ Logs detalhados de todos os cálculos
 
+## Status do Chamado e SLA
+
+| Status       | SLA         |
+| ------------ | ----------- |
+| Aberto       | ✅ Conta    |
+| Em andamento | ✅ Conta    |
+| Em análise   | ⏸️ Pausado  |
+| Concluído    | ⏹️ Finalizado |
+| Cancelado    | ⏹️ Finalizado |
+
 ## Instalação
 
 ### 1. Backend
-
-As dependências já foram adicionadas ao `requirements.txt`:
-
-- apscheduler==3.10.4
 
 As tabelas serão criadas automaticamente na inicialização da aplicação.
 
 ### 2. Frontend
 
 Os componentes React já foram criados em `src/components/sla/`:
-
 - `SlaDashboard.tsx` - Dashboard principal
-- `SlaMetricsCard.tsx` - Card de métricas
-- `SlaAlertsList.tsx` - Lista de alertas
+- `src/services/slaService.ts` - Serviço para API
+- `src/hooks/useSLA.ts` - Hooks para state management
+
+## Estrutura de Pastas
+
+```
+backend/modules/sla/
+├── __init__.py              # Exports
+├── config.py                # Configurações
+├── models.py                # Modelos SQLAlchemy
+├── schemas.py               # Schemas Pydantic
+├── calculator.py            # Cálculo de horas úteis
+├── repository.py            # Acesso a dados
+├── service.py               # Lógica de negócio
+├── scheduler.py             # Scheduler APScheduler
+├── router.py                # Endpoints FastAPI
+├── cache.py                 # Cache em memória
+├── setup_sla_tables.py      # Setup das tabelas
+└── README.md                # Este arquivo
+```
+
+## API Endpoints
+
+### Dashboard
+
+```
+GET /api/sla/dashboard
+GET /api/sla/dashboard/resumo
+```
+
+### Configurações
+
+```
+GET /api/sla/config
+POST /api/sla/config
+```
+
+### Feriados
+
+```
+GET /api/sla/feriados
+POST /api/sla/feriados
+DELETE /api/sla/feriados/{id}
+```
+
+### Chamados
+
+```
+GET /api/sla/chamado/{id}
+```
+
+### Scheduler
+
+```
+GET /api/sla/scheduler/status
+POST /api/sla/scheduler/executar
+```
+
+### Cache
+
+```
+GET /api/sla/cache/status
+POST /api/sla/cache/invalidar
+```
+
+## Uso Frontend
+
+### Importar Componente
+
+```tsx
+import SlaDashboard from "@/components/sla/SlaDashboard";
+
+export default function Page() {
+  return <SlaDashboard />;
+}
+```
+
+### Usar Service
+
+```tsx
+import { slaService } from "@/services/slaService";
+
+// Obter resumo
+const metrics = await slaService.getDashboardResumo();
+
+// Obter dashboard completo
+const dashboard = await slaService.getDashboard();
+
+// Obter SLA de um chamado específico
+const slaStatus = await slaService.getSlaAlturaStatus(123);
+```
+
+### Usar Hooks
+
+```tsx
+import { useSLADashboard, useSLAChamado } from "@/hooks/useSLA";
+
+export function MyComponent() {
+  const { dashboard, isLoading, error } = useSLADashboard();
+  const { slaStatus, formatTempo } = useSLAChamado(123);
+  
+  return (
+    <div>
+      <p>Tempo resposta: {formatTempo(slaStatus?.tempo_decorrido_horas || 0)}</p>
+    </div>
+  );
+}
+```
 
 ## Configuração
 
@@ -51,25 +162,10 @@ As configurações padrão são criadas automaticamente:
 - **Média**: Resposta 4h, Resolução 24h
 - **Baixa**: Resposta 8h, Resolução 48h
 
-Para adicionar/modificar:
+### Adicionar Feriados
 
 ```bash
-curl -X POST http://localhost:8000/api/sla/config \
-  -H "Content-Type: application/json" \
-  -d '{
-    "prioridade": "critica",
-    "tempo_resposta_horas": 1,
-    "tempo_resolucao_horas": 4,
-    "descricao": "Crítica"
-  }'
-```
-
-### Feriados
-
-Para adicionar feriados:
-
-```bash
-curl -X POST http://localhost:8000/api/sla/feriados \
+curl -X POST http://localhost:3001/api/sla/feriados \
   -H "Content-Type: application/json" \
   -d '{
     "data": "2024-12-25T00:00:00",
@@ -78,169 +174,33 @@ curl -X POST http://localhost:8000/api/sla/feriados \
   }'
 ```
 
-## Endpoints da API
+## Cálculo de SLA
 
-### Dashboard
+### Algoritmo
 
-```
-GET /api/sla/dashboard
-GET /api/sla/dashboard/resumo
-```
+1. **Horas Úteis**: Apenas seg-sex, 8h-18h, excluindo feriados
+2. **Pausas**: Deduzidas quando chamado está "Em análise"
+3. **Status**:
+   - OK: Dentro do limite
+   - Em Risco: 80% do limite consumido
+   - Vencido: 100% do limite consumido
 
-### Chamados
+### Exemplo
 
-```
-GET /api/sla/chamado/{id}
-GET /api/sla/chamado/{id}/pausas
-POST /api/sla/chamado/mudanca-status
-```
+- Chamado aberto: segunda 16h
+- Limite resposta: 2 horas (SLA alta)
+- Tempo útil até terça 10h = 2 horas
+- Status: ✅ Dentro do SLA
 
-**Exemplo - Registrar mudança de status:**
+## WebSocket Events
 
-```bash
-curl -X POST http://localhost:8000/api/sla/chamado/mudanca-status \
-  -H "Content-Type: application/json" \
-  -d '{
-    "chamado_id": 123,
-    "status_anterior": "aberto",
-    "status_novo": "em_analise",
-    "usuario_id": 1
-  }'
-```
+O módulo emite eventos em tempo real:
 
-### Configurações
-
-```
-GET /api/sla/config
-POST /api/sla/config
-PATCH /api/sla/config/{id}
-DELETE /api/sla/config/{id}
-```
-
-### Feriados
-
-```
-GET /api/sla/feriados
-POST /api/sla/feriados
-DELETE /api/sla/feriados/{id}
-```
-
-### Scheduler
-
-```
-GET /api/sla/scheduler/status
-POST /api/sla/scheduler/executar
-POST /api/sla/scheduler/reset-falhas
-```
-
-### Cache
-
-```
-GET /api/sla/cache/status
-POST /api/sla/cache/invalidar
-```
-
-## Status do Chamado e SLA
-
-| Status       | SLA           |
-| ------------ | ------------- |
-| Aberto       | ✅ Conta      |
-| Em andamento | ✅ Conta      |
-| Em análise   | ⏸️ Pausado    |
-| Concluído    | ⏹️ Finalizado |
-| Cancelado    | ⏹️ Finalizado |
-
-## Integração com Frontend
-
-### 1. Importar Componente
-
-```tsx
-import { SlaDashboard } from "@/components/sla";
-
-export default function Page() {
-  return <SlaDashboard />;
-}
-```
-
-### 2. Usar Serviço
-
-```tsx
-import { slaService } from "@/services/slaService";
-
-// Obter resumo
-const metrics = await slaService.getDashboardResumo();
-
-// Obter dashboard completo
-const dashboard = await slaService.getDashboard();
-
-// Obter SLA de um chamado específico
-const slaStatus = await slaService.getSlaAlturaStatus(123);
-```
-
-### 3. Variáveis de Ambiente
-
-Configure em `.env`:
-
-```
-VITE_API_URL=http://localhost:8000
-```
-
-## Estrutura de Pastas
-
-```
-backend/modules/sla/
-├── __init__.py              # Exports
-├── config.py                # Configurações
-├── models.py                # Modelos SQLAlchemy
-├── schemas.py               # Schemas Pydantic
-├── calculator.py            # Cálculo de horas úteis
-├── repository.py            # Acesso a dados
-├── service.py               # Lógica de negócio
-├── scheduler.py             # Scheduler APScheduler
-├── router.py                # Endpoints FastAPI
-├── cache.py                 # Cache em memória
-├── constants.py             # Constantes e funções
-├── exceptions.py            # Exceções customizadas
-├── migrations.sql           # SQL para criação de tabelas
-├── setup_sla_tables.py      # Setup das tabelas
-└── README.md                # Este arquivo
-```
-
-## Logs
-
-Os logs do SLA estão em `sla.scheduler` e `sla.service`. Configure em sua aplicação:
-
-```python
-import logging
-
-logging.getLogger('sla.scheduler').setLevel(logging.INFO)
-logging.getLogger('sla.service').setLevel(logging.INFO)
-```
-
-## Troubleshooting
-
-### Scheduler não está rodando
-
-```bash
-# Verificar status
-curl http://localhost:8000/api/sla/scheduler/status
-
-# Reset de falhas
-curl -X POST http://localhost:8000/api/sla/scheduler/reset-falhas
-```
-
-### Cache desatualizado
-
-```bash
-# Invalidar cache
-curl -X POST http://localhost:8000/api/sla/cache/invalidar
-```
-
-### Recalcular manualmente
-
-```bash
-# Executar recálculo imediato
-curl -X POST http://localhost:8000/api/sla/scheduler/executar
+```javascript
+socket.on("sla:updated", () => {
+  // Dashboard foi atualizado
+  // Refetch dos dados
+});
 ```
 
 ## Performance
@@ -250,23 +210,35 @@ curl -X POST http://localhost:8000/api/sla/scheduler/executar
 - Pool de conexões configurado para concorrência
 - Recálculo assíncrono a cada 5 minutos
 
-## Desenvolvimento
+## Logs
 
-### Rodar Testes
+Os logs estão em `sla.scheduler`, `sla.service` e `sla.calculator`:
 
-```bash
-cd code/backend
-python -m pytest modules/sla/ -v
+```python
+import logging
+logging.getLogger('sla.scheduler').setLevel(logging.INFO)
+logging.getLogger('sla.service').setLevel(logging.INFO)
+logging.getLogger('sla.calculator').setLevel(logging.DEBUG)
 ```
 
-### Verificar Migrations
+## Troubleshooting
+
+### Scheduler não está rodando
 
 ```bash
-# Backup do banco antes de rodar
-mysqldump -u user -p database > backup.sql
+curl http://localhost:3001/api/sla/scheduler/status
+```
 
-# Executar migrations
-mysql -u user -p database < modules/sla/migrations.sql
+### Cache desatualizado
+
+```bash
+curl -X POST http://localhost:3001/api/sla/cache/invalidar
+```
+
+### Recalcular manualmente
+
+```bash
+curl -X POST http://localhost:3001/api/sla/scheduler/executar
 ```
 
 ## Contato & Suporte
