@@ -68,6 +68,14 @@ try:
 except Exception as e:
     print(f"⚠️  Erro ao criar tabelas SLA: {e}")
 
+# Executar migração de timestamps para sla_pausas
+try:
+    from modules.sla.migrate_add_timestamps import migrate_add_timestamps
+    migrate_add_timestamps()
+    print("✅ Colunas de timestamp de sla_pausas verificadas/criadas com sucesso")
+except Exception as e:
+    print(f"⚠️  Erro ao migrar timestamps de sla_pausas: {e}")
+
 # Executar migração do historico_status na inicialização
 try:
     from ti.scripts.migrate_historico_status import migrate_historico_status
