@@ -12,10 +12,9 @@ echo ========================================
 echo.
 
 REM Validar que estamos na raiz do projeto
-if not exist "package.json" (
+if not exist "backend" (
     echo Erro: Este script deve ser executado da raiz do projeto
     echo Estrutura esperada:
-    echo   - package.json (na raiz)
     echo   - backend/main.py (backend FastAPI)
     echo   - frontend/package.json (frontend React)
     pause
