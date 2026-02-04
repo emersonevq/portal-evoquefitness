@@ -13,7 +13,6 @@ import {
 } from "lucide-react";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { api } from "@/lib/api";
-import { useSLACacheManager } from "@/hooks/useSLACacheManager";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -126,16 +125,11 @@ const STATUS_OPTIONS = [
 ] as const;
 
 export default function Overview() {
-  const { warmupCache } = useSLACacheManager();
   const queryClient = useQueryClient();
   const [metrics, setMetrics] = useState<any>(null);
   const [dailyData, setDailyData] = useState<any[]>([]);
   const [weeklyData, setWeeklyData] = useState<any[]>([]);
   const [monthlyData, setMonthlyData] = useState<any[]>([]);
-  const [slaData, setSLAData] = useState<{
-    dentro_sla: number;
-    fora_sla: number;
-  }>({ dentro_sla: 0, fora_sla: 0 });
   const [performanceData, setPerformanceData] = useState<{
     tempo_resolucao_medio: string;
     primeira_resposta_media: string;
@@ -322,18 +316,6 @@ export default function Overview() {
       );
     },
   });
-
-  // Pré-aquece cache na primeira carga
-  useEffect(() => {
-    const preWarmCache = async () => {
-      try {
-        await warmupCache();
-      } catch (error) {
-        console.warn("Aviso: Pré-aquecimento de cache falhou");
-      }
-    };
-    preWarmCache();
-  }, [warmupCache]);
 
   // Toggle status selection
   const toggleStatus = (status: (typeof STATUS_OPTIONS)[number]) => {
