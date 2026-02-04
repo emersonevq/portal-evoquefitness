@@ -483,7 +483,7 @@ class SLAPausaManager:
             pausas_ativas = db.query(SLAPausa).filter(
                 and_(
                     SLAPausa.chamado_id == chamado_id,
-                    SLAPausa.ativa == True
+                    SLAPausa.ativa
                 )
             ).all()
 
