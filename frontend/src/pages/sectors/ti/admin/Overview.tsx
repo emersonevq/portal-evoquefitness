@@ -356,19 +356,6 @@ export default function Overview() {
                 </SelectContent>
               </Select>
             </div>
-            <Button
-              onClick={() => atualizarMetricasMutation.mutate()}
-              disabled={atualizarMetricasMutation.isPending}
-              size="sm"
-              className="gap-2"
-            >
-              <RefreshCw
-                className={`w-4 h-4 ${atualizarMetricasMutation.isPending ? "animate-spin" : ""}`}
-              />
-              {atualizarMetricasMutation.isPending
-                ? "Atualizando..."
-                : "Atualizar Métricas"}
-            </Button>
           </div>
         </div>
 
