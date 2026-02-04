@@ -13,22 +13,12 @@ echo.
 
 REM Validar que estamos na raiz do projeto
 if not exist "backend" (
-    echo Erro: Este script deve ser executado da raiz do projeto
-    echo Estrutura esperada:
-    echo   - backend/main.py (backend FastAPI)
-    echo   - frontend/package.json (frontend React)
-    pause
-    exit /b 1
-)
-
-if not exist "frontend\package.json" (
-    echo Erro: Pasta frontend ou frontend/package.json nao encontrada
-    pause
-    exit /b 1
-)
-
-if not exist "backend\main.py" (
-    echo Erro: Arquivo backend/main.py nao encontrado
+    echo.
+    echo ERRO: Pasta 'backend' nao encontrada!
+    echo.
+    echo Este script deve ser executado da raiz do projeto.
+    echo Certifique-se de estar no diretorio correto.
+    echo.
     pause
     exit /b 1
 )
