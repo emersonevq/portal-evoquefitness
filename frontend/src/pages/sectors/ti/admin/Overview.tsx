@@ -350,6 +350,20 @@ export default function Overview() {
     direcao: "up",
   };
 
+  // Função para formatar horas em formato legível
+  const formatarHora = (horas: number): string => {
+    if (horas < 1) {
+      const minutos = Math.round(horas * 60);
+      return `${minutos}min`;
+    }
+    if (horas < 24) {
+      return `${horas.toFixed(1)}h`;
+    }
+    const dias = Math.floor(horas / 24);
+    const horasRestantes = horas % 24;
+    return `${dias}d ${horasRestantes.toFixed(0)}h`;
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4">
