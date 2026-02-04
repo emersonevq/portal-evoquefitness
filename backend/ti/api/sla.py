@@ -14,10 +14,14 @@ from ti.schemas.sla import (
     SLAFeriadoOut,
     HistoricoSLAOut,
     SLAStatusResponse,
+    SLAPausaCreate,
+    SLAPausaUpdate,
+    SLAPausaOut,
 )
 from ti.models.sla_config import SLAConfiguration, SLABusinessHours, SLAFeriado, HistoricoSLA
+from ti.models.sla_pausa import SLAPausa
 from ti.models.chamado import Chamado
-from ti.services.sla import SLACalculator
+from ti.services.sla import SLACalculator, SLAPausaManager
 from ti.services.sla_cache import SLACacheManager
 from ti.services.sla_validator import SLAValidator
 from core.utils import now_brazil_naive
