@@ -12,7 +12,8 @@ from core.db import Base
 class SlaConfiguration(Base):
     """Configuração de SLA por prioridade"""
     __tablename__ = "sla_configuration"
-    
+    __table_args__ = {'extend_existing': True}
+
     id = Column(Integer, primary_key=True, index=True)
     prioridade = Column(String(50), nullable=False, unique=True)
     tempo_resposta_horas = Column(Float, nullable=False)
