@@ -16,6 +16,7 @@ from ti.api.usuarios import router as usuarios_router
 from ti.api.dashboard_permissions import router as dashboard_permissions_router
 from auth0.routes import router as auth0_router
 from core.realtime import mount_socketio
+from modules.sla import sla_router, start_scheduler, stop_scheduler
 import json
 from typing import Any, List, Dict
 import uuid
