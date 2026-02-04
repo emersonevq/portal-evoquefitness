@@ -73,7 +73,9 @@ class SlaService {
 
   async getDashboardResumo(): Promise<SlaMetrics> {
     try {
-      const response = await api.get<SlaMetrics>(`${this.baseUrl}/dashboard/resumo`);
+      const response = await api.get<SlaMetrics>(
+        `${this.baseUrl}/dashboard/resumo`,
+      );
       return response.data;
     } catch (error) {
       console.error("Erro ao buscar resumo SLA:", error);
@@ -115,7 +117,9 @@ class SlaService {
 
   async getSlaAlturaStatus(chamadoId: number): Promise<SlaChamadoStatus> {
     try {
-      const response = await api.get<SlaChamadoStatus>(`${this.baseUrl}/chamado/${chamadoId}`);
+      const response = await api.get<SlaChamadoStatus>(
+        `${this.baseUrl}/chamado/${chamadoId}`,
+      );
       return response.data;
     } catch (error) {
       console.error(`Erro ao buscar SLA do chamado ${chamadoId}:`, error);
