@@ -1,16 +1,5 @@
 import { api } from "@/lib/api";
 
-export interface SlaMetrics {
-  percentual_sla_resposta: number;
-  percentual_sla_resolucao: number;
-  chamados_em_risco: number;
-  chamados_vencidos: number;
-  chamados_pausados: number;
-  tempo_medio_resposta_horas: number;
-  tempo_medio_resolucao_horas: number;
-  ultima_atualizacao: string;
-}
-
 export interface SlaConfig {
   id: number;
   prioridade: string;
@@ -18,45 +7,47 @@ export interface SlaConfig {
   tempo_resolucao_horas: number;
   descricao?: string;
   ativo: boolean;
-  criado_em?: string;
-  atualizado_em?: string;
+  criado_em: string;
+  atualizado_em: string;
+  ultimo_reset_em?: string;
 }
 
 export interface SlaChamadoStatus {
   chamado_id: number;
   codigo: string;
-  protocolo?: string;
   prioridade: string;
   status: string;
-  status_normalizado: string;
-  solicitante?: string;
-  unidade?: string;
-  problema?: string;
-  data_abertura: string;
-  tempo_limite_horas: number;
   tempo_decorrido_horas: number;
   tempo_pausado_horas: number;
-  tempo_restante_horas: number;
-  percentual_consumido: number;
-  em_risco: boolean;
-  vencido: boolean;
+  tempo_limite_resposta_horas: number;
+  tempo_limite_resolucao_horas: number;
+  resposta_em_dia: boolean;
+  resposta_em_risco: boolean;
+  resposta_vencida: boolean;
+  resolucao_em_dia: boolean;
+  resolucao_em_risco: boolean;
+  resolucao_vencida: boolean;
+  percentual_resposta: number;
+  percentual_resolucao: number;
   pausado: boolean;
-  prazo_limite?: string;
+  ativo: boolean;
 }
 
 export interface SlaDashboard {
   periodo_inicio: string;
   periodo_fim: string;
   total_chamados: number;
-  total_chamados_ativos: number;
-  total_chamados_concluidos: number;
-  dentro_sla_resposta: number;
-  fora_sla_resposta: number;
-  percentual_sla_resposta: number;
+  chamados_ativos: number;
+  chamados_concluidos: number;
+  chamados_resposta_ok: number;
+  chamados_resposta_risco: number;
+  chamados_resposta_vencido: number;
+  percentual_resposta_ok: number;
   tempo_medio_resposta_horas: number;
-  dentro_sla_resolucao: number;
-  fora_sla_resolucao: number;
-  percentual_sla_resolucao: number;
+  chamados_resolucao_ok: number;
+  chamados_resolucao_risco: number;
+  chamados_resolucao_vencido: number;
+  percentual_resolucao_ok: number;
   tempo_medio_resolucao_horas: number;
   chamados_em_risco: number;
   chamados_vencidos: number;
@@ -65,15 +56,25 @@ export interface SlaDashboard {
   lista_vencidos: SlaChamadoStatus[];
   lista_pausados: SlaChamadoStatus[];
   ultima_atualizacao: string;
-  proximo_recalculo?: string;
+}
+
+export interface SlaDashboardResumo {
+  percentual_resposta_ok: number;
+  percentual_resolucao_ok: number;
+  chamados_em_risco: number;
+  chamados_vencidos: number;
+  chamados_pausados: number;
+  tempo_medio_resposta_horas: number;
+  tempo_medio_resolucao_horas: number;
+  ultima_atualizacao: string;
 }
 
 class SlaService {
   private baseUrl = "/sla";
 
-  async getDashboardResumo(): Promise<SlaMetrics> {
+  async getDashboardResumo(): Promise<SlaDashboardResumo> {
     try {
-      const response = await api.get<SlaMetrics>(
+      const response = await api.get<SlaDashboardResumo>(
         `${this.baseUrl}/dashboard/resumo`,
       );
       return response.data;
@@ -83,19 +84,16 @@ class SlaService {
     }
   }
 
-  async getDashboard(
-    dataInicio?: Date,
-    dataFim?: Date,
-    prioridade?: string,
-  ): Promise<SlaDashboard> {
+  async getDashboard(dataInicio?: Date, dataFim?: Date): Promise<SlaDashboard> {
     try {
       const params = new URLSearchParams();
       if (dataInicio) params.append("data_inicio", dataInicio.toISOString());
       if (dataFim) params.append("data_fim", dataFim.toISOString());
-      if (prioridade) params.append("prioridade", prioridade);
 
       const queryString = params.toString();
-      const url = `${this.baseUrl}/dashboard${queryString ? `?${queryString}` : ""}`;
+      const url = `${this.baseUrl}/dashboard${
+        queryString ? `?${queryString}` : ""
+      }`;
 
       const response = await api.get<SlaDashboard>(url);
       return response.data;
@@ -143,6 +141,25 @@ class SlaService {
       return response.data;
     } catch (error) {
       console.error("Erro ao executar recálculo:", error);
+      throw error;
+    }
+  }
+
+  async getCacheStatus(): Promise<any> {
+    try {
+      const response = await api.get(`${this.baseUrl}/cache/status`);
+      return response.data;
+    } catch (error) {
+      console.error("Erro ao buscar status do cache:", error);
+      throw error;
+    }
+  }
+
+  async invalidarCache(): Promise<void> {
+    try {
+      await api.post(`${this.baseUrl}/cache/invalidar`);
+    } catch (error) {
+      console.error("Erro ao invalidar cache:", error);
       throw error;
     }
   }

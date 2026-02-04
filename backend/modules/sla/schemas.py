@@ -1,24 +1,18 @@
-from pydantic import BaseModel, Field, field_validator
+"""Schemas Pydantic para API do SLA"""
+
+from pydantic import BaseModel
 from datetime import datetime
-from typing import Optional, List
+from typing import List, Optional
 
 
-# ==================== Configuração ====================
+# ========== SLA Configuration ==========
 
 class SlaConfigBase(BaseModel):
-    prioridade: str = Field(..., min_length=1, max_length=50)
-    tempo_resposta_horas: float = Field(..., ge=0)
-    tempo_resolucao_horas: float = Field(..., ge=0)
+    prioridade: str
+    tempo_resposta_horas: float
+    tempo_resolucao_horas: float
     descricao: Optional[str] = None
     ativo: bool = True
-    
-    @field_validator('tempo_resolucao_horas')
-    @classmethod
-    def validar_resolucao_maior_que_resposta(cls, v, info):
-        if 'tempo_resposta_horas' in info.data:
-            if v < info.data['tempo_resposta_horas']:
-                raise ValueError('Tempo de resolução deve ser maior ou igual ao tempo de resposta')
-        return v
 
 
 class SlaConfigCreate(SlaConfigBase):
@@ -26,131 +20,147 @@ class SlaConfigCreate(SlaConfigBase):
 
 
 class SlaConfigUpdate(BaseModel):
-    tempo_resposta_horas: Optional[float] = Field(None, ge=0)
-    tempo_resolucao_horas: Optional[float] = Field(None, ge=0)
+    tempo_resposta_horas: Optional[float] = None
+    tempo_resolucao_horas: Optional[float] = None
     descricao: Optional[str] = None
     ativo: Optional[bool] = None
 
 
-class SlaConfigResponse(SlaConfigBase):
+class SlaConfig(SlaConfigBase):
     id: int
-    criado_em: Optional[datetime] = None
-    atualizado_em: Optional[datetime] = None
-    
+    criado_em: datetime
+    atualizado_em: datetime
+    ultimo_reset_em: Optional[datetime] = None
+
     class Config:
         from_attributes = True
 
 
-# ==================== Feriados ====================
+# ========== Feriados ==========
 
-class FeriadoBase(BaseModel):
+class SlaFeriadoBase(BaseModel):
     data: datetime
-    nome: str = Field(..., min_length=1, max_length=100)
+    nome: str
     descricao: Optional[str] = None
     ativo: bool = True
 
 
-class FeriadoCreate(FeriadoBase):
+class SlaFeriadoCreate(SlaFeriadoBase):
     pass
 
 
-class FeriadoResponse(FeriadoBase):
+class SlaFeriado(SlaFeriadoBase):
     id: int
-    criado_em: Optional[datetime] = None
-    
+    criado_em: datetime
+    atualizado_em: datetime
+
     class Config:
         from_attributes = True
 
 
-# ==================== Pausas ====================
+# ========== Pausas de SLA ==========
 
-class PausaResponse(BaseModel):
-    id: int
+class SlaPausaBase(BaseModel):
     chamado_id: int
     pausado_em: datetime
+    motivo: str = "Em análise"
+
+
+class SlaPausaCreate(SlaPausaBase):
+    criado_por_id: Optional[int] = None
+
+
+class SlaPausaUpdate(BaseModel):
+    retomado_em: datetime
+    duracao_minutos: Optional[int] = None
+
+
+class SlaPausa(SlaPausaBase):
+    id: int
     retomado_em: Optional[datetime] = None
-    motivo: str
     duracao_minutos: Optional[int] = None
     ativa: bool
-    
+    criado_em: datetime
+    atualizado_em: datetime
+
     class Config:
         from_attributes = True
 
 
-class PausasChamadoResponse(BaseModel):
-    chamado_id: int
-    total_pausas: int
-    pausas: List[PausaResponse]
-    tempo_total_pausado_minutos: int
-    tempo_total_pausado_horas: float
-    pausa_ativa: bool
-
-
-# ==================== Status Chamado SLA ====================
+# ========== Status de um Chamado ==========
 
 class SlaChamadoStatus(BaseModel):
+    """Status SLA de um chamado específico"""
     chamado_id: int
     codigo: str
-    protocolo: Optional[str] = None
     prioridade: str
     status: str
-    status_normalizado: str
-    solicitante: Optional[str] = None
-    unidade: Optional[str] = None
-    problema: Optional[str] = None
-    data_abertura: datetime
     
-    # Métricas SLA
-    tempo_limite_horas: float
+    # Tempos em horas
     tempo_decorrido_horas: float
-    tempo_pausado_horas: float = 0
-    tempo_restante_horas: float
-    percentual_consumido: float
+    tempo_pausado_horas: float
+    tempo_limite_resposta_horas: float
+    tempo_limite_resolucao_horas: float
     
     # Status
-    em_risco: bool
-    vencido: bool
-    pausado: bool = False
+    resposta_em_dia: bool
+    resposta_em_risco: bool
+    resposta_vencida: bool
     
-    # Prazo
-    prazo_limite: Optional[datetime] = None
+    resolucao_em_dia: bool
+    resolucao_em_risco: bool
+    resolucao_vencida: bool
+    
+    percentual_resposta: float
+    percentual_resolucao: float
+    
+    pausado: bool
+    ativo: bool
 
 
-# ==================== Dashboard ====================
+# ========== Dashboard ==========
 
 class SlaDashboard(BaseModel):
+    """Dashboard completo de SLA"""
     periodo_inicio: datetime
     periodo_fim: datetime
     
+    # Contadores
     total_chamados: int
-    total_chamados_ativos: int
-    total_chamados_concluidos: int
+    chamados_ativos: int
+    chamados_concluidos: int
     
-    dentro_sla_resposta: int
-    fora_sla_resposta: int
-    percentual_sla_resposta: float
+    # Resposta
+    chamados_resposta_ok: int
+    chamados_resposta_risco: int
+    chamados_resposta_vencido: int
+    percentual_resposta_ok: float
     tempo_medio_resposta_horas: float
     
-    dentro_sla_resolucao: int
-    fora_sla_resolucao: int
-    percentual_sla_resolucao: float
+    # Resolução
+    chamados_resolucao_ok: int
+    chamados_resolucao_risco: int
+    chamados_resolucao_vencido: int
+    percentual_resolucao_ok: float
     tempo_medio_resolucao_horas: float
     
+    # Alertas
     chamados_em_risco: int
     chamados_vencidos: int
     chamados_pausados: int
     
-    lista_em_risco: List[SlaChamadoStatus]
-    lista_vencidos: List[SlaChamadoStatus]
-    lista_pausados: List[SlaChamadoStatus]
+    # Detalhes
+    lista_em_risco: List[SlaChamadoStatus] = []
+    lista_vencidos: List[SlaChamadoStatus] = []
+    lista_pausados: List[SlaChamadoStatus] = []
     
     ultima_atualizacao: datetime
-    proximo_recalculo: Optional[datetime] = None
 
 
 class SlaDashboardResumo(BaseModel):
-    percentual_sla_resposta: float
-    percentual_sla_resolucao: float
+    """Resumo rápido do SLA"""
+    percentual_resposta_ok: float
+    percentual_resolucao_ok: float
     chamados_em_risco: int
     chamados_vencidos: int
     chamados_pausados: int
@@ -159,53 +169,12 @@ class SlaDashboardResumo(BaseModel):
     ultima_atualizacao: datetime
 
 
-# ==================== Mudança de Status ====================
-
-class MudancaStatusRequest(BaseModel):
-    chamado_id: int
-    status_anterior: str
-    status_novo: str
-    usuario_id: Optional[int] = None
-
-
-class MudancaStatusResponse(BaseModel):
-    chamado_id: int
-    status_anterior: str
-    status_novo: str
-    status_anterior_normalizado: str
-    status_novo_normalizado: str
-    acao_sla: Optional[str] = None
-    pausa_id: Optional[int] = None
-    tempo_pausado_minutos: Optional[int] = None
-    mensagem: str
-
-
-# ==================== Recálculo ====================
-
-class RecalculoResponse(BaseModel):
-    sucesso: bool
-    chamados_processados: int
-    chamados_atualizados: int
-    chamados_em_risco: int
-    chamados_vencidos: int
-    chamados_pausados: int
-    tempo_execucao_ms: float
-    timestamp: datetime
-    erro: Optional[str] = None
-
-
-# ==================== Scheduler ====================
-
-class SchedulerJob(BaseModel):
-    id: str
-    name: str
-    next_run: Optional[str] = None
-    interval_minutes: float
-
+# ========== Scheduler Status ==========
 
 class SchedulerStatus(BaseModel):
-    running: bool
-    jobs: List[SchedulerJob]
+    """Status do scheduler"""
+    ativo: bool
+    proxima_execucao: Optional[datetime] = None
     ultima_execucao: Optional[datetime] = None
-    ultimo_resultado: Optional[dict] = None
-    config: dict
+    total_execucoes: int = 0
+    erros: int = 0

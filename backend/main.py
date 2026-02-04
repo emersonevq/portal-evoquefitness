@@ -16,6 +16,7 @@ from ti.api.usuarios import router as usuarios_router
 from ti.api.dashboard_permissions import router as dashboard_permissions_router
 from auth0.routes import router as auth0_router
 from core.realtime import mount_socketio
+from modules.sla import sla_router, start_scheduler, stop_scheduler
 import json
 from typing import Any, List, Dict
 import uuid
@@ -72,6 +73,18 @@ try:
     create_notification_settings_table()
 except Exception as e:
     print(f"⚠️  Erro ao criar tabela notification_settings: {e}")
+
+# Criar tabelas do módulo SLA na inicialização
+try:
+    from modules.sla.models import SlaConfiguration, SlaFeriado, SlaBusinessHours, SlaCalculationLog, SlaPausa
+    SlaConfiguration.__table__.create(bind=engine, checkfirst=True)
+    SlaFeriado.__table__.create(bind=engine, checkfirst=True)
+    SlaBusinessHours.__table__.create(bind=engine, checkfirst=True)
+    SlaCalculationLog.__table__.create(bind=engine, checkfirst=True)
+    SlaPausa.__table__.create(bind=engine, checkfirst=True)
+    print("✅ Tabelas SLA criadas/verificadas com sucesso")
+except Exception as e:
+    print(f"⚠️  Erro ao criar tabelas SLA: {e}")
 
 
 
@@ -426,6 +439,7 @@ _http.include_router(alerts_router, prefix="/api")
 _http.include_router(email_debug_router, prefix="/api")
 _http.include_router(powerbi_router, prefix="/api")
 _http.include_router(metrics_router, prefix="/api")
+_http.include_router(sla_router, prefix="/api")
 _http.include_router(dashboard_permissions_router, prefix="")
 
 # Compatibility mount without prefix, in case the server is run without proxy
@@ -440,6 +454,7 @@ _http.include_router(alerts_router)
 _http.include_router(email_debug_router)
 _http.include_router(powerbi_router)
 _http.include_router(metrics_router)
+_http.include_router(sla_router)
 _http.include_router(dashboard_permissions_router)
 
 # Wrap with Socket.IO ASGI app (exports as 'app')
@@ -459,3 +474,20 @@ async def startup_event():
         print(f"[STARTUP] ✓ Event loop registered for Socket.IO: {loop}")
     except Exception as e:
         print(f"[STARTUP] ⚠️  Failed to register event loop: {e}")
+
+    # Start SLA Scheduler
+    try:
+        start_scheduler()
+        print("[STARTUP] ✓ SLA Scheduler iniciado com sucesso")
+    except Exception as e:
+        print(f"[STARTUP] ⚠️  Erro ao iniciar SLA Scheduler: {e}")
+
+
+@_http.on_event("shutdown")
+async def shutdown_event():
+    """Stop SLA Scheduler on shutdown"""
+    try:
+        stop_scheduler()
+        print("[SHUTDOWN] ✓ SLA Scheduler parado com sucesso")
+    except Exception as e:
+        print(f"[SHUTDOWN] ⚠️  Erro ao parar SLA Scheduler: {e}")
