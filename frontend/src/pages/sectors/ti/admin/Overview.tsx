@@ -460,6 +460,53 @@ export default function Overview() {
         />
       </div>
 
+      {/* SLA Summary */}
+      {slaDashboard && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="relative group">
+            <div className="absolute -inset-1 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity" />
+            <div className="relative card-surface rounded-2xl p-5 border border-yellow-200/50">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground uppercase">Chamados em Risco</p>
+                  <p className="text-3xl font-bold text-yellow-600 mt-2">{slaDashboard.chamados_em_risco}</p>
+                  <p className="text-xs text-muted-foreground mt-2">80% do SLA consumido</p>
+                </div>
+                <AlertTriangle className="w-6 h-6 text-yellow-500 opacity-60" />
+              </div>
+            </div>
+          </div>
+
+          <div className="relative group">
+            <div className="absolute -inset-1 bg-gradient-to-r from-red-500/20 to-pink-500/20 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity" />
+            <div className="relative card-surface rounded-2xl p-5 border border-red-200/50">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground uppercase">Chamados Vencidos</p>
+                  <p className="text-3xl font-bold text-red-600 mt-2">{slaDashboard.chamados_vencidos}</p>
+                  <p className="text-xs text-muted-foreground mt-2">SLA expirado</p>
+                </div>
+                <AlertCircle className="w-6 h-6 text-red-500 opacity-60" />
+              </div>
+            </div>
+          </div>
+
+          <div className="relative group">
+            <div className="absolute -inset-1 bg-gradient-to-r from-blue-500/20 to-cyan-500/20 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity" />
+            <div className="relative card-surface rounded-2xl p-5 border border-blue-200/50">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground uppercase">Chamados Pausados</p>
+                  <p className="text-3xl font-bold text-blue-600 mt-2">{slaDashboard.chamados_pausados}</p>
+                  <p className="text-xs text-muted-foreground mt-2">Aguardando análise</p>
+                </div>
+                <Clock className="w-6 h-6 text-blue-500 opacity-60" />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Charts Row 1 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="relative group">
