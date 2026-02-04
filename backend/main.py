@@ -72,6 +72,13 @@ try:
 except Exception as e:
     print(f"⚠️  Erro ao criar tabela notification_settings: {e}")
 
+# Criar tabela de pausas SLA na inicialização
+try:
+    from ti.scripts.create_sla_pausa_table import create_sla_pausa_table
+    create_sla_pausa_table()
+except Exception as e:
+    print(f"⚠️  Erro ao criar tabela sla_pausas: {e}")
+
 
 
 
