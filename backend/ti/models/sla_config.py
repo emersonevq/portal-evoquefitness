@@ -22,6 +22,7 @@ class SLAConfiguration(Base):
 
 class SLABusinessHours(Base):
     __tablename__ = "sla_business_hours"
+    __table_args__ = {"extend_existing": True}
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     dia_semana: Mapped[int] = mapped_column(Integer, nullable=False)
