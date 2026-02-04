@@ -405,3 +405,132 @@ class SLACalculator:
         except Exception as e:
             db.rollback()
             raise e
+
+
+# ===== MÉTODOS CRUD DE PAUSA SLA =====
+class SLAPausaManager:
+    """Gerenciador de pausas SLA"""
+
+    @staticmethod
+    def criar_pausa(
+        db: Session,
+        chamado_id: int,
+        motivo: str | None = "Em análise"
+    ) -> SLAPausa:
+        """
+        Cria uma nova pausa SLA para um chamado.
+        """
+        try:
+            pausa = SLAPausa(
+                chamado_id=chamado_id,
+                pausado_em=now_brazil_naive(),
+                motivo=motivo,
+                ativa=True,
+                criado_em=now_brazil_naive(),
+                atualizado_em=now_brazil_naive(),
+            )
+            db.add(pausa)
+            db.commit()
+            db.refresh(pausa)
+            return pausa
+        except Exception as e:
+            db.rollback()
+            raise e
+
+    @staticmethod
+    def finalizar_pausa(db: Session, pausa_id: int) -> bool:
+        """
+        Finaliza uma pausa SLA (marca como inativa e define retomado_em).
+        """
+        try:
+            pausa = db.query(SLAPausa).filter(SLAPausa.id == pausa_id).first()
+            if pausa and pausa.ativa:
+                pausa.retomado_em = now_brazil_naive()
+                pausa.ativa = False
+                pausa.atualizado_em = now_brazil_naive()
+                db.commit()
+                db.refresh(pausa)
+                return True
+            return False
+        except Exception as e:
+            db.rollback()
+            raise e
+
+    @staticmethod
+    def finalizar_pausas_ativas_chamado(db: Session, chamado_id: int) -> int:
+        """
+        Finaliza todas as pausas ativas de um chamado.
+        Retorna a quantidade de pausas finalizadas.
+        """
+        try:
+            pausas_ativas = db.query(SLAPausa).filter(
+                and_(
+                    SLAPausa.chamado_id == chamado_id,
+                    SLAPausa.ativa == True
+                )
+            ).all()
+
+            count = 0
+            agora = now_brazil_naive()
+            for pausa in pausas_ativas:
+                pausa.retomado_em = agora
+                pausa.ativa = False
+                pausa.atualizado_em = agora
+                count += 1
+
+            if count > 0:
+                db.commit()
+            return count
+        except Exception as e:
+            db.rollback()
+            raise e
+
+    @staticmethod
+    def get_pausas_ativas_chamado(db: Session, chamado_id: int) -> list[SLAPausa]:
+        """
+        Retorna todas as pausas ativas de um chamado.
+        """
+        try:
+            return db.query(SLAPausa).filter(
+                and_(
+                    SLAPausa.chamado_id == chamado_id,
+                    SLAPausa.ativa == True
+                )
+            ).all()
+        except Exception:
+            return []
+
+    @staticmethod
+    def get_pausas_chamado(db: Session, chamado_id: int) -> list[SLAPausa]:
+        """
+        Retorna todas as pausas de um chamado (ativas e inativas),
+        ordenadas pela mais recente primeiro.
+        """
+        try:
+            return db.query(SLAPausa).filter(
+                SLAPausa.chamado_id == chamado_id
+            ).order_by(SLAPausa.pausado_em.desc()).all()
+        except Exception:
+            return []
+
+    @staticmethod
+    def get_pausas_para_calculo(db: Session, chamado_id: int) -> list[dict]:
+        """
+        Retorna pausas no formato esperado pelo calculator.
+        Cada pausa é um dicionário com: pausado_em, retomado_em, motivo, ativa.
+        """
+        try:
+            pausas = SLAPausaManager.get_pausas_chamado(db, chamado_id)
+            resultado = []
+            agora = now_brazil_naive()
+
+            for p in pausas:
+                resultado.append({
+                    "pausado_em": p.pausado_em,
+                    "retomado_em": p.retomado_em or (agora if p.ativa else None),
+                    "motivo": p.motivo,
+                    "ativa": p.ativa
+                })
+            return resultado
+        except Exception:
+            return []
