@@ -188,16 +188,6 @@ export default function Overview() {
     gcTime: 60 * 60 * 1000,
   });
 
-  const { data: slaMetricsData, isLoading: slaLoading } = useQuery({
-    queryKey: ["metrics-sla"],
-    queryFn: async () => {
-      const response = await api.get("/metrics/dashboard/sla");
-      return response.data;
-    },
-    staleTime: 30 * 60 * 1000, // 30 minutos
-    gcTime: 120 * 60 * 1000, // 120 minutos (cache persistence)
-  });
-
   const { data: performanceMetricsData, isLoading: performanceLoading } =
     useQuery({
       queryKey: ["metrics-performance"],
@@ -208,16 +198,6 @@ export default function Overview() {
       staleTime: 15 * 60 * 1000,
       gcTime: 60 * 60 * 1000,
     });
-
-  const { data: p90AnalysisData, isLoading: p90Loading } = useQuery({
-    queryKey: ["sla-p90-analysis"],
-    queryFn: async () => {
-      const response = await api.get("/sla/recommendations/p90-analysis");
-      return response.data;
-    },
-    staleTime: 30 * 60 * 1000,
-    gcTime: 120 * 60 * 1000,
-  });
 
   const { data: monthlyChartData, isLoading: monthlyLoading } = useQuery({
     queryKey: ["metrics-monthly", dateRange, selectedStatuses],
@@ -265,57 +245,6 @@ export default function Overview() {
       setPerformanceData(performanceMetricsData);
     }
   }, [performanceMetricsData]);
-
-  useEffect(() => {
-    if (slaMetricsData) {
-      // Merge das métricas de SLA com validação
-      setMetrics((prev) => ({
-        ...prev,
-        sla_compliance_24h: Number(slaMetricsData.sla_compliance_24h ?? 0),
-        sla_compliance_mes: Number(slaMetricsData.sla_compliance_mes ?? 0),
-        tempo_resposta_24h: slaMetricsData.tempo_resposta_24h ?? "—",
-        tempo_resposta_mes: slaMetricsData.tempo_resposta_mes ?? "—",
-        total_chamados_mes: Number(slaMetricsData.total_chamados_mes ?? 0),
-      }));
-
-      // Atualiza distribuição SLA
-      if (slaMetricsData?.sla_distribution) {
-        setSLAData({
-          dentro_sla: Number(slaMetricsData.sla_distribution.dentro_sla ?? 0),
-          fora_sla: Number(slaMetricsData.sla_distribution.fora_sla ?? 0),
-        });
-      }
-    }
-  }, [slaMetricsData]);
-
-  const atualizarMetricasMutation = useMutation({
-    mutationFn: async () => {
-      const response = await api.post("/sla/recalcular/painel");
-      return response.data;
-    },
-    onSuccess: (data: any) => {
-      queryClient.invalidateQueries({ queryKey: ["metrics-basic"] });
-      queryClient.invalidateQueries({ queryKey: ["metrics-sla"] });
-      queryClient.invalidateQueries({ queryKey: ["metrics-daily"] });
-      queryClient.invalidateQueries({ queryKey: ["metrics-weekly"] });
-      queryClient.invalidateQueries({ queryKey: ["metrics-monthly"] });
-      queryClient.invalidateQueries({ queryKey: ["metrics-performance"] });
-      queryClient.invalidateQueries({ queryKey: ["sla-p90-analysis"] });
-
-      const totalRecalculados = data.total_recalculados || 0;
-      const emDia = data.em_dia || 0;
-      const vencidos = data.vencidos || 0;
-
-      toast.success(
-        `Métricas atualizadas! ${totalRecalculados} chamados recalculados (${emDia} em dia, ${vencidos} vencidos).`,
-      );
-    },
-    onError: (error: any) => {
-      toast.error(
-        error.response?.data?.detail || "Erro ao atualizar métricas de SLA",
-      );
-    },
-  });
 
   // Toggle status selection
   const toggleStatus = (status: (typeof STATUS_OPTIONS)[number]) => {
