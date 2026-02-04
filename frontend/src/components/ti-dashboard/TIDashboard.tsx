@@ -3,7 +3,6 @@ import { apiFetch } from "@/lib/api";
 import { MetricsCard } from "./MetricsCard";
 import { DailyChart } from "./DailyChart";
 import { WeeklyChart } from "./WeeklyChart";
-import { SLADistribution } from "./SLADistribution";
 import { PerformanceMetrics } from "./PerformanceMetrics";
 import { AlertCircle, TrendingUp, Clock, CheckCircle } from "lucide-react";
 
@@ -18,7 +17,6 @@ interface DashboardData {
   tempo_resposta_24h: string;
   tempo_resposta_mes: string;
   total_chamados_mes: number;
-  sla_compliance_24h: number;
   abertos_agora: number;
   tempo_resolucao_30dias: string;
 }
@@ -34,14 +32,6 @@ interface WeeklyData {
   quantidade: number;
 }
 
-interface SLAData {
-  dentro_sla: number;
-  fora_sla: number;
-  percentual_dentro: number;
-  percentual_fora: number;
-  total: number;
-}
-
 interface PerformanceData {
   tempo_resolucao_medio: string;
   primeira_resposta_media: string;
@@ -55,7 +45,6 @@ export function TIDashboard() {
   );
   const [dailyData, setDailyData] = useState<DailyData[]>([]);
   const [weeklyData, setWeeklyData] = useState<WeeklyData[]>([]);
-  const [slaData, setSLAData] = useState<SLAData | null>(null);
   const [performanceData, setPerformanceData] =
     useState<PerformanceData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -64,7 +53,7 @@ export function TIDashboard() {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [dashboard, daily, weekly, sla, performance] = await Promise.all([
+        const [dashboard, daily, weekly, performance] = await Promise.all([
           apiFetch("/api/metrics/dashboard")
             .then((r) => r.json())
             .catch(() => null),
@@ -74,9 +63,6 @@ export function TIDashboard() {
           apiFetch("/api/metrics/chamados-por-semana")
             .then((r) => r.json())
             .catch(() => ({ dados: [] })),
-          apiFetch("/api/metrics/sla-distribution")
-            .then((r) => r.json())
-            .catch(() => null),
           apiFetch("/api/metrics/performance")
             .then((r) => r.json())
             .catch(() => null),
@@ -85,7 +71,6 @@ export function TIDashboard() {
         setDashboardData(dashboard);
         setDailyData(daily?.dados || []);
         setWeeklyData(weekly?.dados || []);
-        setSLAData(sla);
         setPerformanceData(performance);
       } catch (error) {
         console.error("Erro ao carregar dashboard:", error);
@@ -134,13 +119,6 @@ export function TIDashboard() {
         />
 
         <MetricsCard
-          title="SLA (30h)"
-          value={`${dashboardData?.sla_compliance_24h || 0}%`}
-          subtitle="Dentro do acordo"
-          icon={<CheckCircle className="w-6 h-6" />}
-        />
-
-        <MetricsCard
           title="Chamados ativos"
           value={dashboardData?.abertos_agora || 0}
           subtitle="não concluídos"
@@ -152,15 +130,6 @@ export function TIDashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <DailyChart data={dailyData} loading={loading} />
         <WeeklyChart data={weeklyData} loading={loading} />
-      </div>
-
-      {/* SLA Distribution */}
-      <div className="grid grid-cols-1 gap-6">
-        <SLADistribution
-          dentroDaSla={slaData?.dentro_sla || 0}
-          foraDaSla={slaData?.fora_sla || 0}
-          loading={loading}
-        />
       </div>
 
       {/* Performance Metrics */}

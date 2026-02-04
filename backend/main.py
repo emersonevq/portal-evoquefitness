@@ -11,7 +11,7 @@ from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 from fastapi.middleware.cors import CORSMiddleware
 from io import BytesIO
-from ti.api import chamados_router, unidades_router, problemas_router, notifications_router, notification_settings_router, alerts_router, email_debug_router, sla_router, powerbi_router, metrics_router
+from ti.api import chamados_router, unidades_router, problemas_router, notifications_router, notification_settings_router, alerts_router, email_debug_router, powerbi_router, metrics_router
 from ti.api.usuarios import router as usuarios_router
 from ti.api.dashboard_permissions import router as dashboard_permissions_router
 from auth0.routes import router as auth0_router
@@ -72,43 +72,8 @@ try:
 except Exception as e:
     print(f"⚠️  Erro ao criar tabela notification_settings: {e}")
 
-# Inicializar scheduler de recalculação automática de SLA
-try:
-    from ti.services.sla_scheduler import init_scheduler
-    init_scheduler()
-    print("✅ Scheduler de SLA iniciado com sucesso")
-except Exception as e:
-    print(f"⚠️  Erro ao inicializar scheduler de SLA: {e}")
 
-# Pré-carregar cache do banco na startup
-try:
-    from ti.services.sla_cache import SLACacheManager
-    from core.db import SessionLocal
 
-    db_warmup = SessionLocal()
-    try:
-        stats = SLACacheManager.warmup_from_database(db_warmup)
-        print(f"✅ Cache pré-carregado: {stats['carregados']} entradas carregadas, {stats['expirados']} expiradas, {stats['erros']} erros")
-    finally:
-        db_warmup.close()
-except Exception as e:
-    print(f"⚠️  Erro ao pré-carregar cache: {e}")
-
-# Pré-carregar métricas mensais na startup (warmup de métricas)
-try:
-    from ti.services.cache_manager_incremental import IncrementalMetricsCache
-    from core.db import SessionLocal
-
-    db_warmup_metrics = SessionLocal()
-    try:
-        metricas = IncrementalMetricsCache.get_metrics(db_warmup_metrics)
-        print(f"✅ Métricas mensais pré-carregadas: Total={metricas.get('total', 0)}, Dentro_SLA={metricas.get('dentro_sla', 0)}")
-    except Exception as warmup_error:
-        print(f"⚠️  Aviso (não crítico): Warmup de métricas falhou: {warmup_error}")
-    finally:
-        db_warmup_metrics.close()
-except Exception as e:
-    print(f"⚠️  Erro ao pré-carregar métricas: {e}")
 
 # Static uploads mount
 _base_dir = Path(__file__).resolve().parent
@@ -457,7 +422,6 @@ _http.include_router(notifications_router, prefix="/api")
 _http.include_router(notification_settings_router, prefix="/api")
 _http.include_router(alerts_router, prefix="/api")
 _http.include_router(email_debug_router, prefix="/api")
-_http.include_router(sla_router, prefix="/api")
 _http.include_router(powerbi_router, prefix="/api")
 _http.include_router(metrics_router, prefix="/api")
 _http.include_router(dashboard_permissions_router, prefix="")
@@ -472,7 +436,6 @@ _http.include_router(notifications_router)
 _http.include_router(notification_settings_router)
 _http.include_router(alerts_router)
 _http.include_router(email_debug_router)
-_http.include_router(sla_router)
 _http.include_router(powerbi_router)
 _http.include_router(metrics_router)
 _http.include_router(dashboard_permissions_router)

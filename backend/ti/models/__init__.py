@@ -12,7 +12,6 @@ from .historico_anexo import HistoricoAnexo
 from .media import Media
 from .alert import Alert
 from .session import Session
-from .sla_config import SLAConfiguration
 from .powerbi_dashboard import PowerBIDashboard
 from .metrics_cache import MetricsCacheDB
 
@@ -31,7 +30,6 @@ __all__ = [
     "Media",
     "Alert",
     "Session",
-    "SLAConfiguration",
     "PowerBIDashboard",
     "MetricsCacheDB",
 ]

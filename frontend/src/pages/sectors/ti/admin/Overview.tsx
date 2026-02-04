@@ -7,13 +7,11 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   Loader,
-  RefreshCw,
   Calendar,
   X,
 } from "lucide-react";
-import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
-import { useSLACacheManager } from "@/hooks/useSLACacheManager";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -40,9 +38,6 @@ import {
   Tooltip,
   XAxis,
   YAxis,
-  Pie,
-  PieChart,
-  Cell,
   Legend,
 } from "recharts";
 
@@ -108,8 +103,6 @@ function Metric({
   );
 }
 
-const COLORS = ["#fa6400", "#334155"];
-
 const colorStyles = {
   orange: "bg-orange-500",
   blue: "bg-blue-500",
@@ -126,16 +119,11 @@ const STATUS_OPTIONS = [
 ] as const;
 
 export default function Overview() {
-  const { warmupCache } = useSLACacheManager();
   const queryClient = useQueryClient();
   const [metrics, setMetrics] = useState<any>(null);
   const [dailyData, setDailyData] = useState<any[]>([]);
   const [weeklyData, setWeeklyData] = useState<any[]>([]);
   const [monthlyData, setMonthlyData] = useState<any[]>([]);
-  const [slaData, setSLAData] = useState<{
-    dentro_sla: number;
-    fora_sla: number;
-  }>({ dentro_sla: 0, fora_sla: 0 });
   const [performanceData, setPerformanceData] = useState<{
     tempo_resolucao_medio: string;
     primeira_resposta_media: string;
@@ -194,16 +182,6 @@ export default function Overview() {
     gcTime: 60 * 60 * 1000,
   });
 
-  const { data: slaMetricsData, isLoading: slaLoading } = useQuery({
-    queryKey: ["metrics-sla"],
-    queryFn: async () => {
-      const response = await api.get("/metrics/dashboard/sla");
-      return response.data;
-    },
-    staleTime: 30 * 60 * 1000, // 30 minutos
-    gcTime: 120 * 60 * 1000, // 120 minutos (cache persistence)
-  });
-
   const { data: performanceMetricsData, isLoading: performanceLoading } =
     useQuery({
       queryKey: ["metrics-performance"],
@@ -214,16 +192,6 @@ export default function Overview() {
       staleTime: 15 * 60 * 1000,
       gcTime: 60 * 60 * 1000,
     });
-
-  const { data: p90AnalysisData, isLoading: p90Loading } = useQuery({
-    queryKey: ["sla-p90-analysis"],
-    queryFn: async () => {
-      const response = await api.get("/sla/recommendations/p90-analysis");
-      return response.data;
-    },
-    staleTime: 30 * 60 * 1000,
-    gcTime: 120 * 60 * 1000,
-  });
 
   const { data: monthlyChartData, isLoading: monthlyLoading } = useQuery({
     queryKey: ["metrics-monthly", dateRange, selectedStatuses],
@@ -272,69 +240,6 @@ export default function Overview() {
     }
   }, [performanceMetricsData]);
 
-  useEffect(() => {
-    if (slaMetricsData) {
-      // Merge das métricas de SLA com validação
-      setMetrics((prev) => ({
-        ...prev,
-        sla_compliance_24h: Number(slaMetricsData.sla_compliance_24h ?? 0),
-        sla_compliance_mes: Number(slaMetricsData.sla_compliance_mes ?? 0),
-        tempo_resposta_24h: slaMetricsData.tempo_resposta_24h ?? "—",
-        tempo_resposta_mes: slaMetricsData.tempo_resposta_mes ?? "—",
-        total_chamados_mes: Number(slaMetricsData.total_chamados_mes ?? 0),
-      }));
-
-      // Atualiza distribuição SLA
-      if (slaMetricsData?.sla_distribution) {
-        setSLAData({
-          dentro_sla: Number(slaMetricsData.sla_distribution.dentro_sla ?? 0),
-          fora_sla: Number(slaMetricsData.sla_distribution.fora_sla ?? 0),
-        });
-      }
-    }
-  }, [slaMetricsData]);
-
-  const atualizarMetricasMutation = useMutation({
-    mutationFn: async () => {
-      const response = await api.post("/sla/recalcular/painel");
-      return response.data;
-    },
-    onSuccess: (data: any) => {
-      queryClient.invalidateQueries({ queryKey: ["metrics-basic"] });
-      queryClient.invalidateQueries({ queryKey: ["metrics-sla"] });
-      queryClient.invalidateQueries({ queryKey: ["metrics-daily"] });
-      queryClient.invalidateQueries({ queryKey: ["metrics-weekly"] });
-      queryClient.invalidateQueries({ queryKey: ["metrics-monthly"] });
-      queryClient.invalidateQueries({ queryKey: ["metrics-performance"] });
-      queryClient.invalidateQueries({ queryKey: ["sla-p90-analysis"] });
-
-      const totalRecalculados = data.total_recalculados || 0;
-      const emDia = data.em_dia || 0;
-      const vencidos = data.vencidos || 0;
-
-      toast.success(
-        `Métricas atualizadas! ${totalRecalculados} chamados recalculados (${emDia} em dia, ${vencidos} vencidos).`,
-      );
-    },
-    onError: (error: any) => {
-      toast.error(
-        error.response?.data?.detail || "Erro ao atualizar métricas de SLA",
-      );
-    },
-  });
-
-  // Pré-aquece cache na primeira carga
-  useEffect(() => {
-    const preWarmCache = async () => {
-      try {
-        await warmupCache();
-      } catch (error) {
-        console.warn("Aviso: Pré-aquecimento de cache falhou");
-      }
-    };
-    preWarmCache();
-  }, [warmupCache]);
-
   // Toggle status selection
   const toggleStatus = (status: (typeof STATUS_OPTIONS)[number]) => {
     setSelectedStatuses((prev) =>
@@ -365,31 +270,13 @@ export default function Overview() {
         queryClient.invalidateQueries({ queryKey: ["metrics-daily"] });
         queryClient.invalidateQueries({ queryKey: ["metrics-weekly"] });
         queryClient.invalidateQueries({ queryKey: ["metrics-monthly"] });
-        queryClient.invalidateQueries({ queryKey: ["metrics-sla"] });
         queryClient.invalidateQueries({ queryKey: ["metrics-performance"] });
-      };
-
-      const handleSLAReset = (data: any) => {
-        console.debug(
-          "[Overview] Recebido evento sla:reset, invalidando cache de SLA",
-          data,
-        );
-        // Invalida todas as queries quando SLA é resetado
-        queryClient.invalidateQueries({ queryKey: ["metrics-basic"] });
-        queryClient.invalidateQueries({ queryKey: ["metrics-daily"] });
-        queryClient.invalidateQueries({ queryKey: ["metrics-weekly"] });
-        queryClient.invalidateQueries({ queryKey: ["metrics-monthly"] });
-        queryClient.invalidateQueries({ queryKey: ["metrics-sla"] });
-        queryClient.invalidateQueries({ queryKey: ["metrics-performance"] });
-        queryClient.invalidateQueries({ queryKey: ["sla-p90-analysis"] });
       };
 
       socket.on("metrics:updated", handleMetricsUpdated);
-      socket.on("sla:reset", handleSLAReset);
 
       return () => {
         socket.off("metrics:updated", handleMetricsUpdated);
-        socket.off("sla:reset", handleSLAReset);
       };
     } catch (error) {
       console.debug("[Overview] Erro ao configurar listener WebSocket:", error);
@@ -402,18 +289,14 @@ export default function Overview() {
       basicLoading ||
       dailyLoading ||
       weeklyLoading ||
-      slaLoading ||
       performanceLoading ||
-      p90Loading ||
       monthlyLoading;
     setIsLoading(allLoading);
   }, [
     basicLoading,
     dailyLoading,
     weeklyLoading,
-    slaLoading,
     performanceLoading,
-    p90Loading,
     monthlyLoading,
   ]);
 
@@ -422,19 +305,6 @@ export default function Overview() {
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <h1 className="text-2xl font-bold">Visão Geral</h1>
-          <Button
-            onClick={() => atualizarMetricasMutation.mutate()}
-            disabled={atualizarMetricasMutation.isPending}
-            size="sm"
-            className="gap-2"
-          >
-            <RefreshCw
-              className={`w-4 h-4 ${atualizarMetricasMutation.isPending ? "animate-spin" : ""}`}
-            />
-            {atualizarMetricasMutation.isPending
-              ? "Atualizando..."
-              : "Atualizar Métricas"}
-          </Button>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {[1, 2, 3, 4].map((i) => (
@@ -480,19 +350,6 @@ export default function Overview() {
                 </SelectContent>
               </Select>
             </div>
-            <Button
-              onClick={() => atualizarMetricasMutation.mutate()}
-              disabled={atualizarMetricasMutation.isPending}
-              size="sm"
-              className="gap-2"
-            >
-              <RefreshCw
-                className={`w-4 h-4 ${atualizarMetricasMutation.isPending ? "animate-spin" : ""}`}
-              />
-              {atualizarMetricasMutation.isPending
-                ? "Atualizando..."
-                : "Atualizar Métricas"}
-            </Button>
           </div>
         </div>
 
@@ -549,14 +406,6 @@ export default function Overview() {
           sub={`Este mês (${metrics?.total_chamados_mes || 0} chamados)`}
           variant="blue"
           icon={Clock}
-        />
-        <Metric
-          label="Conformidade SLA"
-          value={`${slaData.dentro_sla > 0 ? Math.round((slaData.dentro_sla / (slaData.dentro_sla + slaData.fora_sla)) * 100) : 0}%`}
-          sub={`${slaData.dentro_sla} de ${slaData.dentro_sla + slaData.fora_sla} chamados`}
-          variant="green"
-          icon={CheckCircle2}
-          trend={slaData.dentro_sla > slaData.fora_sla ? "up" : "down"}
         />
         <Metric
           label="Chamados ativos"
@@ -794,150 +643,6 @@ export default function Overview() {
               )}
             </BarChart>
           </ResponsiveContainer>
-        </div>
-      </div>
-
-      {/* Charts Row 2 - SLA Distribution and P90 Analysis */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="relative group lg:col-span-1">
-          <div className="absolute -inset-1 bg-gradient-to-r from-primary/10 to-primary/5 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity" />
-          <div className="relative card-surface rounded-2xl p-6 border border-border/60">
-            <h3 className="font-semibold text-lg mb-4">Distribuição SLA</h3>
-            <div className="flex items-center justify-center">
-              {slaData.dentro_sla === 0 && slaData.fora_sla === 0 ? (
-                <div className="h-[220px] flex items-center justify-center text-muted-foreground">
-                  Sem dados de SLA
-                </div>
-              ) : (
-                <ResponsiveContainer width="100%" height={220}>
-                  <PieChart>
-                    <Pie
-                      data={[
-                        { name: "Dentro SLA", value: slaData.dentro_sla },
-                        { name: "Fora SLA", value: slaData.fora_sla },
-                      ]}
-                      innerRadius={60}
-                      outerRadius={90}
-                      paddingAngle={5}
-                      dataKey="value"
-                    >
-                      {[
-                        { name: "Dentro SLA", value: slaData.dentro_sla },
-                        { name: "Fora SLA", value: slaData.fora_sla },
-                      ].map((entry, index) => (
-                        <Cell
-                          key={`cell-${index}`}
-                          fill={COLORS[index % COLORS.length]}
-                        />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
-                </ResponsiveContainer>
-              )}
-            </div>
-            <div className="flex items-center justify-center gap-6 mt-4">
-              {[
-                { name: "Dentro SLA", value: slaData.dentro_sla },
-                { name: "Fora SLA", value: slaData.fora_sla },
-              ].map((item, index) => {
-                const total = slaData.dentro_sla + slaData.fora_sla;
-                const percentage =
-                  total > 0 ? Math.round((item.value / total) * 100) : 0;
-                return (
-                  <div key={index} className="flex items-center gap-2">
-                    <div
-                      className="w-3 h-3 rounded-full"
-                      style={{ backgroundColor: COLORS[index] }}
-                    />
-                    <span className="text-sm text-muted-foreground">
-                      {item.name}:{" "}
-                      <span className="font-semibold text-foreground">
-                        {percentage}%
-                      </span>
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-
-        <div className="relative group lg:col-span-2">
-          <div className="absolute -inset-1 bg-gradient-to-r from-primary/10 to-primary/5 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity" />
-          <div className="relative card-surface rounded-2xl p-6 border border-border/60">
-            <h3 className="font-semibold text-lg mb-4">
-              P90 Recomendado vs SLA Atual
-            </h3>
-            <div className="space-y-3">
-              {p90Loading ? (
-                <div className="text-muted-foreground text-center py-4">
-                  <Loader className="w-4 h-4 animate-spin mx-auto" />
-                </div>
-              ) : !p90AnalysisData?.prioridades ||
-                Object.keys(p90AnalysisData.prioridades).length === 0 ? (
-                <div className="text-muted-foreground text-center py-4 text-sm">
-                  Dados insuficientes para análise
-                </div>
-              ) : (
-                Object.entries(p90AnalysisData.prioridades).map(
-                  ([prioridade, data]: [string, any]) => (
-                    <div
-                      key={prioridade}
-                      className="p-3 bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors"
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-semibold">
-                          {prioridade}
-                        </span>
-                        <span
-                          className={`text-xs font-bold px-2 py-1 rounded-full ${
-                            data.melhoria > 0
-                              ? "bg-green-500/20 text-green-700 dark:text-green-400"
-                              : "bg-gray-500/20 text-gray-700 dark:text-gray-400"
-                          }`}
-                        >
-                          +{data.melhoria}%
-                        </span>
-                      </div>
-                      <div className="text-xs text-muted-foreground mb-2">
-                        {data.chamados_analisados} chamados • Min:{" "}
-                        {data.tempo_minimo}h • Médio: {data.tempo_medio}h • Máx:{" "}
-                        {data.tempo_maximo}h
-                      </div>
-                      <div className="grid grid-cols-3 gap-2 text-xs">
-                        <div>
-                          <div className="text-muted-foreground">SLA Atual</div>
-                          <div className="font-semibold">{data.sla_atual}h</div>
-                          <div className="text-xs text-muted-foreground">
-                            {data.conformidade_atual}% ok
-                          </div>
-                        </div>
-                        <div>
-                          <div className="text-muted-foreground">P90</div>
-                          <div className="font-semibold">
-                            {data.p90.toFixed(1)}h
-                          </div>
-                          <div className="text-xs text-muted-foreground">-</div>
-                        </div>
-                        <div>
-                          <div className="text-muted-foreground">
-                            Recomendado
-                          </div>
-                          <div className="font-semibold">
-                            {data.p90_recomendado}h
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            {data.conformidade_com_p90}% ok
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ),
-                )
-              )}
-            </div>
-          </div>
         </div>
       </div>
     </div>

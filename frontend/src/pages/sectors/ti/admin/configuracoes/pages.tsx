@@ -1,4 +1,3 @@
-import { SLA as SLAConfig } from "./SLAConfig";
 import { PrioridadesProblemas as PrioridadesComponent } from "./PrioridadesProblemas";
 import NotificationSettingsConfig from "./NotificationSettingsConfig";
 
@@ -11,10 +10,6 @@ function Panel({ title }: { title: string }) {
       </p>
     </div>
   );
-}
-
-export function SLA() {
-  return <SLAConfig />;
 }
 
 export function Prioridades() {

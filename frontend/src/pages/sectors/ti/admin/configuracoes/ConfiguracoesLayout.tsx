@@ -1,7 +1,6 @@
 import { NavLink, Outlet } from "react-router-dom";
 
 const menu = [
-  { to: "sla", label: "Configurações de SLA" },
   { to: "notificacoes", label: "Notificações" },
   { to: "midia-login", label: "Mídia do Login" },
   { to: "alertas", label: "Alertas" },
