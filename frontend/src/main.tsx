@@ -45,7 +45,6 @@ import {
 } from "./pages/sectors/ti/admin/integracoes/pages";
 import ConfiguracoesLayout from "./pages/sectors/ti/admin/configuracoes/ConfiguracoesLayout";
 import {
-  SLA as ConfSLA,
   Notificacoes as ConfNotificacoes,
   Acoes as ConfAcoes,
 } from "./pages/sectors/ti/admin/configuracoes/pages";
@@ -119,8 +118,7 @@ const App = () => (
               </Route>
               <Route path="historico" element={<AdminHistorico />} />
               <Route path="configuracoes" element={<ConfiguracoesLayout />}>
-                <Route index element={<ConfSLA />} />
-                <Route path="sla" element={<ConfSLA />} />
+                <Route index element={<ConfNotificacoes />} />
                 <Route path="notificacoes" element={<ConfNotificacoes />} />
                 <Route path="midia-login" element={<LoginMediaConfig />} />
                 <Route path="alertas" element={<AlertsConfig />} />
