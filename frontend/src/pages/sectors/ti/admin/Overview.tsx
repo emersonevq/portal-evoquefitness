@@ -124,6 +124,7 @@ const STATUS_OPTIONS = [
 export default function Overview() {
   const queryClient = useQueryClient();
   const [metrics, setMetrics] = useState<any>(null);
+  const [slaDashboard, setSlaDashboard] = useState<SlaDashboard | null>(null);
   const [dailyData, setDailyData] = useState<any[]>([]);
   const [weeklyData, setWeeklyData] = useState<any[]>([]);
   const [monthlyData, setMonthlyData] = useState<any[]>([]);
