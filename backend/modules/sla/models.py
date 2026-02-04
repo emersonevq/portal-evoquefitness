@@ -81,6 +81,7 @@ class SlaPausa(Base):
     __table_args__ = (
         Index("idx_sla_pausa_chamado", "chamado_id"),
         Index("idx_sla_pausa_ativa", "chamado_id", "ativa"),
+        {'extend_existing': True}
     )
     
     id = Column(Integer, primary_key=True, index=True)
