@@ -1,16 +1,14 @@
-"""Cache para feriados e configurações"""
+"""Cache em memória para dados de SLA"""
 
 from datetime import datetime, timedelta
-from typing import List, Dict, Optional, Any
+from typing import List, Optional, Dict, Any
 import logging
-
-from .config import settings
 
 logger = logging.getLogger("sla.cache")
 
 
 class SlaCache:
-    """Cache simples para dados de SLA"""
+    """Cache singleton para dados de SLA"""
     
     _instance = None
     
@@ -26,53 +24,57 @@ class SlaCache:
         self._feriados_timestamp: Optional[datetime] = None
         self._configs: Optional[Dict] = None
         self._configs_timestamp: Optional[datetime] = None
-        self._ttl = timedelta(minutes=settings.CACHE_TTL_MINUTES)
+        self._ttl_minutes = 60  # TTL padrão de 60 minutos
     
     def _is_valid(self, timestamp: Optional[datetime]) -> bool:
         """Verifica se o cache ainda é válido"""
         if timestamp is None:
             return False
-        return datetime.now() - timestamp < self._ttl
+        return datetime.now() - timestamp < timedelta(minutes=self._ttl_minutes)
     
     # ========== Feriados ==========
     
     def get_feriados(self) -> Optional[List]:
         """Retorna feriados do cache se válido"""
         if self._is_valid(self._feriados_timestamp):
+            logger.debug("Cache de feriados HIT")
             return self._feriados
+        logger.debug("Cache de feriados MISS")
         return None
     
     def set_feriados(self, feriados: List) -> None:
         """Armazena feriados no cache"""
         self._feriados = feriados
         self._feriados_timestamp = datetime.now()
-        logger.debug(f"Cache de feriados atualizado: {len(feriados)} registros")
+        logger.info(f"Cache de feriados atualizado: {len(feriados)} registros")
     
     def invalidate_feriados(self) -> None:
         """Invalida cache de feriados"""
         self._feriados = None
         self._feriados_timestamp = None
-        logger.debug("Cache de feriados invalidado")
+        logger.info("Cache de feriados invalidado")
     
-    # ========== Configs ==========
+    # ========== Configurações ==========
     
     def get_configs(self) -> Optional[Dict]:
         """Retorna configs do cache se válido"""
         if self._is_valid(self._configs_timestamp):
+            logger.debug("Cache de configs HIT")
             return self._configs
+        logger.debug("Cache de configs MISS")
         return None
     
     def set_configs(self, configs: Dict) -> None:
         """Armazena configs no cache"""
         self._configs = configs
         self._configs_timestamp = datetime.now()
-        logger.debug(f"Cache de configs atualizado: {len(configs)} registros")
+        logger.info(f"Cache de configs atualizado: {len(configs)} registros")
     
     def invalidate_configs(self) -> None:
         """Invalida cache de configs"""
         self._configs = None
         self._configs_timestamp = None
-        logger.debug("Cache de configs invalidado")
+        logger.info("Cache de configs invalidado")
     
     # ========== Geral ==========
     
@@ -89,17 +91,12 @@ class SlaCache:
                 "cached": self._feriados is not None,
                 "count": len(self._feriados) if self._feriados else 0,
                 "valid": self._is_valid(self._feriados_timestamp),
-                "updated_at": self._feriados_timestamp.isoformat() if self._feriados_timestamp else None
+                "ttl_minutes": self._ttl_minutes
             },
             "configs": {
                 "cached": self._configs is not None,
                 "count": len(self._configs) if self._configs else 0,
                 "valid": self._is_valid(self._configs_timestamp),
-                "updated_at": self._configs_timestamp.isoformat() if self._configs_timestamp else None
-            },
-            "ttl_minutes": settings.CACHE_TTL_MINUTES
+                "ttl_minutes": self._ttl_minutes
+            }
         }
-
-
-# Instância global do cache
-sla_cache = SlaCache()
