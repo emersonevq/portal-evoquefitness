@@ -427,7 +427,6 @@ _http.include_router(email_debug_router, prefix="/api")
 _http.include_router(powerbi_router, prefix="/api")
 _http.include_router(metrics_router, prefix="/api")
 _http.include_router(dashboard_permissions_router, prefix="")
-_http.include_router(sla_router, prefix="/api")
 
 # Compatibility mount without prefix, in case the server is run without proxy
 _http.include_router(auth0_router)
@@ -442,7 +441,6 @@ _http.include_router(email_debug_router)
 _http.include_router(powerbi_router)
 _http.include_router(metrics_router)
 _http.include_router(dashboard_permissions_router)
-_http.include_router(sla_router)
 
 # Wrap with Socket.IO ASGI app (exports as 'app')
 app = mount_socketio(_http)
@@ -461,20 +459,3 @@ async def startup_event():
         print(f"[STARTUP] ✓ Event loop registered for Socket.IO: {loop}")
     except Exception as e:
         print(f"[STARTUP] ⚠️  Failed to register event loop: {e}")
-
-    # Start SLA Scheduler
-    try:
-        start_scheduler()
-        print("[STARTUP] ✓ SLA Scheduler iniciado com sucesso")
-    except Exception as e:
-        print(f"[STARTUP] ⚠️  Erro ao iniciar SLA Scheduler: {e}")
-
-
-@_http.on_event("shutdown")
-async def shutdown_event():
-    """Stop SLA Scheduler on shutdown"""
-    try:
-        stop_scheduler()
-        print("[SHUTDOWN] ✓ SLA Scheduler parado com sucesso")
-    except Exception as e:
-        print(f"[SHUTDOWN] ⚠️  Erro ao parar SLA Scheduler: {e}")
