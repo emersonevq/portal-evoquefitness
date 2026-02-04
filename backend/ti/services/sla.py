@@ -332,16 +332,19 @@ class SLACalculator:
         data_conclusao = chamado.data_conclusao
         resolucao_metric = None
 
-        # Desconta tempo em "Em análise" para chamados não pausados
+        # Busca pausas do banco para usar nos cálculos
+        pausas = SLAPausaManager.get_pausas_para_calculo(db, chamado.id)
+
+        # Desconta tempo em pausas para todos os chamados
         if chamado.status not in SLAStatusDeterminer.PAUSED_STATUSES:
             data_final = data_conclusao if data_conclusao else agora
             tempo_resolucao_horas = SLACalculator.calculate_business_hours_excluding_paused(
-                chamado.id, data_abertura, data_final, db
+                chamado.id, data_abertura, data_final, db, pausas=pausas
             )
         else:
             # Pausado: não conta tempo desde abertura até agora
             tempo_resolucao_horas = SLACalculator.calculate_business_hours_excluding_paused(
-                chamado.id, data_abertura, agora, db
+                chamado.id, data_abertura, agora, db, pausas=pausas
             )
 
         resolucao_status = SLAStatusDeterminer.determine_status(
