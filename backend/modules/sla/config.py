@@ -23,7 +23,10 @@ class Settings(BaseSettings):
     
     # SLA Thresholds
     SLA_RISCO_PERCENTUAL: int = 80
-    
+
+    # SLA Period - Considera apenas chamados dos últimos N dias
+    SLA_CALCULO_DIAS_ATRAS: int = 30  # Recálculo automático considera últimos 30 dias
+
     # Cache
     CACHE_TTL_MINUTES: int = 60
     

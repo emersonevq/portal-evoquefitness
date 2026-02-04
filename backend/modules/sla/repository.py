@@ -237,13 +237,20 @@ class SlaRepository:
     
     # ==================== Chamados ====================
     
-    def get_chamados_ativos(self) -> List[Chamado]:
-        """Retorna chamados não finalizados"""
+    def get_chamados_ativos(self, dias_atras: int = 30) -> List[Chamado]:
+        """
+        Retorna chamados não finalizados abertos nos últimos N dias (padrão: 30)
+
+        Args:
+            dias_atras: Número de dias para considerar (padrão 30)
+        """
         status_finalizados = list(STATUS_FINALIZADOS)
-        
+        data_inicio = datetime.now() - timedelta(days=dias_atras)
+
         return self.db.query(Chamado).filter(
             and_(
-                ~func.lower(Chamado.status).in_(status_finalizados)
+                ~func.lower(Chamado.status).in_(status_finalizados),
+                Chamado.data_abertura >= data_inicio
             )
         ).all()
     

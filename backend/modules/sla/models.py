@@ -12,7 +12,8 @@ from core.db import Base
 class SlaConfiguration(Base):
     """Configuração de SLA por prioridade"""
     __tablename__ = "sla_configuration"
-    
+    __table_args__ = {'extend_existing': True}
+
     id = Column(Integer, primary_key=True, index=True)
     prioridade = Column(String(50), nullable=False, unique=True)
     tempo_resposta_horas = Column(Float, nullable=False)
@@ -30,7 +31,8 @@ class SlaConfiguration(Base):
 class SlaFeriado(Base):
     """Feriados que não contam no SLA"""
     __tablename__ = "sla_feriados"
-    
+    __table_args__ = {'extend_existing': True}
+
     id = Column(Integer, primary_key=True, index=True)
     data = Column(DateTime, nullable=False, unique=True)
     nome = Column(String(100), nullable=False)
@@ -46,7 +48,8 @@ class SlaFeriado(Base):
 class SlaBusinessHours(Base):
     """Horário comercial por dia da semana"""
     __tablename__ = "sla_business_hours"
-    
+    __table_args__ = {'extend_existing': True}
+
     id = Column(Integer, primary_key=True, index=True)
     dia_semana = Column(Integer, nullable=False)
     hora_inicio = Column(String(5), nullable=False, default="08:00")
@@ -57,7 +60,8 @@ class SlaBusinessHours(Base):
 class SlaCalculationLog(Base):
     """Log de cálculos de SLA"""
     __tablename__ = "sla_calculation_log"
-    
+    __table_args__ = {'extend_existing': True}
+
     id = Column(Integer, primary_key=True, index=True)
     calculation_type = Column(String(50), nullable=False)
     last_calculated_at = Column(DateTime, server_default=func.now())
@@ -77,10 +81,11 @@ class SlaPausa(Base):
     __table_args__ = (
         Index("idx_sla_pausa_chamado", "chamado_id"),
         Index("idx_sla_pausa_ativa", "chamado_id", "ativa"),
+        {'extend_existing': True}
     )
-    
+
     id = Column(Integer, primary_key=True, index=True)
-    chamado_id = Column(Integer, nullable=False, index=True)
+    chamado_id = Column(Integer, ForeignKey("chamado.id", ondelete="CASCADE"), nullable=False, index=True)
     pausado_em = Column(DateTime, nullable=False, default=datetime.now)
     retomado_em = Column(DateTime, nullable=True)
     motivo = Column(String(100), default="Em análise")

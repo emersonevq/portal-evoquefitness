@@ -9,6 +9,8 @@ import {
   Loader,
   Calendar,
   X,
+  AlertTriangle,
+  CheckIcon,
 } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
@@ -401,16 +403,23 @@ export default function Overview() {
           trend={comparacao.direcao}
         />
         <Metric
-          label="Tempo médio de resposta"
-          value={metrics?.tempo_resposta_mes || "—"}
-          sub={`Este mês (${metrics?.total_chamados_mes || 0} chamados)`}
+          label="Em andamento"
+          value={String(metrics?.em_andamento || 0)}
+          sub="Chamados ativos"
           variant="blue"
           icon={Clock}
         />
         <Metric
-          label="Chamados ativos"
-          value={String(metrics?.abertos_agora || 0)}
-          sub="não concluídos"
+          label="Concluídos"
+          value={String(metrics?.concluidos || 0)}
+          sub="Últimos 30 dias"
+          variant="green"
+          icon={CheckCircle2}
+        />
+        <Metric
+          label="Em risco"
+          value={String(metrics?.em_risco || 0)}
+          sub="Requer atenção"
           variant="purple"
           icon={AlertCircle}
         />

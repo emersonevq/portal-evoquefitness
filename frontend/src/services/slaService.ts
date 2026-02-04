@@ -1,6 +1,4 @@
-import axios from "axios";
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+import { api } from "@/lib/api";
 
 export interface SlaMetrics {
   percentual_sla_resposta: number;
@@ -71,11 +69,13 @@ export interface SlaDashboard {
 }
 
 class SlaService {
-  private baseUrl = `${API_BASE_URL}/api/sla`;
+  private baseUrl = "/sla";
 
   async getDashboardResumo(): Promise<SlaMetrics> {
     try {
-      const response = await axios.get(`${this.baseUrl}/dashboard/resumo`);
+      const response = await api.get<SlaMetrics>(
+        `${this.baseUrl}/dashboard/resumo`,
+      );
       return response.data;
     } catch (error) {
       console.error("Erro ao buscar resumo SLA:", error);
@@ -94,7 +94,10 @@ class SlaService {
       if (dataFim) params.append("data_fim", dataFim.toISOString());
       if (prioridade) params.append("prioridade", prioridade);
 
-      const response = await axios.get(`${this.baseUrl}/dashboard`, { params });
+      const queryString = params.toString();
+      const url = `${this.baseUrl}/dashboard${queryString ? `?${queryString}` : ""}`;
+
+      const response = await api.get<SlaDashboard>(url);
       return response.data;
     } catch (error) {
       console.error("Erro ao buscar dashboard SLA:", error);
@@ -104,7 +107,7 @@ class SlaService {
 
   async getSlaConfiguracao(): Promise<SlaConfig[]> {
     try {
-      const response = await axios.get(`${this.baseUrl}/config`);
+      const response = await api.get<SlaConfig[]>(`${this.baseUrl}/config`);
       return response.data;
     } catch (error) {
       console.error("Erro ao buscar configurações SLA:", error);
@@ -114,7 +117,9 @@ class SlaService {
 
   async getSlaAlturaStatus(chamadoId: number): Promise<SlaChamadoStatus> {
     try {
-      const response = await axios.get(`${this.baseUrl}/chamado/${chamadoId}`);
+      const response = await api.get<SlaChamadoStatus>(
+        `${this.baseUrl}/chamado/${chamadoId}`,
+      );
       return response.data;
     } catch (error) {
       console.error(`Erro ao buscar SLA do chamado ${chamadoId}:`, error);
@@ -124,7 +129,7 @@ class SlaService {
 
   async getSchedulerStatus(): Promise<any> {
     try {
-      const response = await axios.get(`${this.baseUrl}/scheduler/status`);
+      const response = await api.get(`${this.baseUrl}/scheduler/status`);
       return response.data;
     } catch (error) {
       console.error("Erro ao buscar status do scheduler:", error);
@@ -134,7 +139,7 @@ class SlaService {
 
   async executarRecalculo(): Promise<any> {
     try {
-      const response = await axios.post(`${this.baseUrl}/scheduler/executar`);
+      const response = await api.post(`${this.baseUrl}/scheduler/executar`);
       return response.data;
     } catch (error) {
       console.error("Erro ao executar recálculo:", error);

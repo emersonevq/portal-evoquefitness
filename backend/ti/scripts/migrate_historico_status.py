@@ -36,7 +36,14 @@ def migrate_historico_status():
         with engine.begin() as conn:
             if has_old_schema:
                 print("[migration] Detected old schema. Migrating historico_status...")
-                
+
+                # Drop temp table if it already exists
+                try:
+                    conn.exec_driver_sql("DROP TABLE IF EXISTS historico_status_new")
+                    print("[migration] Removed existing temporary table")
+                except:
+                    pass
+
                 # Create temp table with new structure
                 conn.exec_driver_sql("""
                     CREATE TABLE historico_status_new (
