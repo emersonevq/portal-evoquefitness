@@ -58,6 +58,16 @@ try:
 except Exception as e:
     print(f"⚠️  Erro ao criar tabela metrics_cache_db: {e}")
 
+# Criar tabelas do módulo SLA na inicialização
+try:
+    from modules.sla.setup_sla_tables import create_sla_tables
+    if create_sla_tables():
+        print("✅ Tabelas SLA criadas/verificadas com sucesso")
+    else:
+        print("⚠️  Erro ao criar tabelas SLA")
+except Exception as e:
+    print(f"⚠️  Erro ao criar tabelas SLA: {e}")
+
 # Executar migração do historico_status na inicialização
 try:
     from ti.scripts.migrate_historico_status import migrate_historico_status
