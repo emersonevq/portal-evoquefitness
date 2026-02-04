@@ -481,3 +481,13 @@ async def startup_event():
         print("[STARTUP] ✓ SLA Scheduler iniciado com sucesso")
     except Exception as e:
         print(f"[STARTUP] ⚠️  Erro ao iniciar SLA Scheduler: {e}")
+
+
+@_http.on_event("shutdown")
+async def shutdown_event():
+    """Stop SLA Scheduler on shutdown"""
+    try:
+        stop_scheduler()
+        print("[SHUTDOWN] ✓ SLA Scheduler parado com sucesso")
+    except Exception as e:
+        print(f"[SHUTDOWN] ⚠️  Erro ao parar SLA Scheduler: {e}")
