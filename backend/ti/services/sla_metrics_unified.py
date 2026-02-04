@@ -23,13 +23,17 @@ from core.utils import now_brazil_naive
 class UnifiedSLAMetricsCalculator:
     """
     Calcula todas as métricas de SLA a partir de uma única distribuição.
-    
+
     Estratégia:
-    1. Carregar TODOS os chamados do período
+    1. Carregar apenas chamados abertos há ≤30 dias
     2. Classificar cada um como dentro/fora SLA
     3. Derivar percentuais dessa classificação
     4. Cache dos resultados
+
+    Nota: Chamados com >30 dias não contam para as métricas de SLA.
     """
+
+    SLA_AGE_LIMIT_DAYS = 30  # Apenas chamados com até 30 dias contam para SLA
     
     @staticmethod
     def calculate_sla_distribution_period(
@@ -82,10 +86,15 @@ class UnifiedSLAMetricsCalculator:
             
             # Busca chamados do período com LIMIT para evitar carregar tudo na memória
             # Processa em chunks de 1000 chamados por vez
+            # IMPORTANTE: Apenas chamados com até 30 dias contam para SLA
+            agora = now_brazil_naive()
+            data_limite_30d = agora - timedelta(days=self.SLA_AGE_LIMIT_DAYS)
+
             query = db.query(Chamado).filter(
                 and_(
                     Chamado.data_abertura >= start_date,
                     Chamado.data_abertura <= end_date,
+                    Chamado.data_abertura >= data_limite_30d,  # Filtro de 30 dias
                     Chamado.status != "Cancelado",
                     Chamado.data_primeira_resposta.isnot(None)
                 )
