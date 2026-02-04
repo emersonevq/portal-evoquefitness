@@ -1,150 +1,100 @@
-from sqlalchemy.orm import Session
-from sqlalchemy import and_, func, desc
-from datetime import datetime, timedelta, date
-from typing import List, Optional, Dict, Any
+"""Repositório para acesso a dados de SLA"""
 
-from .models import (
-    SlaConfiguration, SlaFeriado, SlaBusinessHours,
-    SlaCalculationLog, SlaPausa
-)
-from .constants import STATUS_FINALIZADOS, normalizar_status
-from ti.models.chamado import Chamado
+from datetime import datetime, timedelta
+from typing import List, Optional, Tuple
+from sqlalchemy.orm import Session
+from sqlalchemy import and_, or_
+
+from .models import SlaConfiguration, SlaFeriado, SlaCalculationLog, SlaPausa, SlaBusinessHours
+from .schemas import SlaPausaCreate
 
 
 class SlaRepository:
-    """Repositório de acesso a dados do SLA"""
+    """Repositório para operações de SLA"""
     
     def __init__(self, db: Session):
         self.db = db
     
-    # ==================== Configurações ====================
+    # ========== Configurações ==========
     
-    def get_all_configs(self, apenas_ativos: bool = True) -> List[SlaConfiguration]:
-        query = self.db.query(SlaConfiguration)
-        if apenas_ativos:
-            query = query.filter(SlaConfiguration.ativo)
-        return query.order_by(SlaConfiguration.prioridade).all()
-    
-    def get_config_by_prioridade(self, prioridade: str) -> Optional[SlaConfiguration]:
-        prioridade_norm = prioridade.lower().strip() if prioridade else ""
+    def obter_config_por_prioridade(self, prioridade: str) -> Optional[SlaConfiguration]:
+        """Obtém configuração de SLA por prioridade"""
         return self.db.query(SlaConfiguration).filter(
-            and_(
-                func.lower(SlaConfiguration.prioridade) == prioridade_norm,
-                SlaConfiguration.ativo
-            )
+            SlaConfiguration.prioridade == prioridade.lower(),
+            SlaConfiguration.ativo == True
         ).first()
     
-    def get_configs_map(self) -> Dict[str, SlaConfiguration]:
-        configs = self.get_all_configs()
-        return {c.prioridade.lower(): c for c in configs}
+    def obter_todas_configs(self) -> List[SlaConfiguration]:
+        """Obtém todas as configurações ativas"""
+        return self.db.query(SlaConfiguration).filter(
+            SlaConfiguration.ativo == True
+        ).all()
     
-    def config_exists(self, prioridade: str) -> bool:
-        """Verifica se já existe config para a prioridade"""
-        return self.get_config_by_prioridade(prioridade) is not None
-    
-    def create_config(self, data: Dict[str, Any]) -> SlaConfiguration:
-        config = SlaConfiguration(**data)
+    def criar_config(self, prioridade: str, tempo_resposta: float, tempo_resolucao: float) -> SlaConfiguration:
+        """Cria uma nova configuração de SLA"""
+        config = SlaConfiguration(
+            prioridade=prioridade.lower(),
+            tempo_resposta_horas=tempo_resposta,
+            tempo_resolucao_horas=tempo_resolucao
+        )
         self.db.add(config)
         self.db.commit()
         self.db.refresh(config)
         return config
     
-    def update_config(self, config_id: int, data: Dict[str, Any]) -> Optional[SlaConfiguration]:
-        config = self.db.query(SlaConfiguration).filter(
-            SlaConfiguration.id == config_id
-        ).first()
-        
-        if config:
-            for key, value in data.items():
-                if value is not None:
-                    setattr(config, key, value)
-            config.atualizado_em = datetime.now()
-            self.db.commit()
-            self.db.refresh(config)
-        
-        return config
+    # ========== Feriados ==========
     
-    def delete_config(self, config_id: int) -> bool:
-        config = self.db.query(SlaConfiguration).filter(
-            SlaConfiguration.id == config_id
-        ).first()
-        if config:
-            config.ativo = False
-            config.atualizado_em = datetime.now()
-            self.db.commit()
-            return True
-        return False
-    
-    # ==================== Feriados ====================
-    
-    def get_feriados(self, ano: int = None, apenas_ativos: bool = True) -> List[SlaFeriado]:
-        query = self.db.query(SlaFeriado)
-        if apenas_ativos:
-            query = query.filter(SlaFeriado.ativo)
-        if ano:
-            query = query.filter(func.year(SlaFeriado.data) == ano)
-        return query.order_by(SlaFeriado.data).all()
-    
-    def get_feriados_between(self, start: datetime, end: datetime) -> List[date]:
-        feriados = self.db.query(SlaFeriado).filter(
-            and_(
-                SlaFeriado.ativo,
-                SlaFeriado.data.between(start, end)
-            )
+    def obter_feriados_ativo(self) -> List[SlaFeriado]:
+        """Obtém todos os feriados ativos"""
+        return self.db.query(SlaFeriado).filter(
+            SlaFeriado.ativo == True
         ).all()
-        
-        resultado = []
-        for f in feriados:
-            if isinstance(f.data, datetime):
-                resultado.append(f.data.date())
-            else:
-                resultado.append(f.data)
-        return resultado
     
-    def feriado_exists(self, data: datetime) -> bool:
-        """Verifica se já existe feriado na data"""
+    def obter_feriados_entre(self, data_inicio: datetime, data_fim: datetime) -> List[SlaFeriado]:
+        """Obtém feriados entre duas datas"""
         return self.db.query(SlaFeriado).filter(
             and_(
-                SlaFeriado.data == data,
-                SlaFeriado.ativo
+                SlaFeriado.data >= data_inicio,
+                SlaFeriado.data <= data_fim,
+                SlaFeriado.ativo == True
             )
-        ).first() is not None
+        ).all()
     
-    def create_feriado(self, data: Dict[str, Any]) -> SlaFeriado:
-        feriado = SlaFeriado(**data)
+    def criar_feriado(self, data: datetime, nome: str, descricao: str = None) -> SlaFeriado:
+        """Cria um novo feriado"""
+        feriado = SlaFeriado(
+            data=data,
+            nome=nome,
+            descricao=descricao
+        )
         self.db.add(feriado)
         self.db.commit()
         self.db.refresh(feriado)
         return feriado
     
-    def delete_feriado(self, feriado_id: int) -> bool:
-        feriado = self.db.query(SlaFeriado).filter(
-            SlaFeriado.id == feriado_id
-        ).first()
-        if feriado:
-            self.db.delete(feriado)
-            self.db.commit()
-            return True
-        return False
+    # ========== Pausas ==========
     
-    # ==================== Pausas ====================
+    def obter_pausas_chamado(self, chamado_id: int) -> List[SlaPausa]:
+        """Obtém todas as pausas de um chamado"""
+        return self.db.query(SlaPausa).filter(
+            SlaPausa.chamado_id == chamado_id
+        ).order_by(SlaPausa.pausado_em).all()
     
-    def criar_pausa(
-        self,
-        chamado_id: int,
-        motivo: str = "Em análise",
-        usuario_id: int = None
-    ) -> SlaPausa:
-        """Cria nova pausa. Se já houver ativa, retorna a existente."""
-        pausa_ativa = self.get_pausa_ativa(chamado_id)
-        if pausa_ativa:
-            return pausa_ativa
-        
+    def obter_pausas_ativas_chamado(self, chamado_id: int) -> List[SlaPausa]:
+        """Obtém pausas ativas de um chamado"""
+        return self.db.query(SlaPausa).filter(
+            and_(
+                SlaPausa.chamado_id == chamado_id,
+                SlaPausa.ativa == True
+            )
+        ).all()
+    
+    def criar_pausa(self, pausa_data: SlaPausaCreate, usuario_id: Optional[int] = None) -> SlaPausa:
+        """Cria uma nova pausa de SLA"""
         pausa = SlaPausa(
-            chamado_id=chamado_id,
-            pausado_em=datetime.now(),
-            motivo=motivo,
-            ativa=True,
+            chamado_id=pausa_data.chamado_id,
+            pausado_em=pausa_data.pausado_em,
+            motivo=pausa_data.motivo,
             criado_por_id=usuario_id
         )
         self.db.add(pausa)
@@ -152,196 +102,64 @@ class SlaRepository:
         self.db.refresh(pausa)
         return pausa
     
-    def finalizar_pausa(self, chamado_id: int) -> Optional[SlaPausa]:
-        """Finaliza a pausa ativa de um chamado"""
-        pausa = self.get_pausa_ativa(chamado_id)
-        
+    def retiomar_pausa(self, pausa_id: int, retomado_em: datetime = None) -> Optional[SlaPausa]:
+        """Retoma uma pausa (marcando como finalizada)"""
+        pausa = self.db.query(SlaPausa).filter(SlaPausa.id == pausa_id).first()
         if pausa:
-            pausa.retomado_em = datetime.now()
+            pausa.retomado_em = retomado_em or datetime.now()
             pausa.ativa = False
-            pausa.duracao_minutos = int(
-                (pausa.retomado_em - pausa.pausado_em).total_seconds() / 60
-            )
-            pausa.atualizado_em = datetime.now()
+            pausa.duracao_minutos = pausa.calcular_duracao()
             self.db.commit()
             self.db.refresh(pausa)
-        
         return pausa
     
-    def finalizar_todas_pausas(self, chamado_id: int) -> int:
-        """Finaliza TODAS as pausas ativas de um chamado"""
-        pausas_ativas = self.get_pausas_ativas_chamado(chamado_id)
-        count = 0
+    def pausar_automaticamente_se_necessario(self, chamado_id: int, status: str) -> Optional[SlaPausa]:
+        """Pausa automaticamente se status é 'Em análise'"""
+        if status.lower() != "em análise":
+            return None
+        
+        # Verifica se já tem pausa ativa
+        pausas_ativas = self.obter_pausas_ativas_chamado(chamado_id)
+        if pausas_ativas:
+            return pausas_ativas[0]  # Já tem pausa ativa
+        
+        # Cria nova pausa
+        pausa_data = SlaPausaCreate(
+            chamado_id=chamado_id,
+            pausado_em=datetime.now(),
+            motivo="Em análise"
+        )
+        return self.criar_pausa(pausa_data)
+    
+    def retomar_pausas_se_necessario(self, chamado_id: int, status: str) -> List[SlaPausa]:
+        """Retoma pausas se status mudou de 'Em análise'"""
+        if status.lower() == "em análise":
+            return []
+        
+        pausas_ativas = self.obter_pausas_ativas_chamado(chamado_id)
+        retomadas = []
         
         for pausa in pausas_ativas:
-            pausa.retomado_em = datetime.now()
-            pausa.ativa = False
-            pausa.duracao_minutos = int(
-                (pausa.retomado_em - pausa.pausado_em).total_seconds() / 60
-            )
-            pausa.atualizado_em = datetime.now()
-            count += 1
+            self.retiomar_pausa(pausa.id)
+            retomadas.append(pausa)
         
-        if count > 0:
-            self.db.commit()
-        
-        return count
+        return retomadas
     
-    def get_pausas_chamado(self, chamado_id: int) -> List[SlaPausa]:
-        """Retorna TODAS as pausas de um chamado"""
-        return self.db.query(SlaPausa).filter(
-            SlaPausa.chamado_id == chamado_id
-        ).order_by(SlaPausa.pausado_em).all()
+    # ========== Logs ==========
     
-    def get_pausas_ativas_chamado(self, chamado_id: int) -> List[SlaPausa]:
-        """Retorna apenas pausas ATIVAS"""
-        return self.db.query(SlaPausa).filter(
-            and_(
-                SlaPausa.chamado_id == chamado_id,
-                SlaPausa.ativa
-            )
-        ).all()
-    
-    def get_pausa_ativa(self, chamado_id: int) -> Optional[SlaPausa]:
-        """Retorna a pausa ativa atual"""
-        return self.db.query(SlaPausa).filter(
-            and_(
-                SlaPausa.chamado_id == chamado_id,
-                SlaPausa.ativa
-            )
-        ).first()
-    
-    def get_tempo_total_pausado(self, chamado_id: int) -> int:
-        """Retorna minutos totais pausados"""
-        pausas = self.get_pausas_chamado(chamado_id)
-        
-        total = 0
-        for pausa in pausas:
-            if pausa.duracao_minutos:
-                total += pausa.duracao_minutos
-            elif pausa.ativa:
-                total += int((datetime.now() - pausa.pausado_em).total_seconds() / 60)
-        
-        return total
-    
-    def get_pausas_para_calculo(self, chamado_id: int) -> List[Dict]:
-        """Retorna pausas no formato do calculator"""
-        pausas = self.get_pausas_chamado(chamado_id)
-        return [
-            {
-                "pausado_em": p.pausado_em,
-                "retomado_em": p.retomado_em
-            }
-            for p in pausas
-        ]
-    
-    # ==================== Chamados ====================
-    
-    def get_chamados_ativos(self, dias_atras: int = 30) -> List[Chamado]:
-        """
-        Retorna chamados não finalizados abertos nos últimos N dias (padrão: 30)
-
-        Args:
-            dias_atras: Número de dias para considerar (padrão 30)
-        """
-        status_finalizados = list(STATUS_FINALIZADOS)
-        data_inicio = datetime.now() - timedelta(days=dias_atras)
-
-        return self.db.query(Chamado).filter(
-            and_(
-                ~func.lower(Chamado.status).in_(status_finalizados),
-                Chamado.data_abertura >= data_inicio
-            )
-        ).all()
-    
-    def get_chamados_periodo(
+    def registrar_calculo(
         self,
-        data_inicio: datetime,
-        data_fim: datetime,
-        prioridade: str = None,
-        status: str = None,
-        apenas_ativos: bool = False
-    ) -> List[Chamado]:
-        """Retorna chamados em um período"""
-        if data_inicio > data_fim:
-            data_inicio, data_fim = data_fim, data_inicio
-        
-        query = self.db.query(Chamado).filter(
-            Chamado.data_abertura.between(data_inicio, data_fim)
-        )
-        
-        if prioridade:
-            query = query.filter(func.lower(Chamado.prioridade) == prioridade.lower())
-        
-        if status:
-            query = query.filter(func.lower(Chamado.status) == status.lower())
-        
-        if apenas_ativos:
-            status_finalizados = list(STATUS_FINALIZADOS)
-            query = query.filter(~func.lower(Chamado.status).in_(status_finalizados))
-        
-        return query.order_by(desc(Chamado.data_abertura)).all()
-    
-    def get_chamado_by_id(self, chamado_id: int) -> Optional[Chamado]:
-        return self.db.query(Chamado).filter(
-            Chamado.id == chamado_id
-        ).first()
-    
-    def update_chamado_sla(
-        self,
-        chamado_id: int,
-        em_risco: bool,
-        vencido: bool,
-        tempo_decorrido: float = None,
-        tempo_pausado: float = None,
-        percentual: float = None
-    ) -> bool:
-        """Atualiza campos de SLA do chamado"""
-        chamado = self.get_chamado_by_id(chamado_id)
-        
-        if not chamado:
-            return False
-        
-        chamado.sla_em_risco = em_risco
-        chamado.sla_vencido = vencido
-        chamado.sla_atualizado_em = datetime.now()
-        
-        if tempo_decorrido is not None:
-            chamado.sla_tempo_decorrido_horas = tempo_decorrido
-        if tempo_pausado is not None:
-            chamado.sla_tempo_pausado_horas = tempo_pausado
-        if percentual is not None:
-            chamado.sla_percentual_consumido = percentual
-        
-        if vencido and not chamado.sla_ultimo_escalonamento:
-            chamado.sla_ultimo_escalonamento = datetime.now()
-        
-        self.db.commit()
-        return True
-    
-    # ==================== Logs ====================
-    
-    def log_calculation(
-        self,
-        calc_type: str,
+        calculation_type: str,
         chamados_count: int,
-        em_risco: int = 0,
-        vencidos: int = 0,
-        pausados: int = 0,
-        execution_time: float = 0,
+        execution_time_ms: float,
         success: bool = True,
-        error_message: str = None,
-        last_chamado_id: int = None
+        error_message: str = None
     ) -> SlaCalculationLog:
+        """Registra um cálculo de SLA"""
         log = SlaCalculationLog(
-            calculation_type=calc_type,
-            last_calculated_at=datetime.now(),
-            last_calculated_chamado_id=last_chamado_id,
+            calculation_type=calculation_type,
             chamados_count=chamados_count,
-            chamados_em_risco=em_risco,
-            chamados_vencidos=vencidos,
-            chamados_pausados=pausados,
-            execution_time_ms=execution_time,
+            execution_time_ms=execution_time_ms,
             success=success,
             error_message=error_message
         )
@@ -350,12 +168,8 @@ class SlaRepository:
         self.db.refresh(log)
         return log
     
-    def get_ultimo_calculo(self) -> Optional[SlaCalculationLog]:
-        return self.db.query(SlaCalculationLog).filter(
-            SlaCalculationLog.success
-        ).order_by(desc(SlaCalculationLog.last_calculated_at)).first()
-    
-    def get_logs_recentes(self, limite: int = 10) -> List[SlaCalculationLog]:
+    def obter_ultimos_logs(self, limit: int = 10) -> List[SlaCalculationLog]:
+        """Obtém últimos logs de cálculo"""
         return self.db.query(SlaCalculationLog).order_by(
-            desc(SlaCalculationLog.last_calculated_at)
-        ).limit(limite).all()
+            SlaCalculationLog.created_at.desc()
+        ).limit(limit).all()
