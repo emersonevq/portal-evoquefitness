@@ -14,7 +14,6 @@ import {
 } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
-import { slaService, SlaDashboard } from "@/services/slaService";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -124,7 +123,6 @@ const STATUS_OPTIONS = [
 export default function Overview() {
   const queryClient = useQueryClient();
   const [metrics, setMetrics] = useState<any>(null);
-  const [slaDashboard, setSlaDashboard] = useState<SlaDashboard | null>(null);
   const [dailyData, setDailyData] = useState<any[]>([]);
   const [weeklyData, setWeeklyData] = useState<any[]>([]);
   const [monthlyData, setMonthlyData] = useState<any[]>([]);
@@ -213,16 +211,6 @@ export default function Overview() {
     gcTime: 60 * 60 * 1000,
   });
 
-  // Query para dados de SLA (últimos 30 dias)
-  const { data: slaData, isLoading: slaLoading } = useQuery({
-    queryKey: ["metrics-sla"],
-    queryFn: async () => {
-      return await slaService.getDashboard();
-    },
-    staleTime: 5 * 60 * 1000, // 5 minutos
-    gcTime: 30 * 60 * 1000, // 30 minutos
-  });
-
   // Atualiza estado local quando dados do React Query chegam
   useEffect(() => {
     if (basicMetricsData) {
@@ -253,13 +241,6 @@ export default function Overview() {
       setPerformanceData(performanceMetricsData);
     }
   }, [performanceMetricsData]);
-
-  // Atualiza estado de SLA quando dados chegam
-  useEffect(() => {
-    if (slaData) {
-      setSlaDashboard(slaData);
-    }
-  }, [slaData]);
 
   // Toggle status selection
   const toggleStatus = (status: (typeof STATUS_OPTIONS)[number]) => {
@@ -294,20 +275,10 @@ export default function Overview() {
         queryClient.invalidateQueries({ queryKey: ["metrics-performance"] });
       };
 
-      const handleSlaUpdated = () => {
-        console.debug(
-          "[Overview] Recebido evento sla:updated, invalidando cache de SLA",
-        );
-        // Invalida cache de SLA para forçar refetch imediato
-        queryClient.invalidateQueries({ queryKey: ["metrics-sla"] });
-      };
-
       socket.on("metrics:updated", handleMetricsUpdated);
-      socket.on("sla:updated", handleSlaUpdated);
 
       return () => {
         socket.off("metrics:updated", handleMetricsUpdated);
-        socket.off("sla:updated", handleSlaUpdated);
       };
     } catch (error) {
       console.debug("[Overview] Erro ao configurar listener WebSocket:", error);
@@ -321,8 +292,7 @@ export default function Overview() {
       dailyLoading ||
       weeklyLoading ||
       performanceLoading ||
-      monthlyLoading ||
-      slaLoading;
+      monthlyLoading;
     setIsLoading(allLoading);
   }, [
     basicLoading,
@@ -330,7 +300,6 @@ export default function Overview() {
     weeklyLoading,
     performanceLoading,
     monthlyLoading,
-    slaLoading,
   ]);
 
   if (isLoading) {
@@ -358,20 +327,6 @@ export default function Overview() {
     ontem: 0,
     percentual: 0,
     direcao: "up",
-  };
-
-  // Função para formatar horas em formato legível
-  const formatarHora = (horas: number): string => {
-    if (horas < 1) {
-      const minutos = Math.round(horas * 60);
-      return `${minutos}min`;
-    }
-    if (horas < 24) {
-      return `${horas.toFixed(1)}h`;
-    }
-    const dias = Math.floor(horas / 24);
-    const horasRestantes = horas % 24;
-    return `${dias}d ${horasRestantes.toFixed(0)}h`;
   };
 
   return (
@@ -448,74 +403,27 @@ export default function Overview() {
           trend={comparacao.direcao}
         />
         <Metric
-          label="Tempo médio de resposta"
-          value={slaDashboard ? formatarHora(slaDashboard.tempo_medio_resposta_horas) : "—"}
-          sub={`SLA: ${slaDashboard ? slaDashboard.percentual_sla_resposta.toFixed(1) : 0}%`}
+          label="Em andamento"
+          value={String(metrics?.em_andamento || 0)}
+          sub="Chamados ativos"
           variant="blue"
           icon={Clock}
         />
         <Metric
-          label="Tempo médio de resolução"
-          value={slaDashboard ? formatarHora(slaDashboard.tempo_medio_resolucao_horas) : "—"}
-          sub={`SLA: ${slaDashboard ? slaDashboard.percentual_sla_resolucao.toFixed(1) : 0}%`}
+          label="Concluídos"
+          value={String(metrics?.concluidos || 0)}
+          sub="Últimos 30 dias"
           variant="green"
           icon={CheckCircle2}
         />
         <Metric
-          label="Chamados em risco/vencidos"
-          value={String((slaDashboard?.chamados_em_risco || 0) + (slaDashboard?.chamados_vencidos || 0))}
-          sub={`${slaDashboard?.chamados_em_risco || 0} risco, ${slaDashboard?.chamados_vencidos || 0} vencidos`}
+          label="Em risco"
+          value={String(metrics?.em_risco || 0)}
+          sub="Requer atenção"
           variant="purple"
           icon={AlertCircle}
         />
       </div>
-
-      {/* SLA Summary */}
-      {slaDashboard && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="relative group">
-            <div className="absolute -inset-1 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity" />
-            <div className="relative card-surface rounded-2xl p-5 border border-yellow-200/50">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-xs font-medium text-muted-foreground uppercase">Chamados em Risco</p>
-                  <p className="text-3xl font-bold text-yellow-600 mt-2">{slaDashboard.chamados_em_risco}</p>
-                  <p className="text-xs text-muted-foreground mt-2">80% do SLA consumido</p>
-                </div>
-                <AlertTriangle className="w-6 h-6 text-yellow-500 opacity-60" />
-              </div>
-            </div>
-          </div>
-
-          <div className="relative group">
-            <div className="absolute -inset-1 bg-gradient-to-r from-red-500/20 to-pink-500/20 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity" />
-            <div className="relative card-surface rounded-2xl p-5 border border-red-200/50">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-xs font-medium text-muted-foreground uppercase">Chamados Vencidos</p>
-                  <p className="text-3xl font-bold text-red-600 mt-2">{slaDashboard.chamados_vencidos}</p>
-                  <p className="text-xs text-muted-foreground mt-2">SLA expirado</p>
-                </div>
-                <AlertCircle className="w-6 h-6 text-red-500 opacity-60" />
-              </div>
-            </div>
-          </div>
-
-          <div className="relative group">
-            <div className="absolute -inset-1 bg-gradient-to-r from-blue-500/20 to-cyan-500/20 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity" />
-            <div className="relative card-surface rounded-2xl p-5 border border-blue-200/50">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-xs font-medium text-muted-foreground uppercase">Chamados Pausados</p>
-                  <p className="text-3xl font-bold text-blue-600 mt-2">{slaDashboard.chamados_pausados}</p>
-                  <p className="text-xs text-muted-foreground mt-2">Aguardando análise</p>
-                </div>
-                <Clock className="w-6 h-6 text-blue-500 opacity-60" />
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Charts Row 1 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
