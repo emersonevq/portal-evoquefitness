@@ -35,6 +35,7 @@ class SLABusinessHours(Base):
 
 class SLAFeriado(Base):
     __tablename__ = "sla_feriados"
+    __table_args__ = {"extend_existing": True}
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     data: Mapped[str] = mapped_column(String(10), nullable=False, unique=True)
