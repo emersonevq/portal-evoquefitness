@@ -45,8 +45,7 @@ class MetricsCalculator:
 
     @staticmethod
     def get_tempo_medio_resposta_24h(db: Session) -> str:
-        """Calcula tempo médio de PRIMEIRA resposta das últimas 24h em horas de negócio"""
-        from ti.services.sla import SLACalculator
+        """Calcula tempo médio de PRIMEIRA resposta das últimas 24h"""
 
         agora = now_brazil_naive()
         ontem = agora - timedelta(hours=24)
@@ -65,16 +64,12 @@ class MetricsCalculator:
             if not chamados:
                 return "—"
 
-            # Calcula os tempos em horas de NEGÓCIO
+            # Calcula os tempos
             tempos = []
             for chamado in chamados:
                 if chamado.data_primeira_resposta and chamado.data_abertura:
-                    # Usa horas de NEGÓCIO
-                    horas = SLACalculator.calculate_business_hours(
-                        chamado.data_abertura,
-                        chamado.data_primeira_resposta,
-                        db
-                    )
+                    delta = chamado.data_primeira_resposta - chamado.data_abertura
+                    horas = delta.total_seconds() / 3600
                     # Filtro de sanidade: apenas valores entre 0 e 72h
                     if 0 <= horas <= 72:
                         tempos.append(horas)
@@ -100,7 +95,6 @@ class MetricsCalculator:
     @staticmethod
     def get_tempo_medio_resposta_mes(db: Session) -> tuple[str, int]:
         """Calcula tempo médio de PRIMEIRA resposta deste mês usando Chamado.data_primeira_resposta"""
-        from ti.services.sla import SLACalculator
 
         agora = now_brazil_naive()
         mes_inicio = agora.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
@@ -128,16 +122,12 @@ class MetricsCalculator:
             if not chamados:
                 return "—", total_chamados_mes
 
-            # Calcula os tempos em horas de NEGÓCIO
+            # Calcula os tempos
             tempos = []
             for chamado in chamados:
                 if chamado.data_primeira_resposta and chamado.data_abertura:
-                    # Usa horas de NEGÓCIO (não clock time)
-                    horas = SLACalculator.calculate_business_hours(
-                        chamado.data_abertura,
-                        chamado.data_primeira_resposta,
-                        db
-                    )
+                    delta = chamado.data_primeira_resposta - chamado.data_abertura
+                    horas = delta.total_seconds() / 3600
 
                     # Filtro de sanidade: apenas valores entre 0 e 72h
                     if 0 <= horas <= 72:
@@ -392,10 +382,8 @@ class MetricsCalculator:
 
     @staticmethod
     def get_performance_metrics(db: Session) -> dict:
-        """Retorna métricas de performance (últimos 30 dias) - CORRIGIDO"""
+        """Retorna métricas de performance (últimos 30 dias)"""
         try:
-            from ti.services.sla import SLACalculator
-
             agora = now_brazil_naive()
             trinta_dias_atras = agora - timedelta(days=30)
 
@@ -407,17 +395,12 @@ class MetricsCalculator:
                 )
             ).all()
 
-            # ===== TEMPO MÉDIO DE RESOLUÇÃO (horas de negócio SEM "Em análise") =====
+            # ===== TEMPO MÉDIO DE RESOLUÇÃO =====
             tempos_resolucao = []
             for chamado in chamados_30dias:
                 if chamado.data_conclusao and chamado.data_abertura:
-                    # Usa horas de NEGÓCIO DESCONTANDO "Em análise"
-                    horas = SLACalculator.calculate_business_hours_excluding_paused(
-                        chamado.id,
-                        chamado.data_abertura,
-                        chamado.data_conclusao,
-                        db
-                    )
+                    delta = chamado.data_conclusao - chamado.data_abertura
+                    horas = delta.total_seconds() / 3600
                     tempos_resolucao.append(horas)
 
             tempo_resolucao_medio = sum(tempos_resolucao) / len(tempos_resolucao) if tempos_resolucao else 0
@@ -426,16 +409,11 @@ class MetricsCalculator:
             tempo_resolucao_str = f"{horas}h {minutos}m" if minutos > 0 else f"{horas}h" if horas > 0 else "—"
 
             # ===== TEMPO MÉDIO DE PRIMEIRA RESPOSTA =====
-            # Usa Chamado.data_primeira_resposta (fonte confiável)
             tempos_primeira_resposta = []
             for chamado in chamados_30dias:
                 if chamado.data_primeira_resposta and chamado.data_abertura:
-                    # Usa horas de NEGÓCIO (não desconta nada para primeira resposta)
-                    horas = SLACalculator.calculate_business_hours(
-                        chamado.data_abertura,
-                        chamado.data_primeira_resposta,
-                        db
-                    )
+                    delta = chamado.data_primeira_resposta - chamado.data_abertura
+                    horas = delta.total_seconds() / 3600
                     # Filtro de sanidade: máximo 72h
                     if 0 <= horas <= 72:
                         tempos_primeira_resposta.append(horas)
@@ -451,14 +429,11 @@ class MetricsCalculator:
                 tempo_primeira_resposta_str = "—"
 
             # ===== TAXA DE REABERTURAS =====
-            # Calcula % de chamados que foram reaberlos (status != Concluído em algum momento)
-            # Para simplificar: verifica chamados com múltiplas transições
             chamados_reaberlos = 0
             for chamado in chamados_30dias:
                 historicos = db.query(HistoricoStatus).filter(
                     HistoricoStatus.chamado_id == chamado.id
                 ).count()
-                # Se tem mais de 5 históricos, provavelmente foi reaberto
                 if historicos > 5:
                     chamados_reaberlos += 1
 
@@ -471,7 +446,6 @@ class MetricsCalculator:
             taxa_reaberturas = int((chamados_reaberlos / total_com_historico * 100)) if total_com_historico > 0 else 0
 
             # ===== CHAMADOS EM BACKLOG =====
-            # Chamados que estão aguardando (congelados)
             chamados_backlog = db.query(Chamado).filter(
                 and_(
                     Chamado.status.in_(["Aguardando", "Em análise"]),
@@ -568,7 +542,6 @@ class MetricsCalculator:
             chamados_hoje = MetricsCalculator.get_chamados_abertos_hoje(db)
             comparacao_ontem = MetricsCalculator.get_comparacao_ontem(db)
             tempo_resposta_24h = MetricsCalculator.get_tempo_medio_resposta_24h(db)
-            sla_compliance = MetricsCalculator.get_sla_compliance_mes(db)
             abertos_agora = MetricsCalculator.get_abertos_agora(db)
             tempo_resolucao = MetricsCalculator.get_tempo_resolucao_media_30dias(db)
 
@@ -578,7 +551,6 @@ class MetricsCalculator:
                 "tempo_resposta_24h": tempo_resposta_24h,
                 "tempo_resposta_mes": tempo_resposta_mes,
                 "total_chamados_mes": total_chamados_mes,
-                "sla_compliance_24h": sla_compliance,
                 "abertos_agora": abertos_agora,
                 "tempo_resolucao_30dias": tempo_resolucao,
             }
@@ -592,7 +564,6 @@ class MetricsCalculator:
                 "tempo_resposta_24h": "—",
                 "tempo_resposta_mes": "—",
                 "total_chamados_mes": 0,
-                "sla_compliance_24h": 0,
                 "abertos_agora": 0,
                 "tempo_resolucao_30dias": "—",
             }
