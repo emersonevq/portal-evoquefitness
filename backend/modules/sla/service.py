@@ -500,11 +500,16 @@ class SlaService:
     # ==================== Recálculo ====================
     
     def recalcular_todos_chamados(self) -> RecalculoResponse:
-        """Recalcula SLA de todos os chamados ativos"""
+        """
+        Recalcula SLA de todos os chamados ativos abertos nos últimos 30 dias.
+
+        O sistema considera apenas chamados abertos há no máximo 30 dias para
+        otimizar performance e focar em chamados relevantes.
+        """
         start_time = time.time()
-        
+
         try:
-            chamados = self.repo.get_chamados_ativos()
+            chamados = self.repo.get_chamados_ativos(dias_atras=settings.SLA_CALCULO_DIAS_ATRAS)
             configs = self._get_configs_cached()
             
             processados = 0
