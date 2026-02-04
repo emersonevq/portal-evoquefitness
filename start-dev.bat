@@ -7,26 +7,29 @@ echo   Portal Evoque - Dev Environment
 echo ========================================
 echo.
 
-REM Verificar se node_modules existe no frontend
-if not exist "frontend\node_modules" (
-    echo Instalando dependências do Frontend...
-    cd frontend
-    call npm install
-    cd ..
-    echo Dependências instaladas com sucesso!
-    echo.
+REM Limpar e reinstalar dependências do Frontend
+echo Limpando e reinstalando dependencias do Frontend...
+cd frontend
+if exist "node_modules" (
+    echo Removendo node_modules...
+    rmdir /s /q node_modules 2>nul
 )
-
-REM Verificar se requirements estão instalados no backend
-if not exist "backend\venv" (
-    echo.
-    echo AVISO: Ambiente virtual do backend nao encontrado.
-    echo Se ocorrerem erros, execute no diretorio backend:
-    echo   python -m venv venv
-    echo   venv\Scripts\activate
-    echo   pip install -r requirements.txt
-    echo.
+if exist "package-lock.json" (
+    echo Removendo package-lock.json...
+    del /q package-lock.json
 )
+echo Instalando dependencias...
+call npm install
+if errorlevel 1 (
+    echo.
+    echo ERRO ao instalar dependencias do Frontend!
+    echo Verifique se Node.js e npm estao instalados corretamente.
+    pause
+    exit /b 1
+)
+cd ..
+echo Dependencias do Frontend instaladas com sucesso!
+echo.
 
 echo Iniciando Backend (porta 3001)...
 start "Backend" cmd /k "cd backend && python -m uvicorn main:app --host 0.0.0.0 --port 3001 --reload"
