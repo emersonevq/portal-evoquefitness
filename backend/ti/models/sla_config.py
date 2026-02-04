@@ -7,6 +7,7 @@ from core.db import Base
 
 class SLAConfiguration(Base):
     __tablename__ = "sla_configuration"
+    __table_args__ = {"extend_existing": True}
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     prioridade: Mapped[str] = mapped_column(String(50), nullable=False, unique=True)
