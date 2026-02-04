@@ -48,6 +48,7 @@ class SLAFeriado(Base):
 
 class HistoricoSLA(Base):
     __tablename__ = "historico_sla"
+    __table_args__ = {"extend_existing": True}
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     chamado_id: Mapped[int] = mapped_column(Integer, nullable=False)
