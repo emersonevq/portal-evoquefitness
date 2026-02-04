@@ -254,6 +254,13 @@ export default function Overview() {
     }
   }, [performanceMetricsData]);
 
+  // Atualiza estado de SLA quando dados chegam
+  useEffect(() => {
+    if (slaData) {
+      setSlaDashboard(slaData);
+    }
+  }, [slaData]);
+
   // Toggle status selection
   const toggleStatus = (status: (typeof STATUS_OPTIONS)[number]) => {
     setSelectedStatuses((prev) =>
