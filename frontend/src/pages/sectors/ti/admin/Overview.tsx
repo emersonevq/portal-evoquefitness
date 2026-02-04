@@ -294,10 +294,20 @@ export default function Overview() {
         queryClient.invalidateQueries({ queryKey: ["metrics-performance"] });
       };
 
+      const handleSlaUpdated = () => {
+        console.debug(
+          "[Overview] Recebido evento sla:updated, invalidando cache de SLA",
+        );
+        // Invalida cache de SLA para forçar refetch imediato
+        queryClient.invalidateQueries({ queryKey: ["metrics-sla"] });
+      };
+
       socket.on("metrics:updated", handleMetricsUpdated);
+      socket.on("sla:updated", handleSlaUpdated);
 
       return () => {
         socket.off("metrics:updated", handleMetricsUpdated);
+        socket.off("sla:updated", handleSlaUpdated);
       };
     } catch (error) {
       console.debug("[Overview] Erro ao configurar listener WebSocket:", error);
