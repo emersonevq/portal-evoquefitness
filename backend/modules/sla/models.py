@@ -60,7 +60,8 @@ class SlaBusinessHours(Base):
 class SlaCalculationLog(Base):
     """Log de cálculos de SLA"""
     __tablename__ = "sla_calculation_log"
-    
+    __table_args__ = {'extend_existing': True}
+
     id = Column(Integer, primary_key=True, index=True)
     calculation_type = Column(String(50), nullable=False)
     last_calculated_at = Column(DateTime, server_default=func.now())
