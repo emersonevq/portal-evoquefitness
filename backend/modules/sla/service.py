@@ -618,7 +618,115 @@ class SlaService:
                 timestamp=datetime.now(),
                 erro=error_msg
             )
-    
+
+    def recalcular_todos_chamados_ilimitado(self) -> RecalculoResponse:
+        """
+        Recalcula SLA de TODOS os chamados ativos sem limite de data.
+
+        Use apenas em casos administrativos especiais. Para uso automático,
+        use recalcular_todos_chamados() que limita aos últimos 30 dias.
+        """
+        start_time = time.time()
+
+        try:
+            chamados = self.repo.get_chamados_ativos(dias_atras=36500)  # ~100 anos
+            configs = self._get_configs_cached()
+
+            processados = 0
+            atualizados = 0
+            em_risco = 0
+            vencidos = 0
+            pausados = 0
+            last_id = None
+
+            for chamado in chamados:
+                processados += 1
+                last_id = chamado.id
+
+                # Config
+                prioridade = chamado.prioridade.lower() if chamado.prioridade else "media"
+                config = configs.get(prioridade) or configs.get("media")
+
+                if not config:
+                    continue
+
+                # Se pausado, apenas conta
+                if is_status_pausado(chamado.status):
+                    pausados += 1
+                    continue
+
+                # Busca pausas reais
+                pausas = self.repo.get_pausas_para_calculo(chamado.id)
+
+                # Calcula
+                status_sla = self.calculator.calcular_status_sla(
+                    chamado.data_abertura,
+                    config.tempo_resolucao_horas,
+                    pausas
+                )
+
+                # Atualiza
+                self.repo.update_chamado_sla(
+                    chamado.id,
+                    em_risco=status_sla["em_risco"],
+                    vencido=status_sla["vencido"],
+                    tempo_decorrido=status_sla["tempo_decorrido_horas"],
+                    tempo_pausado=status_sla["tempo_pausado_horas"],
+                    percentual=status_sla["percentual_consumido"]
+                )
+
+                atualizados += 1
+
+                if status_sla["vencido"]:
+                    vencidos += 1
+                elif status_sla["em_risco"]:
+                    em_risco += 1
+
+            execution_time = (time.time() - start_time) * 1000
+
+            logger.info(
+                f"[SLA] Recálculo ILIMITADO OK: {atualizados} atualizados, "
+                f"{em_risco} em risco, {vencidos} vencidos, "
+                f"{pausados} pausados ({execution_time:.2f}ms)"
+            )
+
+            return RecalculoResponse(
+                sucesso=True,
+                chamados_processados=processados,
+                chamados_atualizados=atualizados,
+                chamados_em_risco=em_risco,
+                chamados_vencidos=vencidos,
+                chamados_pausados=pausados,
+                tempo_execucao_ms=round(execution_time, 2),
+                timestamp=datetime.now()
+            )
+
+        except Exception as e:
+            execution_time = (time.time() - start_time) * 1000
+            error_msg = str(e)
+
+            self.repo.log_calculation(
+                calc_type="recalculo_ilimitado",
+                chamados_count=0,
+                execution_time=execution_time,
+                success=False,
+                error_message=error_msg
+            )
+
+            logger.error(f"[SLA] Erro no recálculo ilimitado: {error_msg}")
+
+            return RecalculoResponse(
+                sucesso=False,
+                chamados_processados=0,
+                chamados_atualizados=0,
+                chamados_em_risco=0,
+                chamados_vencidos=0,
+                chamados_pausados=0,
+                tempo_execucao_ms=round(execution_time, 2),
+                timestamp=datetime.now(),
+                erro=error_msg
+            )
+
     # ==================== Chamado Individual ====================
     
     def get_sla_chamado(self, chamado_id: int) -> Optional[SlaChamadoStatus]:
