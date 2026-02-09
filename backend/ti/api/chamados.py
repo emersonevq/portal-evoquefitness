@@ -793,7 +793,7 @@ def atribuir_chamado(chamado_id: int, payload: dict = Body(...), db: Session = D
 
         # Atualizar a atribuição
         ch.status_assumido_por_id = agent_id
-        ch.status_assumido_em = now_brasil_naive()
+        ch.status_assumido_em = now_brazil_naive()
         db.add(ch)
         db.commit()
         db.refresh(ch)
