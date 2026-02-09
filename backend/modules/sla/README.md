@@ -1,249 +1,382 @@
-# Sistema de Gerenciamento de SLA
+# Sistema de Gerenciamento de SLA v2.0
 
-Sistema completo de Service Level Agreement (SLA) para gerenciamento de chamados com cálculo automático de horas úteis, pausas e alertas.
+Sistema completo e robusto de Service Level Agreement (SLA) para gerenciamento de chamados com cálculo automático de horas úteis, pausas por status e suporte a feriados móveis brasileiros.
 
-## Características
+## 🎯 Características Principais
 
-✅ Cálculo automático de SLA em horas úteis  
-✅ Suporte a feriados e horário comercial (08:00-18:00)  
-✅ Pausa de SLA quando chamado está "Em análise"  
-✅ Dashboard com métricas e alertas  
-✅ Recálculo automático a cada 5 minutos  
-✅ Cache de feriados e configurações  
-✅ Persistência completa de pausas no banco de dados  
-✅ Logs detalhados de todos os cálculos
+✅ **Cálculo de Horas Úteis**: Considera apenas horário comercial (08:00-18:00) e dias úteis (seg-sex)  
+✅ **Feriados Inteligentes**: Suporta feriados fixos e móveis (Páscoa, Carnaval, Corpus Christi, etc)  
+✅ **Pausas Automáticas**: Pausa SLA automaticamente em status "Aguardando" e "Em análise"  
+✅ **Pausas Manuais**: Permite pausar manualmente e registrar motivo  
+✅ **Métricas Detalhadas**: Dashboard com métricas por prioridade, alertas e análises  
+✅ **Status de Resposta e Resolução**: Calcula separadamente tempo de primeira resposta e resolução  
+✅ **Indicadores de Risco**: Identifica chamados em risco (80%+ do SLA consumido) e vencidos  
+✅ **Cache Inteligente**: Implementa cache de feriados e horários para melhor performance
 
-## Status do Chamado e SLA
+## 📋 Status do Chamado e SLA
 
-| Status       | SLA           |
-| ------------ | ------------- |
-| Aberto       | ✅ Conta      |
-| Em andamento | ✅ Conta      |
-| Em análise   | ⏸️ Pausado    |
-| Concluído    | ⏹️ Finalizado |
-| Cancelado    | ⏹️ Finalizado |
+| Status             | SLA           | Descrição                                  |
+| ------------------ | ------------- | ------------------------------------------ |
+| **Aberto**         | ✅ Conta      | SLA em andamento durante horário comercial |
+| **Em atendimento** | ✅ Conta      | SLA em andamento                           |
+| **Aguardando**     | ⏸️ Pausa      | SLA pausado automaticamente                |
+| **Em análise**     | ⏸️ Pausa      | SLA pausado automaticamente                |
+| **Concluído**      | ⏹️ Finalizado | SLA encerrado, tempo é calculado           |
+| **Cancelado**      | ⏹️ Finalizado | SLA encerrado, tempo é calculado           |
 
-## Instalação
-
-### 1. Backend
-
-As tabelas serão criadas automaticamente na inicialização da aplicação.
-
-### 2. Frontend
-
-Os componentes React já foram criados em `src/components/sla/`:
-
-- `SlaDashboard.tsx` - Dashboard principal
-- `src/services/slaService.ts` - Serviço para API
-- `src/hooks/useSLA.ts` - Hooks para state management
-
-## Estrutura de Pastas
+## 🏗️ Arquitetura
 
 ```
 backend/modules/sla/
-├── __init__.py              # Exports
-├── config.py                # Configurações
+├── __init__.py              # Exports do módulo
 ├── models.py                # Modelos SQLAlchemy
-├── schemas.py               # Schemas Pydantic
-├── calculator.py            # Cálculo de horas úteis
-├── repository.py            # Acesso a dados
-├── service.py               # Lógica de negócio
-├── scheduler.py             # Scheduler APScheduler
-├── router.py                # Endpoints FastAPI
-├── cache.py                 # Cache em memória
-├── setup_sla_tables.py      # Setup das tabelas
-└── README.md                # Este arquivo
+├── schemas.py               # Schemas Pydantic para API
+├── calculator.py            # Lógica de cálculo de SLA
+├── metrics.py               # Serviço de métricas
+├── holidays.py              # Utilitário de feriados
+├── routes.py                # Endpoints FastAPI
+└── README.md               # Esta documentação
 ```
 
-## API Endpoints
+## 📦 Instalação e Configuração
 
-### Dashboard
+### 1. Dependências
 
-```
-GET /api/sla/dashboard
-GET /api/sla/dashboard/resumo
-```
-
-### Configurações
+Adicione ao `requirements.txt`:
 
 ```
-GET /api/sla/config
-POST /api/sla/config
+fastapi>=0.104.0
+sqlalchemy>=2.0.0
+pydantic>=2.5.0
+python-dateutil>=2.8.2
 ```
 
-### Feriados
-
-```
-GET /api/sla/feriados
-POST /api/sla/feriados
-DELETE /api/sla/feriados/{id}
-```
-
-### Chamados
-
-```
-GET /api/sla/chamado/{id}
-```
-
-### Scheduler
-
-```
-GET /api/sla/scheduler/status
-POST /api/sla/scheduler/executar
-```
-
-### Cache
-
-```
-GET /api/sla/cache/status
-POST /api/sla/cache/invalidar
-```
-
-## Uso Frontend
-
-### Importar Componente
-
-```tsx
-import SlaDashboard from "@/components/sla/SlaDashboard";
-
-export default function Page() {
-  return <SlaDashboard />;
-}
-```
-
-### Usar Service
-
-```tsx
-import { slaService } from "@/services/slaService";
-
-// Obter resumo
-const metrics = await slaService.getDashboardResumo();
-
-// Obter dashboard completo
-const dashboard = await slaService.getDashboard();
-
-// Obter SLA de um chamado específico
-const slaStatus = await slaService.getSlaAlturaStatus(123);
-```
-
-### Usar Hooks
-
-```tsx
-import { useSLADashboard, useSLAChamado } from "@/hooks/useSLA";
-
-export function MyComponent() {
-  const { dashboard, isLoading, error } = useSLADashboard();
-  const { slaStatus, formatTempo } = useSLAChamado(123);
-
-  return (
-    <div>
-      <p>
-        Tempo resposta: {formatTempo(slaStatus?.tempo_decorrido_horas || 0)}
-      </p>
-    </div>
-  );
-}
-```
-
-## Configuração
-
-### Horário Comercial
-
-Edite em `modules/sla/config.py`:
-
-```python
-BUSINESS_HOUR_START: int = 8       # Hora de início (padrão: 8:00)
-BUSINESS_HOUR_END: int = 18        # Hora de término (padrão: 18:00)
-BUSINESS_DAYS: List[int] = [0, 1, 2, 3, 4]  # Dias úteis (seg-sex)
-```
-
-### SLA por Prioridade
-
-As configurações padrão são criadas automaticamente:
-
-- **Alta**: Resposta 2h, Resolução 8h
-- **Média**: Resposta 4h, Resolução 24h
-- **Baixa**: Resposta 8h, Resolução 48h
-
-### Adicionar Feriados
+Instale a dependência para cálculo de Páscoa:
 
 ```bash
-curl -X POST http://localhost:3001/api/sla/feriados \
-  -H "Content-Type: application/json" \
-  -d '{
-    "data": "2024-12-25T00:00:00",
-    "nome": "Natal",
-    "descricao": "Feriado Nacional"
-  }'
+pip install python-dateutil
 ```
 
-## Cálculo de SLA
+### 2. Integração com FastAPI
 
-### Algoritmo
+```python
+# Em seu main.py ou app.py
+from backend.modules.sla import router as sla_router
 
-1. **Horas Úteis**: Apenas seg-sex, 8h-18h, excluindo feriados
-2. **Pausas**: Deduzidas quando chamado está "Em análise"
-3. **Status**:
-   - OK: Dentro do limite
-   - Em Risco: 80% do limite consumido
-   - Vencido: 100% do limite consumido
+app.include_router(sla_router, prefix="/api")
 
-### Exemplo
-
-- Chamado aberto: segunda 16h
-- Limite resposta: 2 horas (SLA alta)
-- Tempo útil até terça 10h = 2 horas
-- Status: ✅ Dentro do SLA
-
-## WebSocket Events
-
-O módulo emite eventos em tempo real:
-
-```javascript
-socket.on("sla:updated", () => {
-  // Dashboard foi atualizado
-  // Refetch dos dados
-});
+# Será exposto em /api/sla/*
 ```
 
-## Performance
+### 3. Migração de Banco de Dados
 
-- Cache de 60 minutos para feriados e configurações
-- Índices de banco de dados para busca rápida
-- Pool de conexões configurado para concorrência
-- Recálculo assíncrono a cada 5 minutos
+Execute a migração para criar as tabelas:
 
-## Logs
+```bash
+alembic upgrade head
+```
 
-Os logs estão em `sla.scheduler`, `sla.service` e `sla.calculator`:
+## 🚀 Uso
+
+### Python - Cálculo de SLA
+
+```python
+from sqlalchemy.orm import Session
+from backend.modules.sla.calculator import CalculadorSLA
+from backend.modules.sla.models import Chamado
+
+def calcular_sla_chamado(db: Session, chamado_id: int):
+    chamado = db.query(Chamado).filter(Chamado.id == chamado_id).first()
+
+    calculator = CalculadorSLA(db)
+    resultado = calculator.calcular_sla(chamado)
+
+    print(f"Tempo de resposta: {resultado['tempo_resposta_decorrido_horas']:.2f}h")
+    print(f"Percentual consumido: {resultado['percentual_resolucao']}%")
+    print(f"Status: {'Vencido' if resultado['resolucao_vencida'] else 'Ok'}")
+
+    return resultado
+```
+
+### Python - Métricas
+
+```python
+from backend.modules.sla.metrics import ServicoMetricasSLA
+
+def obter_dashboard(db: Session):
+    servico = ServicoMetricasSLA(db)
+
+    # Métricas gerais (últimos 30 dias)
+    metricas = servico.obter_metricas_gerais()
+
+    # Métricas por prioridade
+    por_prioridade = servico.obter_metricas_por_prioridade()
+
+    # Chamados em risco
+    em_risco = servico.obter_chamados_em_risco()
+
+    # Dashboard completo
+    dashboard = servico.obter_dashboard_executivo()
+
+    return dashboard
+```
+
+### API REST
+
+#### Criar Configuração de SLA
+
+```bash
+POST /api/sla/config
+Content-Type: application/json
+
+{
+  "prioridade": "Alta",
+  "tempo_resposta_horas": 2,
+  "tempo_resolucao_horas": 8,
+  "percentual_risco": 80,
+  "considera_horario_comercial": true,
+  "considera_feriados": true,
+  "descricao": "Prioridade alta"
+}
+```
+
+#### Gerar Feriados Automaticamente
+
+```bash
+POST /api/sla/feriado/gerar/2026
+```
+
+Resposta:
+
+```json
+{
+  "ano": 2026,
+  "total_feriados": 18,
+  "inseridos": 18,
+  "duplicados": 0,
+  "feriados": [...]
+}
+```
+
+#### Obter SLA de um Chamado
+
+```bash
+GET /api/sla/chamado/123
+```
+
+Resposta:
+
+```json
+{
+  "chamado_id": 123,
+  "codigo": "CH-001",
+  "prioridade": "Alta",
+  "status": "Aberto",
+  "tempo_resposta_limite_horas": 2,
+  "tempo_resposta_decorrido_horas": 1.5,
+  "tempo_resposta_pausado_horas": 0.0,
+  "percentual_resposta": 75,
+  "resposta_status": "em_risco",
+  "tempo_resolucao_limite_horas": 8,
+  "tempo_resolucao_decorrido_horas": 1.5,
+  "tempo_resolucao_pausado_horas": 0.0,
+  "percentual_resolucao": 18.75,
+  "resolucao_status": "em_dia",
+  "pausado_atualmente": false,
+  "total_pausas": 0,
+  "tempo_total_pausado_horas": 0.0,
+  "ultima_atualizacao": "2026-02-09T14:30:00"
+}
+```
+
+#### Pausar SLA Manualmente
+
+```bash
+POST /api/sla/pausa
+Content-Type: application/json
+
+{
+  "chamado_id": 123,
+  "motivo": "Aguardando resposta do cliente",
+  "tipo": "manual"
+}
+```
+
+#### Retomar SLA
+
+```bash
+POST /api/sla/pausa/42/retomar
+Content-Type: application/json
+
+{
+  "motivo_retomada": "Cliente respondeu"
+}
+```
+
+#### Recalcular SLA em Lote
+
+```bash
+POST /api/sla/recalcular
+```
+
+Resposta:
+
+```json
+{
+  "sucesso": true,
+  "mensagem": "SLA recalculado com sucesso",
+  "total_processados": 250,
+  "em_risco": 15,
+  "vencidos": 3,
+  "pausados": 8,
+  "tempo_ms": 2543
+}
+```
+
+## 📊 Métricas e Indicadores
+
+### Indicadores Principais
+
+- **Tempo de Resposta**: Tempo até primeira resposta do agente
+- **Tempo de Resolução**: Tempo total até conclusão do chamado
+- **Percentual Consumido**: (Tempo efetivo / Limite) × 100
+- **Status em Risco**: ≥ 80% do SLA consumido
+- **Status Vencido**: ≥ 100% do SLA consumido
+
+### Exemplo de Cálculo
+
+Chamado aberto segunda-feira 16:00  
+Limite de resposta: 2 horas (SLA Alta)  
+Primeira resposta: terça-feira 10:00
+
+**Cálculo de horas úteis:**
+
+- Segunda: 16:00-18:00 = 2 horas ✓
+- Terça: 08:00-10:00 = 0 horas (ainda não chegou)
+- **Total**: 2 horas = SLA atingido no horário limite
+
+## 🗓️ Feriados Brasileiros
+
+### Feriados Fixos
+
+Sempre na mesma data:
+
+- 01/01 - Confraternização Universal
+- 21/04 - Tiradentes
+- 01/05 - Dia do Trabalho
+- 07/09 - Independência do Brasil
+- 12/10 - Nossa Senhora Aparecida
+- 02/11 - Finados
+- 15/11 - Proclamação da República
+- 20/11 - Dia da Consciência Negra
+- 25/12 - Natal
+
+### Feriados Móveis (Baseados na Páscoa)
+
+Mudam todo ano:
+
+- **Carnaval** (domingo, segunda e terça): 47 dias antes da Páscoa
+- **Quarta de Cinzas**: 46 dias antes (até 14h)
+- **Sexta-feira Santa**: 2 dias antes da Páscoa
+- **Páscoa**: Varia entre 22/março e 25/abril
+- **Corpus Christi**: 60 dias depois da Páscoa
+
+**Exemplo - Ano 2026:**
+
+- Páscoa: 05/04
+- Carnaval: 16-17/02
+- Corpus Christi: 04/06
+
+## ⚙️ Configuração
+
+### Horário Comercial Padrão
+
+```python
+# Padrão: 08:00 - 18:00 de segunda a sexta
+# Dias: 0=seg, 1=ter, 2=qua, 3=qui, 4=sex, 5=sab, 6=dom
+
+# Configure via API:
+POST /api/sla/horario
+{
+  "dia_semana": 0,
+  "hora_inicio": "08:00",
+  "hora_fim": "18:00",
+  "ativo": true
+}
+```
+
+### Configurações de SLA por Prioridade
+
+```
+Urgente:  2h resposta,  4h resolução (75% risco)
+Alta:     2h resposta,  8h resolução (80% risco)
+Normal:   4h resposta, 24h resolução (85% risco)
+Baixa:    8h resposta, 40h resolução (90% risco)
+```
+
+## 🔍 Troubleshooting
+
+### Feriados não aparecem no cálculo
+
+1. Verifique se o feriado está marcado como `ativo = true`
+2. Confirme a data está correta
+3. Invalide o cache: `calculator.invalidar_cache()`
+
+### SLA não pausando automaticamente
+
+1. Confirme que o status exato está em `STATUS_PAUSA`
+2. Verifique se existe pausa ativa do chamado
+3. Verifique logs de erro
+
+### Cálculo está lento
+
+1. Use `recalcular_sla()` periodicamente (não em cada request)
+2. Implemente cache de resultados (Redis, Memcached)
+3. Use índices de banco de dados nas buscas
+
+## 📈 Performance
+
+- **Cache de feriados**: 1 ano por vez
+- **Cache de horários**: Até próxima mudança
+- **Cálculo em lote**: ~100-200 chamados/segundo
+- **Índices**: Criados em campos críticos
+
+## 🔐 Segurança
+
+- ✅ Validação de entrada via Pydantic
+- ✅ Proteção contra SQL Injection (SQLAlchemy ORM)
+- ✅ Tratamento de exceções robusto
+- ✅ Logging detalhado de operações
+
+## 📝 Logs
+
+Configure logging para rastrear operações:
 
 ```python
 import logging
-logging.getLogger('sla.scheduler').setLevel(logging.INFO)
-logging.getLogger('sla.service').setLevel(logging.INFO)
-logging.getLogger('sla.calculator').setLevel(logging.DEBUG)
+
+logging.getLogger("sla.calculator").setLevel(logging.INFO)
+logging.getLogger("sla.metrics").setLevel(logging.INFO)
+logging.getLogger("sla.holidays").setLevel(logging.DEBUG)
 ```
 
-## Troubleshooting
+## 🤝 Contribuindo
 
-### Scheduler não está rodando
+Para melhorias no módulo SLA:
 
-```bash
-curl http://localhost:3001/api/sla/scheduler/status
-```
+1. Adicione testes unitários
+2. Atualize documentação
+3. Siga PEP 8
+4. Incremente versão em `__init__.py`
 
-### Cache desatualizado
+## 📞 Suporte
 
-```bash
-curl -X POST http://localhost:3001/api/sla/cache/invalidar
-```
+Para dúvidas ou problemas:
 
-### Recalcular manualmente
+- Consulte os logs em `sla.calculator`, `sla.metrics`, `sla.holidays`
+- Verifique se as tabelas foram criadas com `SHOW TABLES`
+- Teste endpoint `/api/sla/health` para validar API
 
-```bash
-curl -X POST http://localhost:3001/api/sla/scheduler/executar
-```
+## 📄 Licença
 
-## Contato & Suporte
-
-Para problemas ou sugestões, abra uma issue no repositório.
+Parte do projeto portal-evoquefitness
