@@ -472,12 +472,6 @@ async def startup_event():
     except Exception as e:
         print(f"[STARTUP] ⚠️  Failed to register event loop: {e}")
 
-    # Start SLA Scheduler
-    try:
-        start_scheduler()
-        print("[STARTUP] ✓ SLA Scheduler iniciado com sucesso")
-    except Exception as e:
-        print(f"[STARTUP] ⚠️  Erro ao iniciar SLA Scheduler: {e}")
 
 
 @_http.on_event("shutdown")
