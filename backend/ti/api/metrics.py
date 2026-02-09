@@ -335,8 +335,7 @@ def metrics_health_check(db: Session = Depends(get_db)):
             metricas = IncrementalMetricsCache.get_metrics(db)
             health["checks"]["metrics"] = {
                 "status": "ok",
-                "total_chamados": metricas.get("total", 0),
-                "percentual_sla": metricas.get("percentual_dentro", 0)
+                "total_chamados": metricas.get("total", 0)
             }
         except Exception as metrics_error:
             health["checks"]["metrics"] = {
