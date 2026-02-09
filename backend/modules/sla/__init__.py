@@ -1,6 +1,40 @@
-"""SLA Module - Service Level Agreement Management"""
+"""
+Módulo SLA (Service Level Agreement)
+Sistema completo de gerenciamento de SLA para chamados
+"""
+from .routes import router
+from .calculator import CalculadorSLA
+from .metrics import ServicoMetricasSLA
+from .models import (
+    ConfiguracaoSLA,
+    HorarioComercial,
+    Feriado,
+    PausaSLA,
+    InfoSLAChamado,
+    Chamado
+)
+from .holidays import (
+    calcular_feriados_fixos,
+    calcular_feriados_moveis,
+    gerar_todos_feriados,
+    gerar_feriados_intervalo
+)
 
-from .router import router as sla_router
-from .scheduler import start_scheduler, stop_scheduler
+__all__ = [
+    "router",
+    "CalculadorSLA",
+    "ServicoMetricasSLA",
+    "ConfiguracaoSLA",
+    "HorarioComercial",
+    "Feriado",
+    "PausaSLA",
+    "InfoSLAChamado",
+    "Chamado",
+    "calcular_feriados_fixos",
+    "calcular_feriados_moveis",
+    "gerar_todos_feriados",
+    "gerar_feriados_intervalo"
+]
 
-__all__ = ["sla_router", "start_scheduler", "stop_scheduler"]
+__version__ = "2.0.0"
+__description__ = "Sistema avançado de SLA com suporte a feriados móveis, pausas automáticas por status e cálculo preciso de horas úteis"
