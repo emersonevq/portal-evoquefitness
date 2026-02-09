@@ -21,6 +21,7 @@ from ti.models.chamado import Chamado
 from ti.models.metrics_cache import MetricsCacheDB
 from ti.models.historico_status import HistoricoStatus
 from core.utils import now_brazil_naive
+from ti.services.sla_metrics_unified import UnifiedSLAMetricsCalculator
 import json
 from typing import Optional, Dict, Any
 
