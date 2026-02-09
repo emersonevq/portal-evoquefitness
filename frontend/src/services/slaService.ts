@@ -74,7 +74,7 @@ class SLAService {
    */
   private async fetchWithTimeout(
     url: string,
-    options: RequestInit = {}
+    options: RequestInit = {},
   ): Promise<Response> {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), this.timeout);
@@ -105,7 +105,7 @@ class SLAService {
 
       if (!response.ok) {
         throw new Error(
-          `Erro ao obter métricas: ${response.status} ${response.statusText}`
+          `Erro ao obter métricas: ${response.status} ${response.statusText}`,
         );
       }
 
@@ -150,7 +150,7 @@ class SLAService {
   }> {
     try {
       const response = await this.fetchWithTimeout(
-        `${this.baseUrl}/chamados/em-risco`
+        `${this.baseUrl}/chamados/em-risco`,
       );
 
       if (!response.ok) {
@@ -175,7 +175,7 @@ class SLAService {
   }> {
     try {
       const response = await this.fetchWithTimeout(
-        `${this.baseUrl}/chamados/vencidos`
+        `${this.baseUrl}/chamados/vencidos`,
       );
 
       if (!response.ok) {
@@ -194,9 +194,7 @@ class SLAService {
    */
   async obterDashboard(): Promise<Dashboard> {
     try {
-      const response = await this.fetchWithTimeout(
-        `${this.baseUrl}/dashboard`
-      );
+      const response = await this.fetchWithTimeout(`${this.baseUrl}/dashboard`);
 
       if (!response.ok) {
         throw new Error(`Erro ao obter dashboard`);
@@ -215,7 +213,7 @@ class SLAService {
   async obterSLAChamado(chamadoId: number): Promise<any> {
     try {
       const response = await this.fetchWithTimeout(
-        `${this.baseUrl}/chamado/${chamadoId}`
+        `${this.baseUrl}/chamado/${chamadoId}`,
       );
 
       if (!response.ok) {
@@ -244,9 +242,12 @@ class SLAService {
     };
   }> {
     try {
-      const response = await this.fetchWithTimeout(`${this.baseUrl}/atualizar`, {
-        method: "POST",
-      });
+      const response = await this.fetchWithTimeout(
+        `${this.baseUrl}/atualizar`,
+        {
+          method: "POST",
+        },
+      );
 
       if (!response.ok) {
         throw new Error(`Erro ao atualizar SLA`);
@@ -309,10 +310,4 @@ class SLAService {
 }
 
 export const slaService = new SLAService();
-export type {
-  MetricasSLA,
-  MetricaPrioridade,
-  Chamado,
-  Dashboard,
-  CacheStatus,
-};
+export type { MetricasSLA, MetricaPrioridade, Chamado, Dashboard, CacheStatus };

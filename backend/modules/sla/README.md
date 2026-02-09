@@ -11,18 +11,18 @@ Sistema completo e robusto de Service Level Agreement (SLA) para gerenciamento d
 ✅ **Métricas Detalhadas**: Dashboard com métricas por prioridade, alertas e análises  
 ✅ **Status de Resposta e Resolução**: Calcula separadamente tempo de primeira resposta e resolução  
 ✅ **Indicadores de Risco**: Identifica chamados em risco (80%+ do SLA consumido) e vencidos  
-✅ **Cache Inteligente**: Implementa cache de feriados e horários para melhor performance  
+✅ **Cache Inteligente**: Implementa cache de feriados e horários para melhor performance
 
 ## 📋 Status do Chamado e SLA
 
-| Status | SLA | Descrição |
-|--------|-----|-----------|
-| **Aberto** | ✅ Conta | SLA em andamento durante horário comercial |
-| **Em atendimento** | ✅ Conta | SLA em andamento |
-| **Aguardando** | ⏸️ Pausa | SLA pausado automaticamente |
-| **Em análise** | ⏸️ Pausa | SLA pausado automaticamente |
-| **Concluído** | ⏹️ Finalizado | SLA encerrado, tempo é calculado |
-| **Cancelado** | ⏹️ Finalizado | SLA encerrado, tempo é calculado |
+| Status             | SLA           | Descrição                                  |
+| ------------------ | ------------- | ------------------------------------------ |
+| **Aberto**         | ✅ Conta      | SLA em andamento durante horário comercial |
+| **Em atendimento** | ✅ Conta      | SLA em andamento                           |
+| **Aguardando**     | ⏸️ Pausa      | SLA pausado automaticamente                |
+| **Em análise**     | ⏸️ Pausa      | SLA pausado automaticamente                |
+| **Concluído**      | ⏹️ Finalizado | SLA encerrado, tempo é calculado           |
+| **Cancelado**      | ⏹️ Finalizado | SLA encerrado, tempo é calculado           |
 
 ## 🏗️ Arquitetura
 
@@ -52,6 +52,7 @@ python-dateutil>=2.8.2
 ```
 
 Instale a dependência para cálculo de Páscoa:
+
 ```bash
 pip install python-dateutil
 ```
@@ -86,14 +87,14 @@ from backend.modules.sla.models import Chamado
 
 def calcular_sla_chamado(db: Session, chamado_id: int):
     chamado = db.query(Chamado).filter(Chamado.id == chamado_id).first()
-    
+
     calculator = CalculadorSLA(db)
     resultado = calculator.calcular_sla(chamado)
-    
+
     print(f"Tempo de resposta: {resultado['tempo_resposta_decorrido_horas']:.2f}h")
     print(f"Percentual consumido: {resultado['percentual_resolucao']}%")
     print(f"Status: {'Vencido' if resultado['resolucao_vencida'] else 'Ok'}")
-    
+
     return resultado
 ```
 
@@ -104,19 +105,19 @@ from backend.modules.sla.metrics import ServicoMetricasSLA
 
 def obter_dashboard(db: Session):
     servico = ServicoMetricasSLA(db)
-    
+
     # Métricas gerais (últimos 30 dias)
     metricas = servico.obter_metricas_gerais()
-    
+
     # Métricas por prioridade
     por_prioridade = servico.obter_metricas_por_prioridade()
-    
+
     # Chamados em risco
     em_risco = servico.obter_chamados_em_risco()
-    
+
     # Dashboard completo
     dashboard = servico.obter_dashboard_executivo()
-    
+
     return dashboard
 ```
 
@@ -146,6 +147,7 @@ POST /api/sla/feriado/gerar/2026
 ```
 
 Resposta:
+
 ```json
 {
   "ano": 2026,
@@ -163,6 +165,7 @@ GET /api/sla/chamado/123
 ```
 
 Resposta:
+
 ```json
 {
   "chamado_id": 123,
@@ -217,6 +220,7 @@ POST /api/sla/recalcular
 ```
 
 Resposta:
+
 ```json
 {
   "sucesso": true,
@@ -246,6 +250,7 @@ Limite de resposta: 2 horas (SLA Alta)
 Primeira resposta: terça-feira 10:00
 
 **Cálculo de horas úteis:**
+
 - Segunda: 16:00-18:00 = 2 horas ✓
 - Terça: 08:00-10:00 = 0 horas (ainda não chegou)
 - **Total**: 2 horas = SLA atingido no horário limite
@@ -255,6 +260,7 @@ Primeira resposta: terça-feira 10:00
 ### Feriados Fixos
 
 Sempre na mesma data:
+
 - 01/01 - Confraternização Universal
 - 21/04 - Tiradentes
 - 01/05 - Dia do Trabalho
@@ -268,6 +274,7 @@ Sempre na mesma data:
 ### Feriados Móveis (Baseados na Páscoa)
 
 Mudam todo ano:
+
 - **Carnaval** (domingo, segunda e terça): 47 dias antes da Páscoa
 - **Quarta de Cinzas**: 46 dias antes (até 14h)
 - **Sexta-feira Santa**: 2 dias antes da Páscoa
@@ -275,6 +282,7 @@ Mudam todo ano:
 - **Corpus Christi**: 60 dias depois da Páscoa
 
 **Exemplo - Ano 2026:**
+
 - Páscoa: 05/04
 - Carnaval: 16-17/02
 - Corpus Christi: 04/06

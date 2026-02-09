@@ -5,7 +5,12 @@
  */
 
 import { useState, useEffect, useCallback } from "react";
-import { slaService, MetricasSLA, MetricaPrioridade, Dashboard } from "@/services/slaService";
+import {
+  slaService,
+  MetricasSLA,
+  MetricaPrioridade,
+  Dashboard,
+} from "@/services/slaService";
 
 export interface UseSLAState {
   metricas: MetricasSLA | null;
@@ -53,7 +58,9 @@ export function useSLA() {
       ]);
 
       const agora = new Date();
-      const proxima = new Date(agora.getTime() + INTERVALO_AUTO_REFRESH_MINUTOS * 60000);
+      const proxima = new Date(
+        agora.getTime() + INTERVALO_AUTO_REFRESH_MINUTOS * 60000,
+      );
 
       setState((prev) => ({
         ...prev,
@@ -66,7 +73,8 @@ export function useSLA() {
         periodoDias,
       }));
     } catch (error) {
-      const mensagem = error instanceof Error ? error.message : "Erro ao carregar SLA";
+      const mensagem =
+        error instanceof Error ? error.message : "Erro ao carregar SLA";
       setState((prev) => ({
         ...prev,
         loading: false,
@@ -89,7 +97,8 @@ export function useSLA() {
 
       return resultado;
     } catch (error) {
-      const mensagem = error instanceof Error ? error.message : "Erro ao atualizar SLA";
+      const mensagem =
+        error instanceof Error ? error.message : "Erro ao atualizar SLA";
       setState((prev) => ({
         ...prev,
         error: mensagem,
@@ -103,9 +112,12 @@ export function useSLA() {
   /**
    * Muda período de análise
    */
-  const mudarPeriodo = useCallback((periodoDias: number) => {
-    carregarDados(periodoDias);
-  }, [carregarDados]);
+  const mudarPeriodo = useCallback(
+    (periodoDias: number) => {
+      carregarDados(periodoDias);
+    },
+    [carregarDados],
+  );
 
   /**
    * Auto-refresh a cada 15 minutos
@@ -146,7 +158,8 @@ export function useSLAChamado(chamadoId: number) {
       setSla(resultado.sla);
       setError(null);
     } catch (err) {
-      const mensagem = err instanceof Error ? err.message : "Erro ao carregar SLA";
+      const mensagem =
+        err instanceof Error ? err.message : "Erro ao carregar SLA";
       setError(mensagem);
     } finally {
       setLoading(false);
@@ -187,7 +200,8 @@ export function useSLAAlerts() {
       });
       setError(null);
     } catch (err) {
-      const mensagem = err instanceof Error ? err.message : "Erro ao carregar alertas";
+      const mensagem =
+        err instanceof Error ? err.message : "Erro ao carregar alertas";
       setError(mensagem);
     } finally {
       setLoading(false);
@@ -213,12 +227,24 @@ export function formatarPercentual(valor: number): {
   status: string;
 } {
   if (valor >= 100) {
-    return { texto: `${valor.toFixed(0)}%`, cor: "text-red-600", status: "Vencido" };
+    return {
+      texto: `${valor.toFixed(0)}%`,
+      cor: "text-red-600",
+      status: "Vencido",
+    };
   }
   if (valor >= 80) {
-    return { texto: `${valor.toFixed(0)}%`, cor: "text-yellow-600", status: "Em Risco" };
+    return {
+      texto: `${valor.toFixed(0)}%`,
+      cor: "text-yellow-600",
+      status: "Em Risco",
+    };
   }
-  return { texto: `${valor.toFixed(0)}%`, cor: "text-green-600", status: "Em Dia" };
+  return {
+    texto: `${valor.toFixed(0)}%`,
+    cor: "text-green-600",
+    status: "Em Dia",
+  };
 }
 
 /**

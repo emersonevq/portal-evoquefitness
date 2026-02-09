@@ -104,8 +104,19 @@ export default function SlaDashboard() {
 
   // Prepara dados para gráficos
   const dadosStatus = [
-    { name: "Em Dia", value: metricas.total_chamados - metricas.chamados_em_risco - metricas.chamados_vencidos, fill: CORES.emDia },
-    { name: "Em Risco", value: metricas.chamados_em_risco, fill: CORES.emRisco },
+    {
+      name: "Em Dia",
+      value:
+        metricas.total_chamados -
+        metricas.chamados_em_risco -
+        metricas.chamados_vencidos,
+      fill: CORES.emDia,
+    },
+    {
+      name: "Em Risco",
+      value: metricas.chamados_em_risco,
+      fill: CORES.emRisco,
+    },
     { name: "Vencido", value: metricas.chamados_vencidos, fill: CORES.vencido },
   ];
 
@@ -153,11 +164,13 @@ export default function SlaDashboard() {
       {sla.ultimaAtualizacao && (
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm">
           <p className="text-blue-800">
-            ✓ Dados em cache - Atualizado {formatarDataRelativa(sla.ultimaAtualizacao)}
+            ✓ Dados em cache - Atualizado{" "}
+            {formatarDataRelativa(sla.ultimaAtualizacao)}
           </p>
           {sla.proximaAtualizacao && (
             <p className="text-blue-700">
-              Próxima atualização automática em {formatarDataRelativa(sla.proximaAtualizacao)}
+              Próxima atualização automática em{" "}
+              {formatarDataRelativa(sla.proximaAtualizacao)}
             </p>
           )}
         </div>
@@ -167,15 +180,25 @@ export default function SlaDashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
         {/* Total de Chamados */}
         <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-gray-600 text-sm font-semibold">Total de Chamados</h3>
-          <p className="text-3xl font-bold text-gray-900 mt-2">{metricas.total_chamados}</p>
-          <p className="text-xs text-gray-500 mt-1">{metricas.chamados_abertos} abertos</p>
+          <h3 className="text-gray-600 text-sm font-semibold">
+            Total de Chamados
+          </h3>
+          <p className="text-3xl font-bold text-gray-900 mt-2">
+            {metricas.total_chamados}
+          </p>
+          <p className="text-xs text-gray-500 mt-1">
+            {metricas.chamados_abertos} abertos
+          </p>
         </div>
 
         {/* Cumprimento */}
         <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-gray-600 text-sm font-semibold">Taxa Cumprimento</h3>
-          <p className={`text-3xl font-bold mt-2 ${formatarPercentual(metricas.percentual_cumprimento).cor}`}>
+          <h3 className="text-gray-600 text-sm font-semibold">
+            Taxa Cumprimento
+          </h3>
+          <p
+            className={`text-3xl font-bold mt-2 ${formatarPercentual(metricas.percentual_cumprimento).cor}`}
+          >
             {metricas.percentual_cumprimento.toFixed(1)}%
           </p>
           <p className="text-xs text-gray-500 mt-1">
@@ -252,7 +275,13 @@ export default function SlaDashboard() {
             <BarChart data={dadosPrioridade}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="prioridade" />
-              <YAxis label={{ value: "Cumprimento %", angle: -90, position: "insideLeft" }} />
+              <YAxis
+                label={{
+                  value: "Cumprimento %",
+                  angle: -90,
+                  position: "insideLeft",
+                }}
+              />
               <Tooltip />
               <Legend />
               <Bar
@@ -288,7 +317,9 @@ export default function SlaDashboard() {
                 >
                   <div className="flex justify-between items-start">
                     <div>
-                      <p className="font-semibold text-gray-900">{chamado.codigo}</p>
+                      <p className="font-semibold text-gray-900">
+                        {chamado.codigo}
+                      </p>
                       <p className="text-sm text-gray-600">
                         {chamado.prioridade} • {chamado.status}
                       </p>
@@ -300,7 +331,9 @@ export default function SlaDashboard() {
                 </div>
               ))
             ) : (
-              <p className="text-gray-500 text-center py-8">✅ Nenhum chamado em risco</p>
+              <p className="text-gray-500 text-center py-8">
+                ✅ Nenhum chamado em risco
+              </p>
             )}
           </div>
         </div>
@@ -319,7 +352,9 @@ export default function SlaDashboard() {
                 >
                   <div className="flex justify-between items-start">
                     <div>
-                      <p className="font-semibold text-gray-900">{chamado.codigo}</p>
+                      <p className="font-semibold text-gray-900">
+                        {chamado.codigo}
+                      </p>
                       <p className="text-sm text-gray-600">
                         {chamado.prioridade} • Vencido há{" "}
                         {formatarHoras(chamado.tempo_vencimento_horas || 0)}
@@ -332,7 +367,9 @@ export default function SlaDashboard() {
                 </div>
               ))
             ) : (
-              <p className="text-gray-500 text-center py-8">✅ Nenhum chamado vencido</p>
+              <p className="text-gray-500 text-center py-8">
+                ✅ Nenhum chamado vencido
+              </p>
             )}
           </div>
         </div>
@@ -341,7 +378,9 @@ export default function SlaDashboard() {
       {/* Observações */}
       {dashboard?.observacoes && dashboard.observacoes.length > 0 && (
         <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">📊 Observações</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            📊 Observações
+          </h3>
           <div className="space-y-2">
             {dashboard.observacoes.map((obs, idx) => (
               <p key={idx} className="text-gray-700">
@@ -357,7 +396,10 @@ export default function SlaDashboard() {
         <p>
           Dados atualizados automaticamente a cada 15 minutos
           {sla.ultimaAtualizacao && (
-            <> • Última atualização: {sla.ultimaAtualizacao.toLocaleTimeString()}</>
+            <>
+              {" "}
+              • Última atualização: {sla.ultimaAtualizacao.toLocaleTimeString()}
+            </>
           )}
         </p>
       </div>

@@ -34,7 +34,7 @@ async def startup_event():
         inicializar_completo(db)
     finally:
         db.close()
-    
+
     # Iniciar scheduler de atualização automática de SLA
     iniciar_scheduler(SessionLocal, update_interval=15)
     print("✅ Scheduler de SLA iniciado (atualiza a cada 15 minutos)")
@@ -174,16 +174,16 @@ export default function AdminDashboard() {
 
 ### 4.2 TTLs (Time To Live)
 
-| Dados | TTL | Descrição |
-|-------|-----|-----------|
-| Métricas gerais | 15 min | Recalculadas a cada 15 min |
-| Métricas por prioridade | 15 min | Recalculadas a cada 15 min |
-| Chamados em risco | 10 min | Atualizado a cada 15 min |
-| Chamados vencidos | 10 min | Atualizado a cada 15 min |
-| Dashboard | 15 min | Completo, atualizado a cada 15 min |
-| SLA individual | 5 min | Sob demanda |
-| Feriados | 1 dia | Mudam raramente |
-| Configurações | 1 hora | Mudam raramente |
+| Dados                   | TTL    | Descrição                          |
+| ----------------------- | ------ | ---------------------------------- |
+| Métricas gerais         | 15 min | Recalculadas a cada 15 min         |
+| Métricas por prioridade | 15 min | Recalculadas a cada 15 min         |
+| Chamados em risco       | 10 min | Atualizado a cada 15 min           |
+| Chamados vencidos       | 10 min | Atualizado a cada 15 min           |
+| Dashboard               | 15 min | Completo, atualizado a cada 15 min |
+| SLA individual          | 5 min  | Sob demanda                        |
+| Feriados                | 1 dia  | Mudam raramente                    |
+| Configurações           | 1 hora | Mudam raramente                    |
 
 ## 5. Otimizações de Performance
 
@@ -363,7 +363,7 @@ async def startup():
         inicializar_completo(db, anos_feriado=(2026, 2027))
     finally:
         db.close()
-    
+
     # Iniciar scheduler
     iniciar_scheduler(SessionLocal, update_interval=15)
     print("✅ SLA inicializado e scheduler ativo")
