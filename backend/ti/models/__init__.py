@@ -33,4 +33,5 @@ __all__ = [
     "Session",
     "PowerBIDashboard",
     "MetricsCacheDB",
+    "SLAPausa",
 ]
