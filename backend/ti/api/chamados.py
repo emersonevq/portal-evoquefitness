@@ -81,14 +81,32 @@ def _table_exists(table_name: str) -> bool:
 
 
 @router.get("", response_model=list[ChamadoOut])
-def listar_chamados(db: Session = Depends(get_db)):
+def listar_chamados(db: Session = Depends(get_db), after_date: str = None):
+    """
+    Lista todos os chamados não deletados.
+
+    Query params:
+    - after_date: Data no formato YYYY-MM-DD para filtrar chamados posteriores a essa data (baseado em data_abertura)
+    """
     try:
         try:
             Chamado.__table__.create(bind=engine, checkfirst=True)
         except Exception:
             pass
         try:
-            return db.query(Chamado).filter(Chamado.deletado_em.is_(None)).order_by(Chamado.id.desc()).all()
+            query = db.query(Chamado).filter(Chamado.deletado_em.is_(None))
+
+            # Aplicar filtro de data se fornecido
+            if after_date:
+                try:
+                    from datetime import datetime
+                    date_obj = datetime.strptime(after_date, "%Y-%m-%d")
+                    query = query.filter(Chamado.data_abertura >= date_obj)
+                except ValueError:
+                    # Ignorar filtro se formato inválido
+                    pass
+
+            return query.order_by(Chamado.id.desc()).all()
         except Exception:
             return []
     except Exception as e:
