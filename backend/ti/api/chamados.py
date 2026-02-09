@@ -11,9 +11,6 @@ from ti.schemas.chamado import (
     ALLOWED_STATUSES,
 )
 from ti.services.chamados import criar_chamado as service_criar
-from ti.services.sla import SLACalculator, SLAPausaManager
-from ti.services.sla_cache import SLACacheManager
-from ti.models.sla_config import HistoricoSLA
 from core.realtime import sio
 from werkzeug.security import check_password_hash
 from ..models.notification import Notification
