@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Download } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import { exportToExcel } from "@/lib/excel-export";
@@ -37,15 +37,21 @@ export default function AttendedTicketsMetric({ startDate, endDate }: Props) {
   const [reportData, setReportData] = useState<ReportData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [lastAppliedDates, setLastAppliedDates] = useState<{start?: string; end?: string}>({});
+
+  // Use ref para rastrear datas já processadas sem causar re-renders
+  const lastProcessedDatesRef = useRef<{ start?: string; end?: string }>({});
 
   useEffect(() => {
-    // Só fazer fetch se as datas foram realmente aplicadas (alteradas)
-    // e são válidas (formato YYYY-MM-DD completo)
+    // Verificar se as datas realmente mudaram
     const datesChanged =
-      lastAppliedDates.start !== startDate ||
-      lastAppliedDates.end !== endDate;
+      lastProcessedDatesRef.current.start !== startDate ||
+      lastProcessedDatesRef.current.end !== endDate;
 
+    if (!datesChanged) {
+      return; // Não fazer nada se as datas não mudaram
+    }
+
+    // Validar formato das datas customizadas
     const datesValid =
       startDate &&
       endDate &&
@@ -66,24 +72,24 @@ export default function AttendedTicketsMetric({ startDate, endDate }: Props) {
           const data = await response.json();
           setReportData(data);
           setError(null);
-          setLastAppliedDates({ start: undefined, end: undefined });
         } catch (err) {
           console.error("[ATTENDED TICKETS] Erro:", err);
           setError(
             err instanceof Error ? err.message : "Erro ao carregar dados"
           );
-          setLastAppliedDates({ start: undefined, end: undefined });
+          toast.error("Não foi possível carregar os dados dos chamados");
         } finally {
           setLoading(false);
         }
       };
 
       fetchDefault();
+      lastProcessedDatesRef.current = { start: undefined, end: undefined };
       return;
     }
 
-    // Se tem datas customizadas válidas E elas mudaram
-    if (datesValid && datesChanged) {
+    // Se tem datas customizadas válidas
+    if (datesValid) {
       const fetchData = async () => {
         try {
           setLoading(true);
@@ -99,7 +105,6 @@ export default function AttendedTicketsMetric({ startDate, endDate }: Props) {
           const data = await response.json();
           setReportData(data);
           setError(null);
-          setLastAppliedDates({ start: startDate, end: endDate });
         } catch (err) {
           console.error("[ATTENDED TICKETS] Erro:", err);
           setError(
@@ -112,8 +117,9 @@ export default function AttendedTicketsMetric({ startDate, endDate }: Props) {
       };
 
       fetchData();
+      lastProcessedDatesRef.current = { start: startDate, end: endDate };
     }
-  }, [startDate, endDate, lastAppliedDates]);
+  }, [startDate, endDate]);
 
   const handleDownloadExcel = () => {
     if (!reportData) {
