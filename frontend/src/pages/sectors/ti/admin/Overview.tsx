@@ -15,6 +15,7 @@ import {
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
+import AttendedTicketsMetric from "@/components/AttendedTicketsMetric";
 import {
   Select,
   SelectContent,
@@ -423,6 +424,11 @@ export default function Overview() {
           variant="purple"
           icon={AlertCircle}
         />
+      </div>
+
+      {/* Attended Tickets Metric Card */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <AttendedTicketsMetric />
       </div>
 
       {/* Charts Row 1 */}
