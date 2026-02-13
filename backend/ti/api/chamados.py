@@ -980,12 +980,11 @@ def get_last_30_days_attended_tickets(db: Session = Depends(get_db)):
         except Exception:
             pass
 
-        from datetime import datetime, timedelta
-        from dateutil.relativedelta import relativedelta
+        from datetime import timedelta
 
         # Calcular a data de 30 dias atrás usando horário do Brasil
         now = now_brazil_naive()
-        thirty_days_ago = now - relativedelta(days=30)
+        thirty_days_ago = now - timedelta(days=30)
 
         # Buscar chamados com status "Concluído" nos últimos 30 dias
         chamados = db.query(Chamado).filter(

@@ -37,6 +37,17 @@ def migrate_historico_status():
             if has_old_schema:
                 print("[migration] Detected old schema. Migrating historico_status...")
 
+                # Check which date column exists
+                has_data_mudanca = "data_mudanca" in existing_names
+                has_created_at = "created_at" in existing_names
+                has_data_atualizacao = "data_atualizacao" in existing_names
+
+                # Determine which date column to use
+                date_col = "data_mudanca" if has_data_mudanca else "created_at" if has_created_at else "data_atualizacao" if has_data_atualizacao else None
+                date_expr = f"COALESCE({date_col}, NOW())" if date_col else "NOW()"
+
+                print(f"[migration] Using date column: {date_col or 'NOW() (default)'}")
+
                 # Drop temp table if it already exists
                 try:
                     conn.exec_driver_sql("DROP TABLE IF EXISTS historico_status_new")
@@ -60,39 +71,39 @@ def migrate_historico_status():
                         KEY chamado_id (chamado_id),
                         KEY usuario_id (usuario_id),
                         KEY status (status),
-                        CONSTRAINT historico_status_new_ibfk_1 FOREIGN KEY (chamado_id) 
+                        CONSTRAINT historico_status_new_ibfk_1 FOREIGN KEY (chamado_id)
                             REFERENCES chamado (id) ON DELETE CASCADE,
-                        CONSTRAINT historico_status_new_ibfk_2 FOREIGN KEY (usuario_id) 
+                        CONSTRAINT historico_status_new_ibfk_2 FOREIGN KEY (usuario_id)
                             REFERENCES user (id)
                     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
                 """)
-                
+
                 # Migrate data from old table to new table
-                # Map old columns to new ones
-                migrate_sql = """
-                    INSERT INTO historico_status_new 
+                # Map old columns to new ones - safely handle missing columns
+                migrate_sql = f"""
+                    INSERT INTO historico_status_new
                     (chamado_id, status, data_inicio, usuario_id, descricao, created_at, updated_at)
-                    SELECT 
+                    SELECT
                         chamado_id,
                         COALESCE(status_novo, 'Aberto'),
-                        COALESCE(data_mudanca, NOW()),
+                        {date_expr},
                         usuario_id,
                         CONCAT(
                             COALESCE(status_anterior, 'Aberto'),
                             ' → ',
                             COALESCE(status_novo, 'Aberto'),
-                            CASE WHEN motivo IS NOT NULL AND motivo != '' 
-                                THEN CONCAT(' (', motivo, ')') 
-                                ELSE '' 
+                            CASE WHEN motivo IS NOT NULL AND motivo != ''
+                                THEN CONCAT(' (', motivo, ')')
+                                ELSE ''
                             END
                         ) as descricao,
-                        data_mudanca,
-                        data_mudanca
+                        {date_expr},
+                        {date_expr}
                     FROM historico_status
                 """
                 conn.exec_driver_sql(migrate_sql)
                 print(f"[migration] Migrated data from old table")
-                
+
                 # Drop old table and rename new one
                 conn.exec_driver_sql("DROP TABLE historico_status")
                 conn.exec_driver_sql("RENAME TABLE historico_status_new TO historico_status")
