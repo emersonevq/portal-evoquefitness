@@ -148,13 +148,17 @@ export default function Overview() {
   const [endDate, setEndDate] = useState<string>("");
   const [customDateMode, setCustomDateMode] = useState(false);
 
+  // Debounced dates for actual filtering
+  const [appliedStartDate, setAppliedStartDate] = useState<string>("");
+  const [appliedEndDate, setAppliedEndDate] = useState<string>("");
+
   // Cache de métricas com React Query
   const { data: basicMetricsData, isLoading: basicLoading } = useQuery({
-    queryKey: ["metrics-basic", customDateMode, startDate, endDate],
+    queryKey: ["metrics-basic", customDateMode, appliedStartDate, appliedEndDate],
     queryFn: async () => {
-      if (customDateMode && startDate && endDate) {
+      if (customDateMode && appliedStartDate && appliedEndDate) {
         const response = await api.get(
-          `/metrics/dashboard/basic?start_date=${startDate}&end_date=${endDate}`,
+          `/metrics/dashboard/basic?start_date=${appliedStartDate}&end_date=${appliedEndDate}`,
         );
         return response.data;
       }
@@ -166,16 +170,16 @@ export default function Overview() {
   });
 
   const { data: dailyChartData, isLoading: dailyLoading } = useQuery({
-    queryKey: ["metrics-daily", selectedStatuses, customDateMode, startDate, endDate],
+    queryKey: ["metrics-daily", selectedStatuses, customDateMode, appliedStartDate, appliedEndDate],
     queryFn: async () => {
       const statusQuery =
         selectedStatuses.length > 0
           ? `&statuses=${selectedStatuses.join(",")}`
           : "";
 
-      if (customDateMode && startDate && endDate) {
+      if (customDateMode && appliedStartDate && appliedEndDate) {
         const response = await api.get(
-          `/metrics/chamados-por-dia?start_date=${startDate}&end_date=${endDate}${statusQuery}`,
+          `/metrics/chamados-por-dia?start_date=${appliedStartDate}&end_date=${appliedEndDate}${statusQuery}`,
         );
         return response.data?.dados || [];
       }
@@ -190,16 +194,16 @@ export default function Overview() {
   });
 
   const { data: weeklyChartData, isLoading: weeklyLoading } = useQuery({
-    queryKey: ["metrics-weekly", selectedStatuses, customDateMode, startDate, endDate],
+    queryKey: ["metrics-weekly", selectedStatuses, customDateMode, appliedStartDate, appliedEndDate],
     queryFn: async () => {
       const statusQuery =
         selectedStatuses.length > 0
           ? `&statuses=${selectedStatuses.join(",")}`
           : "";
 
-      if (customDateMode && startDate && endDate) {
+      if (customDateMode && appliedStartDate && appliedEndDate) {
         const response = await api.get(
-          `/metrics/chamados-por-semana?start_date=${startDate}&end_date=${endDate}${statusQuery}`,
+          `/metrics/chamados-por-semana?start_date=${appliedStartDate}&end_date=${appliedEndDate}${statusQuery}`,
         );
         return response.data?.dados || [];
       }
@@ -225,16 +229,16 @@ export default function Overview() {
     });
 
   const { data: monthlyChartData, isLoading: monthlyLoading } = useQuery({
-    queryKey: ["metrics-monthly", dateRange, selectedStatuses, customDateMode, startDate, endDate],
+    queryKey: ["metrics-monthly", dateRange, selectedStatuses, customDateMode, appliedStartDate, appliedEndDate],
     queryFn: async () => {
       const statusQuery =
         selectedStatuses.length > 0
           ? `&statuses=${selectedStatuses.join(",")}`
           : "";
 
-      if (customDateMode && startDate && endDate) {
+      if (customDateMode && appliedStartDate && appliedEndDate) {
         const response = await api.get(
-          `/metrics/chamados-por-mes?start_date=${startDate}&end_date=${endDate}${statusQuery}`,
+          `/metrics/chamados-por-mes?start_date=${appliedStartDate}&end_date=${appliedEndDate}${statusQuery}`,
         );
         return response.data?.dados || [];
       }
@@ -414,10 +418,44 @@ export default function Overview() {
                   />
                   <Button
                     size="sm"
+                    variant="default"
+                    onClick={() => {
+                      if (startDate && endDate) {
+                        // Validar formato das datas
+                        const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+                        if (!dateRegex.test(startDate) || !dateRegex.test(endDate)) {
+                          toast.error("Selecione datas válidas");
+                          return;
+                        }
+
+                        // Validar se a data inicial não é depois da final
+                        const start = new Date(startDate);
+                        const end = new Date(endDate);
+                        if (start > end) {
+                          toast.error("Data inicial não pode ser maior que a final");
+                          return;
+                        }
+
+                        setAppliedStartDate(startDate);
+                        setAppliedEndDate(endDate);
+                        toast.success("Filtro aplicado!");
+                      } else {
+                        toast.error("Preencha ambas as datas");
+                      }
+                    }}
+                    disabled={!startDate || !endDate}
+                    className="h-9"
+                  >
+                    Filtrar
+                  </Button>
+                  <Button
+                    size="sm"
                     variant="ghost"
                     onClick={() => {
                       setStartDate("");
                       setEndDate("");
+                      setAppliedStartDate("");
+                      setAppliedEndDate("");
                     }}
                     className="h-9 px-2"
                   >
@@ -500,10 +538,10 @@ export default function Overview() {
       </div>
 
       {/* Attended Tickets Metric Card */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <AttendedTicketsMetric
-          startDate={customDateMode ? startDate : undefined}
-          endDate={customDateMode ? endDate : undefined}
+          startDate={customDateMode ? appliedStartDate : undefined}
+          endDate={customDateMode ? appliedEndDate : undefined}
         />
       </div>
 

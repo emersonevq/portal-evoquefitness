@@ -37,12 +37,35 @@ def get_realtime_metrics(db: Session = Depends(get_db)):
 
 
 @router.get("/metrics/dashboard/basic")
-def get_basic_metrics(db: Session = Depends(get_db)):
+def get_basic_metrics(start_date: str = "", end_date: str = "", db: Session = Depends(get_db)):
     """
-    [DEPRECATED] Use /metrics/realtime instead.
+    Retorna métricas básicas do dashboard.
 
-    Mantido por compatibilidade com código antigo.
+    Query params:
+    - start_date: Data inicial (formato: YYYY-MM-DD, opcional)
+    - end_date: Data final (formato: YYYY-MM-DD, opcional)
+
+    Se as datas não forem fornecidas, retorna as métricas padrão (realtime).
     """
+    from datetime import datetime
+
+    # Se datas não forem fornecidas, retorna o padrão
+    if not start_date or not end_date:
+        return get_realtime_metrics(db)
+
+    # Se datas forem fornecidas, validar
+    try:
+        start = datetime.strptime(start_date, "%Y-%m-%d")
+        end = datetime.strptime(end_date, "%Y-%m-%d")
+    except ValueError:
+        from fastapi import HTTPException
+        raise HTTPException(
+            status_code=400,
+            detail="Datas devem estar no formato YYYY-MM-DD"
+        )
+
+    # Retornar métricas padrão (realtime) para manter compatibilidade
+    # Os dados filtrados por período serão puxados dos gráficos específicos
     return get_realtime_metrics(db)
 
 
@@ -149,16 +172,32 @@ def get_tempo_resposta(db: Session = Depends(get_db)):
 
 
 @router.get("/metrics/chamados-por-dia")
-def get_chamados_por_dia(dias: int = 7, statuses: str = "", db: Session = Depends(get_db)):
-    """Retorna quantidade de chamados por dia dos últimos N dias
+def get_chamados_por_dia(dias: int = 7, statuses: str = "", start_date: str = "", end_date: str = "", db: Session = Depends(get_db)):
+    """Retorna quantidade de chamados por dia dos últimos N dias ou período customizado
 
     Query params:
     - dias: Número de dias (default: 7)
     - statuses: Lista separada por vírgula (ex: "Aberto,Em andamento")
+    - start_date: Data inicial (formato: YYYY-MM-DD, opcional)
+    - end_date: Data final (formato: YYYY-MM-DD, opcional)
+
+    Se start_date e end_date forem fornecidas, elas têm prioridade sobre 'dias'.
     """
     try:
         status_list = [s.strip() for s in statuses.split(",") if s.strip()] if statuses else []
-        dados = MetricsCalculator.get_chamados_por_dia(db, dias, status_list if status_list else None)
+
+        # Se datas customizadas forem fornecidas
+        if start_date and end_date:
+            try:
+                dados = MetricsCalculator.get_chamados_por_dia_periodo(db, start_date, end_date, status_list if status_list else None)
+            except Exception as e:
+                print(f"Erro no período: {e}")
+                import traceback
+                traceback.print_exc()
+                return {"dados": []}
+        else:
+            dados = MetricsCalculator.get_chamados_por_dia(db, dias, status_list if status_list else None)
+
         if not isinstance(dados, list):
             return {"dados": []}
         return {"dados": dados}
@@ -170,16 +209,32 @@ def get_chamados_por_dia(dias: int = 7, statuses: str = "", db: Session = Depend
 
 
 @router.get("/metrics/chamados-por-semana")
-def get_chamados_por_semana(semanas: int = 4, statuses: str = "", db: Session = Depends(get_db)):
-    """Retorna quantidade de chamados por semana dos últimos N semanas
+def get_chamados_por_semana(semanas: int = 4, statuses: str = "", start_date: str = "", end_date: str = "", db: Session = Depends(get_db)):
+    """Retorna quantidade de chamados por semana dos últimos N semanas ou período customizado
 
     Query params:
     - semanas: Número de semanas (default: 4)
     - statuses: Lista separada por vírgula (ex: "Aberto,Em andamento")
+    - start_date: Data inicial (formato: YYYY-MM-DD, opcional)
+    - end_date: Data final (formato: YYYY-MM-DD, opcional)
+
+    Se start_date e end_date forem fornecidas, elas têm prioridade sobre 'semanas'.
     """
     try:
         status_list = [s.strip() for s in statuses.split(",") if s.strip()] if statuses else []
-        dados = MetricsCalculator.get_chamados_por_semana(db, semanas, status_list if status_list else None)
+
+        # Se datas customizadas forem fornecidas
+        if start_date and end_date:
+            try:
+                dados = MetricsCalculator.get_chamados_por_semana_periodo(db, start_date, end_date, status_list if status_list else None)
+            except Exception as e:
+                print(f"Erro no período: {e}")
+                import traceback
+                traceback.print_exc()
+                return {"dados": []}
+        else:
+            dados = MetricsCalculator.get_chamados_por_semana(db, semanas, status_list if status_list else None)
+
         if not isinstance(dados, list):
             return {"dados": []}
         return {"dados": dados}
@@ -191,24 +246,39 @@ def get_chamados_por_semana(semanas: int = 4, statuses: str = "", db: Session = 
 
 
 @router.get("/metrics/chamados-por-mes")
-def get_chamados_por_mes(range: str = "30d", statuses: str = "", db: Session = Depends(get_db)):
+def get_chamados_por_mes(range: str = "30d", statuses: str = "", start_date: str = "", end_date: str = "", db: Session = Depends(get_db)):
     """Retorna quantidade de chamados por status por mês
 
     Query params:
     - range: '7d', '30d', '90d' ou 'all' (padrão: '30d')
     - statuses: Lista separada por vírgula (ex: "Aberto,Em andamento,Concluído")
                 Se vazio, mostra todos os status
+    - start_date: Data inicial (formato: YYYY-MM-DD, opcional)
+    - end_date: Data final (formato: YYYY-MM-DD, opcional)
+
+    Se start_date e end_date forem fornecidas, elas têm prioridade sobre 'range'.
     """
     try:
-        meses_param = {
-            "7d": 1,
-            "30d": 3,
-            "90d": 12,
-            "all": 24
-        }.get(range, 3)
-
         status_list = [s.strip() for s in statuses.split(",") if s.strip()] if statuses else []
-        dados = MetricsCalculator.get_chamados_por_mes(db, meses_param, status_list if status_list else None)
+
+        # Se datas customizadas forem fornecidas
+        if start_date and end_date:
+            try:
+                dados = MetricsCalculator.get_chamados_por_mes_periodo(db, start_date, end_date, status_list if status_list else None)
+            except Exception as e:
+                print(f"Erro no período: {e}")
+                import traceback
+                traceback.print_exc()
+                return {"dados": []}
+        else:
+            meses_param = {
+                "7d": 1,
+                "30d": 3,
+                "90d": 12,
+                "all": 24
+            }.get(range, 3)
+            dados = MetricsCalculator.get_chamados_por_mes(db, meses_param, status_list if status_list else None)
+
         if not isinstance(dados, list):
             return {"dados": []}
         return {"dados": dados}

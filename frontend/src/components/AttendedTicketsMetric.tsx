@@ -1,6 +1,5 @@
-import { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Download, TrendingUp } from "lucide-react";
+import { useEffect, useState, useRef } from "react";
+import { Download } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import { exportToExcel } from "@/lib/excel-export";
 import { toast } from "sonner";
@@ -39,39 +38,97 @@ export default function AttendedTicketsMetric({ startDate, endDate }: Props) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Use ref para rastrear datas já processadas sem causar re-renders
+  const lastProcessedDatesRef = useRef<{ start?: string; end?: string }>({});
+
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
+    // Verificar se as datas realmente mudaram
+    const datesChanged =
+      lastProcessedDatesRef.current.start !== startDate ||
+      lastProcessedDatesRef.current.end !== endDate;
 
-        let url = "/chamados/report/last-30-days";
+    if (!datesChanged) {
+      return; // Não fazer nada se as datas não mudaram
+    }
 
-        // Use custom date range if provided
-        if (startDate && endDate) {
-          url = `/chamados/report?start_date=${startDate}&end_date=${endDate}`;
+    // Validar formato das datas customizadas
+    const datesValid =
+      startDate &&
+      endDate &&
+      /^\d{4}-\d{2}-\d{2}$/.test(startDate) &&
+      /^\d{4}-\d{2}-\d{2}$/.test(endDate);
+
+    // Se não tem datas customizadas, usa padrão
+    if (!startDate || !endDate) {
+      const fetchDefault = async () => {
+        try {
+          setLoading(true);
+          const response = await apiFetch("/chamados/report/last-30-days");
+
+          if (!response.ok) {
+            throw new Error("Erro ao buscar dados");
+          }
+
+          const data = await response.json();
+          setReportData(data);
+          setError(null);
+        } catch (err) {
+          console.error("[ATTENDED TICKETS] Erro:", err);
+          setError(
+            err instanceof Error ? err.message : "Erro ao carregar dados"
+          );
+          toast.error("Não foi possível carregar os dados dos chamados");
+        } finally {
+          setLoading(false);
         }
+      };
 
-        const response = await apiFetch(url);
+      fetchDefault();
+      lastProcessedDatesRef.current = { start: undefined, end: undefined };
+      return;
+    }
 
-        if (!response.ok) {
-          throw new Error("Erro ao buscar dados");
+    // Se tem datas customizadas válidas
+    if (datesValid) {
+      const fetchData = async () => {
+        try {
+          setLoading(true);
+          const url = `/chamados/report?start_date=${startDate}&end_date=${endDate}`;
+
+          console.log("[ATTENDED TICKETS] Buscando com datas:", { startDate, endDate, url });
+          const response = await apiFetch(url);
+
+          console.log("[ATTENDED TICKETS] Response status:", response.status);
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error("[ATTENDED TICKETS] Response error:", errorText);
+            throw new Error(`Erro ${response.status} ao buscar dados`);
+          }
+
+          const data = await response.json();
+          console.log("[ATTENDED TICKETS] Dados recebidos:", data);
+
+          if (!data || data.count === undefined) {
+            throw new Error("Resposta inválida do servidor");
+          }
+
+          setReportData(data);
+          setError(null);
+          lastProcessedDatesRef.current = { start: startDate, end: endDate };
+        } catch (err) {
+          console.error("[ATTENDED TICKETS] Erro completo:", err);
+          const errorMsg = err instanceof Error ? err.message : "Erro ao carregar dados";
+          setError(errorMsg);
+          toast.error(errorMsg);
+          lastProcessedDatesRef.current = { start: startDate, end: endDate };
+        } finally {
+          setLoading(false);
         }
+      };
 
-        const data = await response.json();
-        setReportData(data);
-        setError(null);
-      } catch (err) {
-        console.error("[ATTENDED TICKETS] Erro:", err);
-        setError(
-          err instanceof Error ? err.message : "Erro ao carregar dados"
-        );
-        toast.error("Não foi possível carregar os dados dos chamados");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
+      fetchData();
+    }
   }, [startDate, endDate]);
 
   const handleDownloadExcel = () => {
@@ -89,55 +146,53 @@ export default function AttendedTicketsMetric({ startDate, endDate }: Props) {
     }
   };
 
+  // Estilos dos cards de métrica - mesmo padrão visual
+  const colorStyles = {
+    gradient: "from-blue-500 to-blue-600",
+  };
+
   return (
-    <div className="rounded-2xl border border-border/60 bg-gradient-to-br from-blue-50/50 to-indigo-50/50 p-6 sm:p-7 shadow-md hover:shadow-lg transition-all duration-300">
-      <div className="flex items-start justify-between mb-6">
-        <div>
-          <h3 className="text-sm font-medium text-muted-foreground mb-2">
-            {startDate && endDate
-              ? `${format(parseISO(startDate), "dd 'de' MMM", { locale: ptBR })} até ${format(parseISO(endDate), "dd 'de' MMM 'de' yyyy", { locale: ptBR })}`
-              : "Últimos 30 Dias"}
-          </h3>
-          {loading ? (
-            <div className="h-12 w-32 bg-gray-200 animate-pulse rounded" />
-          ) : error ? (
-            <div className="text-sm text-red-600">{error}</div>
-          ) : (
-            <div className="flex items-end gap-3">
-              <span className="text-4xl sm:text-5xl font-black text-blue-600">
-                {reportData?.count || 0}
-              </span>
-              <span className="text-sm text-muted-foreground mb-1">
-                chamados atendidos
-              </span>
+    <div className="relative group">
+      <div
+        className={`absolute -inset-1 bg-gradient-to-r ${colorStyles.gradient} rounded-2xl blur-xl opacity-0 group-hover:opacity-30 transition-opacity duration-300`}
+      />
+      <div
+        className={`relative metric-card rounded-2xl bg-gradient-to-br ${colorStyles.gradient} text-white p-5 overflow-hidden`}
+      >
+        {/* Background pattern - mesmo dos outros cards */}
+        <div
+          className="absolute inset-0 opacity-10"
+          style={{
+            backgroundImage: `radial-gradient(circle at 2px 2px, white 1px, transparent 0)`,
+            backgroundSize: "32px 32px",
+          }}
+        />
+
+        <div className="relative space-y-3">
+          <div className="flex items-start justify-between">
+            <div className="text-xs font-medium opacity-90">
+              {startDate && endDate
+                ? `${format(parseISO(startDate), "dd 'de' MMM", { locale: ptBR })} até ${format(parseISO(endDate), "dd 'de' MMM", { locale: ptBR })}`
+                : "Últimos 30 Dias"}
             </div>
+            <Download className="w-5 h-5 opacity-80 cursor-pointer hover:opacity-100 transition-opacity" onClick={handleDownloadExcel} />
+          </div>
+          {loading ? (
+            <div className="h-10 w-20 bg-blue-400 animate-pulse rounded" />
+          ) : error ? (
+            <div className="text-sm text-red-100">{error}</div>
+          ) : (
+            <>
+              <div className="text-3xl font-extrabold leading-none">
+                {reportData?.count || 0}
+              </div>
+              <div className="flex items-center gap-1.5 text-xs opacity-90">
+                <span>chamados atendidos</span>
+              </div>
+            </>
           )}
         </div>
-        <div className="inline-flex items-center justify-center w-12 h-12 bg-blue-100 rounded-xl">
-          <TrendingUp className="w-6 h-6 text-blue-600" />
-        </div>
       </div>
-
-      {/* Separator */}
-      <div className="h-px bg-gradient-to-r from-transparent via-border to-transparent mb-6" />
-
-      {/* Download Button */}
-      <Button
-        onClick={handleDownloadExcel}
-        disabled={loading || !reportData || (reportData.count === 0 && !loading)}
-        className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-all duration-300 flex items-center justify-center gap-2"
-      >
-        <Download className="w-4 h-4" />
-        Baixar Relatório em Excel
-      </Button>
-
-      {/* Additional info */}
-      {reportData && reportData.count > 0 && (
-        <p className="text-xs text-muted-foreground mt-3 text-center">
-          Inclui detalhes completos: ID, código, solicitante, problema, status,
-          datas de abertura e conclusão
-        </p>
-      )}
     </div>
   );
 }
