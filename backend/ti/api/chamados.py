@@ -1069,15 +1069,15 @@ def get_attended_tickets_report(start_date: str = "", end_date: str = "", db: Se
             start = now - timedelta(days=30)
             start = start.replace(hour=0, minute=0, second=0, microsecond=0)
 
-        # Buscar chamados com status "Concluído" no período
+        # Buscar TODOS os chamados abertos no período (por data de abertura)
+        # Inclui: Aberto, Em andamento, Em análise, Concluído, Cancelado
         chamados = db.query(Chamado).filter(
             and_(
                 Chamado.deletado_em.is_(None),
-                Chamado.status == "Concluído",
-                Chamado.data_conclusao >= start,
-                Chamado.data_conclusao <= end
+                Chamado.data_abertura >= start,
+                Chamado.data_abertura <= end
             )
-        ).order_by(Chamado.data_conclusao.desc()).all()
+        ).order_by(Chamado.data_abertura.desc()).all()
 
         # Construir resposta com dados formatados para Excel
         result = {
