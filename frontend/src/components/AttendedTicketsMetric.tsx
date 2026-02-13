@@ -131,14 +131,14 @@ export default function AttendedTicketsMetric({ startDate, endDate }: Props) {
     }
   }, [startDate, endDate]);
 
-  const handleDownloadExcel = () => {
+  const handleDownloadExcel = async () => {
     if (!reportData) {
       toast.error("Nenhum dado disponível para exportar");
       return;
     }
 
     try {
-      exportToExcel(reportData, "relatorio_chamados_30dias.xlsx");
+      await exportToExcel(reportData, "relatorio_chamados_30dias.xlsx");
       toast.success("Relatório baixado com sucesso!");
     } catch (err) {
       console.error("[EXCEL EXPORT] Erro:", err);
