@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { format, parseISO, startOfDay, endOfDay } from "date-fns";
 import {
   TrendingUp,
   Clock,
@@ -15,6 +16,7 @@ import {
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
+import AttendedTicketsMetric from "@/components/AttendedTicketsMetric";
 import {
   Select,
   SelectContent,
@@ -141,10 +143,21 @@ export default function Overview() {
     typeof STATUS_OPTIONS
   >(["Aberto", "Em andamento", "Concluído"]);
 
+  // Custom date range filter
+  const [startDate, setStartDate] = useState<string>("");
+  const [endDate, setEndDate] = useState<string>("");
+  const [customDateMode, setCustomDateMode] = useState(false);
+
   // Cache de métricas com React Query
   const { data: basicMetricsData, isLoading: basicLoading } = useQuery({
-    queryKey: ["metrics-basic"],
+    queryKey: ["metrics-basic", customDateMode, startDate, endDate],
     queryFn: async () => {
+      if (customDateMode && startDate && endDate) {
+        const response = await api.get(
+          `/metrics/dashboard/basic?start_date=${startDate}&end_date=${endDate}`,
+        );
+        return response.data;
+      }
       const response = await api.get("/metrics/dashboard/basic");
       return response.data;
     },
@@ -153,12 +166,20 @@ export default function Overview() {
   });
 
   const { data: dailyChartData, isLoading: dailyLoading } = useQuery({
-    queryKey: ["metrics-daily", selectedStatuses],
+    queryKey: ["metrics-daily", selectedStatuses, customDateMode, startDate, endDate],
     queryFn: async () => {
       const statusQuery =
         selectedStatuses.length > 0
           ? `&statuses=${selectedStatuses.join(",")}`
           : "";
+
+      if (customDateMode && startDate && endDate) {
+        const response = await api.get(
+          `/metrics/chamados-por-dia?start_date=${startDate}&end_date=${endDate}${statusQuery}`,
+        );
+        return response.data?.dados || [];
+      }
+
       const response = await api.get(
         `/metrics/chamados-por-dia?dias=7${statusQuery}`,
       );
@@ -169,12 +190,20 @@ export default function Overview() {
   });
 
   const { data: weeklyChartData, isLoading: weeklyLoading } = useQuery({
-    queryKey: ["metrics-weekly", selectedStatuses],
+    queryKey: ["metrics-weekly", selectedStatuses, customDateMode, startDate, endDate],
     queryFn: async () => {
       const statusQuery =
         selectedStatuses.length > 0
           ? `&statuses=${selectedStatuses.join(",")}`
           : "";
+
+      if (customDateMode && startDate && endDate) {
+        const response = await api.get(
+          `/metrics/chamados-por-semana?start_date=${startDate}&end_date=${endDate}${statusQuery}`,
+        );
+        return response.data?.dados || [];
+      }
+
       const response = await api.get(
         `/metrics/chamados-por-semana?semanas=4${statusQuery}`,
       );
@@ -196,12 +225,20 @@ export default function Overview() {
     });
 
   const { data: monthlyChartData, isLoading: monthlyLoading } = useQuery({
-    queryKey: ["metrics-monthly", dateRange, selectedStatuses],
+    queryKey: ["metrics-monthly", dateRange, selectedStatuses, customDateMode, startDate, endDate],
     queryFn: async () => {
       const statusQuery =
         selectedStatuses.length > 0
           ? `&statuses=${selectedStatuses.join(",")}`
           : "";
+
+      if (customDateMode && startDate && endDate) {
+        const response = await api.get(
+          `/metrics/chamados-por-mes?start_date=${startDate}&end_date=${endDate}${statusQuery}`,
+        );
+        return response.data?.dados || [];
+      }
+
       const response = await api.get(
         `/metrics/chamados-por-mes?range=${dateRange}${statusQuery}`,
       );
@@ -332,25 +369,62 @@ export default function Overview() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4">
-        <div className="flex justify-between items-center">
+        <div className="flex justify-between items-start gap-4">
           <h1 className="text-2xl font-bold">Visão Geral</h1>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-col gap-2 items-end">
+            <Button
+              size="sm"
+              variant={customDateMode ? "default" : "outline"}
+              onClick={() => setCustomDateMode(!customDateMode)}
+              className="h-9"
+            >
+              {customDateMode ? "← Voltar ao padrão" : "📅 Filtro customizado"}
+            </Button>
             <div className="flex items-center gap-2">
               <Calendar className="w-4 h-4 text-muted-foreground" />
-              <Select
-                value={dateRange}
-                onValueChange={(v) => setDateRange(v as any)}
-              >
-                <SelectTrigger className="w-32">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="7d">Últimos 7 dias</SelectItem>
-                  <SelectItem value="30d">Últimos 30 dias</SelectItem>
-                  <SelectItem value="90d">Últimos 90 dias</SelectItem>
-                  <SelectItem value="all">Todos os dados</SelectItem>
-                </SelectContent>
-              </Select>
+              {!customDateMode ? (
+                <Select
+                  value={dateRange}
+                  onValueChange={(v) => setDateRange(v as any)}
+                >
+                  <SelectTrigger className="w-40">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="7d">Últimos 7 dias</SelectItem>
+                    <SelectItem value="30d">Últimos 30 dias</SelectItem>
+                    <SelectItem value="90d">Últimos 90 dias</SelectItem>
+                    <SelectItem value="all">Todos os dados</SelectItem>
+                  </SelectContent>
+                </Select>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    className="h-9 px-3 rounded-md border border-input bg-background text-sm"
+                  />
+                  <span className="text-sm text-muted-foreground">até</span>
+                  <input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    className="h-9 px-3 rounded-md border border-input bg-background text-sm"
+                  />
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => {
+                      setStartDate("");
+                      setEndDate("");
+                    }}
+                    className="h-9 px-2"
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -422,6 +496,14 @@ export default function Overview() {
           sub="Requer atenção"
           variant="purple"
           icon={AlertCircle}
+        />
+      </div>
+
+      {/* Attended Tickets Metric Card */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <AttendedTicketsMetric
+          startDate={customDateMode ? startDate : undefined}
+          endDate={customDateMode ? endDate : undefined}
         />
       </div>
 

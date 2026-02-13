@@ -406,11 +406,12 @@ export default function ChamadosPage() {
       baseItems = baseItems.filter((t) => selectedUnidades.includes(t.unidade));
     }
 
-    // Apply search input filter
+    // Apply search input filter (search by unit name or chamado code)
     if (searchInputValue.trim()) {
       const searchLower = searchInputValue.toLowerCase();
       baseItems = baseItems.filter((t) =>
-        t.unidade.toLowerCase().includes(searchLower),
+        t.unidade.toLowerCase().includes(searchLower) ||
+        t.codigo.toLowerCase().includes(searchLower),
       );
     }
 
@@ -473,11 +474,12 @@ export default function ChamadosPage() {
       filtered = filtered.filter((t) => selectedUnidades.includes(t.unidade));
     }
 
-    // Apply search input filter (search by unit name)
+    // Apply search input filter (search by unit name or chamado code)
     if (searchInputValue.trim()) {
       const searchLower = searchInputValue.toLowerCase();
       filtered = filtered.filter((t) =>
-        t.unidade.toLowerCase().includes(searchLower),
+        t.unidade.toLowerCase().includes(searchLower) ||
+        t.codigo.toLowerCase().includes(searchLower),
       );
     }
 
@@ -783,7 +785,7 @@ export default function ChamadosPage() {
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <input
               type="text"
-              placeholder="Buscar unidade..."
+              placeholder="Buscar por unidade ou código (ex: EVQ-0349)..."
               value={searchInputValue}
               onChange={(e) => setSearchInputValue(e.target.value)}
               className="h-9 w-full rounded-md border border-input bg-background pl-8 pr-8 text-sm"
