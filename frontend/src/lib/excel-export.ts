@@ -66,8 +66,75 @@ export function exportToExcel(data: ReportData, fileName: string = "relatorio_ch
   ];
   ws["!cols"] = columnWidths;
 
+  // Aplicar formatação de cabeçalho e linhas
+  applyFormatting(ws, formattedData.length);
+
   // Salvar arquivo
   XLSX.writeFile(wb, fileName);
+}
+
+function applyFormatting(ws: XLSX.WorkSheet, dataRows: number) {
+  // Headers
+  const headers = [
+    "ID", "Código do Chamado", "Protocolo", "Nome do Solicitante",
+    "Problema Reportado", "Descrição", "Status", "Prioridade",
+    "Unidade", "Data de Abertura", "Data de Conclusão", "Última Atualização"
+  ];
+
+  const columns = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L"];
+
+  // Estilos do cabeçalho (fundo azul escuro, texto branco, negrito)
+  const headerStyle = {
+    font: { bold: true, color: { rgb: "FFFFFF" } },
+    fill: { fgColor: { rgb: "1F4E78" }, patternType: "solid" },
+    alignment: { horizontal: "center", vertical: "center", wrapText: true }
+  };
+
+  // Aplicar estilo ao cabeçalho
+  headers.forEach((_, index) => {
+    const cellAddress = columns[index] + "1";
+    const cell = ws[cellAddress];
+    if (cell) {
+      cell.s = headerStyle;
+    }
+  });
+
+  // Estilo alternado para linhas (cinza claro a cada outra linha)
+  const altRowStyle = {
+    fill: { fgColor: { rgb: "E7E6E6" }, patternType: "solid" }
+  };
+
+  for (let row = 2; row <= dataRows + 1; row++) {
+    if (row % 2 === 0) {
+      // Linhas pares recebem cor de fundo
+      columns.forEach((col) => {
+        const cellAddress = col + row;
+        const cell = ws[cellAddress];
+        if (cell) {
+          cell.s = altRowStyle;
+        }
+      });
+    }
+
+    // Alinhamento centralizado para todas as colunas
+    columns.forEach((col) => {
+      const cellAddress = col + row;
+      const cell = ws[cellAddress];
+      if (cell) {
+        if (!cell.s) cell.s = {};
+        cell.s.alignment = { horizontal: "left", vertical: "center", wrapText: true };
+      }
+    });
+  }
+
+  // Congelar a linha de cabeçalho
+  ws["!freeze"] = { xSplit: 0, ySplit: 1 };
+
+  // Auto-filtro
+  ws["!autofilter"] = { ref: "A1:L" + (dataRows + 1) };
+
+  // Altura da linha de cabeçalho
+  ws["!rows"] = [{ hpx: 25 }];
 }
 
 function formatDate(isoDateString: string): string {
