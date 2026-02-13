@@ -95,29 +95,39 @@ export default function AttendedTicketsMetric({ startDate, endDate }: Props) {
           setLoading(true);
           const url = `/chamados/report?start_date=${startDate}&end_date=${endDate}`;
 
-          console.log("[ATTENDED TICKETS] Buscando com datas:", { startDate, endDate });
+          console.log("[ATTENDED TICKETS] Buscando com datas:", { startDate, endDate, url });
           const response = await apiFetch(url);
 
+          console.log("[ATTENDED TICKETS] Response status:", response.status);
+
           if (!response.ok) {
-            throw new Error(`Erro ao buscar dados: ${response.status}`);
+            const errorText = await response.text();
+            console.error("[ATTENDED TICKETS] Response error:", errorText);
+            throw new Error(`Erro ${response.status} ao buscar dados`);
           }
 
           const data = await response.json();
+          console.log("[ATTENDED TICKETS] Dados recebidos:", data);
+
+          if (!data || data.count === undefined) {
+            throw new Error("Resposta inválida do servidor");
+          }
+
           setReportData(data);
           setError(null);
+          lastProcessedDatesRef.current = { start: startDate, end: endDate };
         } catch (err) {
-          console.error("[ATTENDED TICKETS] Erro:", err);
-          setError(
-            err instanceof Error ? err.message : "Erro ao carregar dados"
-          );
-          toast.error("Não foi possível carregar os dados dos chamados");
+          console.error("[ATTENDED TICKETS] Erro completo:", err);
+          const errorMsg = err instanceof Error ? err.message : "Erro ao carregar dados";
+          setError(errorMsg);
+          toast.error(errorMsg);
+          lastProcessedDatesRef.current = { start: startDate, end: endDate };
         } finally {
           setLoading(false);
         }
       };
 
       fetchData();
-      lastProcessedDatesRef.current = { start: startDate, end: endDate };
     }
   }, [startDate, endDate]);
 

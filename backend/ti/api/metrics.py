@@ -49,29 +49,23 @@ def get_basic_metrics(start_date: str = "", end_date: str = "", db: Session = De
     """
     from datetime import datetime
 
-    # Se datas forem fornecidas, processar período customizado
-    if start_date and end_date:
-        try:
-            start = datetime.strptime(start_date, "%Y-%m-%d")
-            end = datetime.strptime(end_date, "%Y-%m-%d")
+    # Se datas não forem fornecidas, retorna o padrão
+    if not start_date or not end_date:
+        return get_realtime_metrics(db)
 
-            # Retornar métricas para período específico
-            return {
-                "chamados_hoje": MetricsCalculator.get_chamados_abertos_hoje(db, start_date, end_date),
-                "comparacao_ontem": {"hoje": 0, "ontem": 0, "percentual": 0, "direcao": "up"},
-                "concluidos": MetricsCalculator.get_chamados_concluidos_periodo(db, start_date, end_date),
-                "em_andamento": MetricsCalculator.get_chamados_em_andamento_periodo(db, start_date, end_date),
-                "em_risco": MetricsCalculator.get_chamados_em_risco_periodo(db, start_date, end_date),
-                "timestamp": now_brazil_naive().isoformat(),
-            }
-        except ValueError:
-            from fastapi import HTTPException
-            raise HTTPException(
-                status_code=400,
-                detail="Datas devem estar no formato YYYY-MM-DD"
-            )
+    # Se datas forem fornecidas, validar
+    try:
+        start = datetime.strptime(start_date, "%Y-%m-%d")
+        end = datetime.strptime(end_date, "%Y-%m-%d")
+    except ValueError:
+        from fastapi import HTTPException
+        raise HTTPException(
+            status_code=400,
+            detail="Datas devem estar no formato YYYY-MM-DD"
+        )
 
-    # Padrão: retorna realtime
+    # Retornar métricas padrão (realtime) para manter compatibilidade
+    # Os dados filtrados por período serão puxados dos gráficos específicos
     return get_realtime_metrics(db)
 
 
@@ -190,18 +184,17 @@ def get_chamados_por_dia(dias: int = 7, statuses: str = "", start_date: str = ""
     Se start_date e end_date forem fornecidas, elas têm prioridade sobre 'dias'.
     """
     try:
-        from datetime import datetime
-
         status_list = [s.strip() for s in statuses.split(",") if s.strip()] if statuses else []
 
         # Se datas customizadas forem fornecidas
         if start_date and end_date:
             try:
-                start = datetime.strptime(start_date, "%Y-%m-%d")
-                end = datetime.strptime(end_date, "%Y-%m-%d")
                 dados = MetricsCalculator.get_chamados_por_dia_periodo(db, start_date, end_date, status_list if status_list else None)
-            except ValueError:
-                return {"dados": [], "error": "Datas devem estar no formato YYYY-MM-DD"}
+            except Exception as e:
+                print(f"Erro no período: {e}")
+                import traceback
+                traceback.print_exc()
+                return {"dados": []}
         else:
             dados = MetricsCalculator.get_chamados_por_dia(db, dias, status_list if status_list else None)
 
@@ -228,18 +221,17 @@ def get_chamados_por_semana(semanas: int = 4, statuses: str = "", start_date: st
     Se start_date e end_date forem fornecidas, elas têm prioridade sobre 'semanas'.
     """
     try:
-        from datetime import datetime
-
         status_list = [s.strip() for s in statuses.split(",") if s.strip()] if statuses else []
 
         # Se datas customizadas forem fornecidas
         if start_date and end_date:
             try:
-                start = datetime.strptime(start_date, "%Y-%m-%d")
-                end = datetime.strptime(end_date, "%Y-%m-%d")
                 dados = MetricsCalculator.get_chamados_por_semana_periodo(db, start_date, end_date, status_list if status_list else None)
-            except ValueError:
-                return {"dados": [], "error": "Datas devem estar no formato YYYY-MM-DD"}
+            except Exception as e:
+                print(f"Erro no período: {e}")
+                import traceback
+                traceback.print_exc()
+                return {"dados": []}
         else:
             dados = MetricsCalculator.get_chamados_por_semana(db, semanas, status_list if status_list else None)
 
@@ -267,18 +259,17 @@ def get_chamados_por_mes(range: str = "30d", statuses: str = "", start_date: str
     Se start_date e end_date forem fornecidas, elas têm prioridade sobre 'range'.
     """
     try:
-        from datetime import datetime
-
         status_list = [s.strip() for s in statuses.split(",") if s.strip()] if statuses else []
 
         # Se datas customizadas forem fornecidas
         if start_date and end_date:
             try:
-                start = datetime.strptime(start_date, "%Y-%m-%d")
-                end = datetime.strptime(end_date, "%Y-%m-%d")
                 dados = MetricsCalculator.get_chamados_por_mes_periodo(db, start_date, end_date, status_list if status_list else None)
-            except ValueError:
-                return {"dados": [], "error": "Datas devem estar no formato YYYY-MM-DD"}
+            except Exception as e:
+                print(f"Erro no período: {e}")
+                import traceback
+                traceback.print_exc()
+                return {"dados": []}
         else:
             meses_param = {
                 "7d": 1,
