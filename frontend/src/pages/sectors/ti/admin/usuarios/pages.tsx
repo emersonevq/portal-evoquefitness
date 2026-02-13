@@ -1474,7 +1474,15 @@ export function Auth0Usuarios() {
       if (search) {
         params.append("search", search);
       }
-      const response = await fetch(`${API_URL}/api/auth/users?${params}`);
+
+      const url = `${API_URL}/api/auth/users?${params}`;
+      console.log("[DEBUG] URL sendo chamada:", url);
+      console.log("[DEBUG] API_URL:", API_URL);
+
+      const response = await fetch(url);
+      console.log("[DEBUG] Response status:", response.status);
+      console.log("[DEBUG] Response headers:", response.headers);
+
       if (!response.ok) {
         throw new Error("Falha ao carregar usuários do Auth0");
       }
