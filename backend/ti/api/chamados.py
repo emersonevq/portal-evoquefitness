@@ -966,3 +966,62 @@ def deletar_chamado(chamado_id: int, payload: ChamadoDeleteRequest = Body(...), 
         print(f"[SOFT DELETE] TRACEBACK: {traceback.format_exc()}")
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Erro ao excluir chamado: {e}")
+
+
+@router.get("/report/last-30-days")
+def get_last_30_days_attended_tickets(db: Session = Depends(get_db)):
+    """
+    Retorna os chamados atendidos (Concluído) nos últimos 30 dias com todos os detalhes para relatório Excel.
+    Inclui: ID, Código, Nome do Solicitante, Problema, Status, Data de Abertura, Data da Última Atualização
+    """
+    try:
+        try:
+            Chamado.__table__.create(bind=engine, checkfirst=True)
+        except Exception:
+            pass
+
+        from datetime import timedelta
+
+        # Calcular a data de 30 dias atrás usando horário do Brasil
+        now = now_brazil_naive()
+        thirty_days_ago = now - timedelta(days=30)
+
+        # Buscar chamados com status "Concluído" nos últimos 30 dias
+        chamados = db.query(Chamado).filter(
+            and_(
+                Chamado.deletado_em.is_(None),
+                Chamado.status == "Concluído",
+                Chamado.data_conclusao >= thirty_days_ago
+            )
+        ).order_by(Chamado.data_conclusao.desc()).all()
+
+        # Construir resposta com dados formatados para Excel
+        result = {
+            "count": len(chamados),
+            "total": len(chamados),
+            "data_relatorio": now.isoformat(),
+            "tickets": [
+                {
+                    "id": ch.id,
+                    "codigo": ch.codigo,
+                    "protocolo": ch.protocolo,
+                    "solicitante": ch.solicitante,
+                    "problema": ch.problema,
+                    "descricao": ch.descricao or "",
+                    "status": ch.status,
+                    "prioridade": ch.prioridade,
+                    "unidade": ch.unidade,
+                    "data_abertura": ch.data_abertura.isoformat() if ch.data_abertura else None,
+                    "data_conclusao": ch.data_conclusao.isoformat() if ch.data_conclusao else None,
+                    "data_ultima_atualizacao": ch.data_conclusao.isoformat() if ch.data_conclusao else None,
+                }
+                for ch in chamados
+            ]
+        }
+
+        return result
+    except Exception as e:
+        import traceback
+        print(f"[LAST 30 DAYS] ERRO: {e}")
+        print(f"[LAST 30 DAYS] TRACEBACK: {traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=f"Erro ao buscar relatório: {e}")

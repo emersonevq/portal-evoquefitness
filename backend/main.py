@@ -58,6 +58,14 @@ except Exception as e:
     print(f"⚠️  Erro ao criar tabela metrics_cache_db: {e}")
 
 
+# Limpar estado de migrações anteriores que falharam
+try:
+    from ti.scripts.cleanup_migration_state import cleanup_migration_state
+    cleanup_migration_state()
+    print("✅ Limpeza de estado de migração concluída")
+except Exception as e:
+    print(f"⚠️  Aviso ao limpar estado: {e}")
+
 # Executar migração do historico_status na inicialização
 try:
     from ti.scripts.migrate_historico_status import migrate_historico_status
