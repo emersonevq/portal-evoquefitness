@@ -4,6 +4,8 @@ import { Download, TrendingUp } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import { exportToExcel } from "@/lib/excel-export";
 import { toast } from "sonner";
+import { format, parseISO } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 interface TicketData {
   id: number;
@@ -27,7 +29,12 @@ interface ReportData {
   tickets: TicketData[];
 }
 
-export default function AttendedTicketsMetric() {
+interface Props {
+  startDate?: string;
+  endDate?: string;
+}
+
+export default function AttendedTicketsMetric({ startDate, endDate }: Props) {
   const [reportData, setReportData] = useState<ReportData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -36,7 +43,15 @@ export default function AttendedTicketsMetric() {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const response = await apiFetch("/chamados/report/last-30-days");
+
+        let url = "/chamados/report/last-30-days";
+
+        // Use custom date range if provided
+        if (startDate && endDate) {
+          url = `/chamados/report?start_date=${startDate}&end_date=${endDate}`;
+        }
+
+        const response = await apiFetch(url);
 
         if (!response.ok) {
           throw new Error("Erro ao buscar dados");
@@ -57,7 +72,7 @@ export default function AttendedTicketsMetric() {
     };
 
     fetchData();
-  }, []);
+  }, [startDate, endDate]);
 
   const handleDownloadExcel = () => {
     if (!reportData) {
@@ -79,7 +94,9 @@ export default function AttendedTicketsMetric() {
       <div className="flex items-start justify-between mb-6">
         <div>
           <h3 className="text-sm font-medium text-muted-foreground mb-2">
-            Últimos 30 Dias
+            {startDate && endDate
+              ? `${format(parseISO(startDate), "dd 'de' MMM", { locale: ptBR })} até ${format(parseISO(endDate), "dd 'de' MMM 'de' yyyy", { locale: ptBR })}`
+              : "Últimos 30 Dias"}
           </h3>
           {loading ? (
             <div className="h-12 w-32 bg-gray-200 animate-pulse rounded" />
