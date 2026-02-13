@@ -4,6 +4,7 @@ const menu = [
   { to: "criar", label: "Criar usuário" },
   { to: "bloqueios", label: "Bloqueios" },
   { to: "permissoes", label: "Permissões" },
+  { to: "auth0", label: "Usuários (Auth0)" },
   { to: "agentes", label: "Agentes de Suporte" },
   { to: "grupos", label: "Grupos de Usuários" },
 ];

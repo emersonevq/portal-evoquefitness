@@ -1440,3 +1440,228 @@ export function Grupos() {
     </div>
   );
 }
+
+interface Auth0User {
+  user_id: string;
+  email: string;
+  name: string;
+  given_name: string;
+  family_name: string;
+  email_verified: boolean;
+  created_at: string;
+  last_login: string | null;
+}
+
+export function Auth0Usuarios() {
+  const [users, setUsers] = useState<Auth0User[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [viewMode, setViewMode] = useState<"grid" | "list">("list");
+
+  useEffect(() => {
+    loadAuth0Users();
+  }, []);
+
+  const loadAuth0Users = async (search = "") => {
+    try {
+      setLoading(true);
+      setError(null);
+      const params = new URLSearchParams();
+      if (search) {
+        params.append("search", search);
+      }
+      const response = await fetch(`/api/auth/users?${params}`);
+      if (!response.ok) {
+        throw new Error("Falha ao carregar usuários do Auth0");
+      }
+      const data = await response.json();
+      setUsers(data.users || []);
+    } catch (err: any) {
+      setError(err.message || "Erro ao carregar usuários");
+      console.error("Erro ao carregar usuários do Auth0:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSearch = (term: string) => {
+    setSearchTerm(term);
+    loadAuth0Users(term);
+  };
+
+  const formatDate = (dateString: string) => {
+    if (!dateString) return "—";
+    return new Date(dateString).toLocaleDateString("pt-BR", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    });
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="card-surface rounded-xl p-4 sm:p-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+          <div>
+            <div className="font-semibold text-lg">Usuários (Auth0)</div>
+            <p className="text-muted-foreground text-sm">
+              Usuários cadastrados no Auth0.
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              variant={viewMode === "grid" ? "default" : "secondary"}
+              onClick={() => setViewMode("grid")}
+              size="sm"
+              className="inline-flex items-center gap-2"
+            >
+              <Grid3x3 className="h-4 w-4" />
+              Grade
+            </Button>
+            <Button
+              type="button"
+              variant={viewMode === "list" ? "default" : "secondary"}
+              onClick={() => setViewMode("list")}
+              size="sm"
+              className="inline-flex items-center gap-2"
+            >
+              <List className="h-4 w-4" />
+              Lista
+            </Button>
+          </div>
+        </div>
+
+        <div className="flex gap-2">
+          <Input
+            placeholder="Pesquisar por email ou nome..."
+            value={searchTerm}
+            onChange={(e) => handleSearch(e.target.value)}
+            className="flex-1"
+          />
+        </div>
+      </div>
+
+      <div className="rounded-lg border border-border/40 p-4">
+        {loading && (
+          <div className="text-center py-12">
+            <div className="text-sm text-muted-foreground">
+              Carregando usuários do Auth0...
+            </div>
+          </div>
+        )}
+
+        {error && (
+          <div className="rounded-md bg-destructive/10 border border-destructive/20 p-4">
+            <p className="text-sm text-destructive">{error}</p>
+          </div>
+        )}
+
+        {!loading && !error && users.length === 0 && (
+          <div className="text-center py-12">
+            <div className="text-sm text-muted-foreground">
+              Nenhum usuário encontrado.
+            </div>
+          </div>
+        )}
+
+        {!loading && !error && users.length > 0 && viewMode === "grid" && (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {users.map((user) => (
+              <div
+                key={user.user_id}
+                className="card-surface rounded-xl border border-border/40 overflow-hidden hover:shadow-md transition-shadow"
+              >
+                <div className="px-5 py-4 border-b border-border/40 bg-gradient-to-r from-primary/5 to-transparent">
+                  <h3 className="font-semibold text-sm leading-tight">
+                    {user.name || `${user.given_name} ${user.family_name}`.trim() || "—"}
+                  </h3>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {user.email}
+                  </p>
+                </div>
+
+                <div className="px-5 py-4 space-y-3">
+                  <div>
+                    <div className="text-xs text-muted-foreground font-medium">
+                      Status
+                    </div>
+                    <p className="text-sm">
+                      {user.email_verified ? (
+                        <span className="inline-flex items-center gap-1 text-green-600">
+                          ✓ Verificado
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-yellow-600">
+                          ⚠ Não verificado
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                  <div>
+                    <div className="text-xs text-muted-foreground font-medium">
+                      Criado em
+                    </div>
+                    <p className="text-sm">{formatDate(user.created_at)}</p>
+                  </div>
+                  {user.last_login && (
+                    <div>
+                      <div className="text-xs text-muted-foreground font-medium">
+                        Último acesso
+                      </div>
+                      <p className="text-sm">{formatDate(user.last_login)}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {!loading && !error && users.length > 0 && viewMode === "list" && (
+          <div className="space-y-2">
+            {users.map((user) => (
+              <div
+                key={user.user_id}
+                className="card-surface rounded-lg border border-border/40 overflow-hidden hover:shadow-sm transition-shadow"
+              >
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 p-4">
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold text-sm">
+                      {user.name || `${user.given_name} ${user.family_name}`.trim() || "—"}
+                    </h3>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {user.email}
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs sm:text-sm flex-1 sm:flex-none">
+                    <div className="text-muted-foreground">Status:</div>
+                    <div className="text-right">
+                      {user.email_verified ? (
+                        <span className="text-green-600">✓ Verificado</span>
+                      ) : (
+                        <span className="text-yellow-600">⚠ Não verificado</span>
+                      )}
+                    </div>
+                    <div className="text-muted-foreground">Criado em:</div>
+                    <div className="text-right">{formatDate(user.created_at)}</div>
+                  </div>
+
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    {user.last_login && (
+                      <span className="text-xs font-medium rounded-full px-2.5 py-1 bg-primary/10 text-primary whitespace-nowrap">
+                        Último acesso: {formatDate(user.last_login)}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
