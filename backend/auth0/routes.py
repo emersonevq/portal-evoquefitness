@@ -552,10 +552,6 @@ class RevokeSessionRequest(BaseModel):
     session_token: str
 
 
-print("[AUTH0-ROUTES-DEBUG] 🔍 About to register /users endpoint...")
-print(f"[AUTH0-ROUTES-DEBUG] Router object: {router}")
-print(f"[AUTH0-ROUTES-DEBUG] Router prefix: {router.prefix}")
-
 @router.get("/users")
 def get_auth0_users(page: int = 0, per_page: int = 50, search: str = ""):
     """
@@ -566,8 +562,7 @@ def get_auth0_users(page: int = 0, per_page: int = 50, search: str = ""):
         per_page: Number of users per page
         search: Search term to filter users by email or name
     """
-    print("[AUTH0-ROUTES-DEBUG] ✅ /users endpoint CALLED successfully!")
-    print(f"[AUTH0-ROUTES-DEBUG] Parameters - page: {page}, per_page: {per_page}, search: {search}")
+    print("\n\n🔴🔴🔴 [AUTH0-USERS] ENDPOINT /users CALLED! 🔴🔴🔴\n\n")
     try:
         print(f"\n{'='*80}")
         print(f"[AUTH0-USERS] ✓ Endpoint called")
