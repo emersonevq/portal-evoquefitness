@@ -554,12 +554,16 @@ def get_auth0_users(page: int = 0, per_page: int = 50, search: str = ""):
         search: Search term to filter users by email or name
     """
     try:
-        print(f"\n{'='*60}")
+        print(f"\n{'='*80}")
         print(f"[AUTH0-USERS] ✓ Endpoint called")
-        print(f"[AUTH0-USERS] Page: {page}, Per page: {per_page}, Search: {search}")
+        print(f"[AUTH0-USERS] Page: {page}, Per page: {per_page}, Search: '{search}'")
+        print(f"[AUTH0-USERS] AUTH0_DOMAIN: {AUTH0_DOMAIN}")
+        print(f"[AUTH0-USERS] AUTH0_M2M_CLIENT_ID set: {bool(AUTH0_M2M_CLIENT_ID)}")
 
         # Get Auth0 management client
+        print(f"[AUTH0-USERS] Getting Auth0 management client...")
         auth0_client = get_auth0_client()
+        print(f"[AUTH0-USERS] ✓ Management client obtained")
 
         # Build query if search term provided
         query = None
@@ -567,8 +571,11 @@ def get_auth0_users(page: int = 0, per_page: int = 50, search: str = ""):
             # Search in email or name fields
             query = f'email:"{search}*" OR name:"{search}*" OR given_name:"{search}*" OR family_name:"{search}*"'
             print(f"[AUTH0-USERS] Search query: {query}")
+        else:
+            print(f"[AUTH0-USERS] No search term - fetching all users")
 
         # Get users from Auth0
+        print(f"[AUTH0-USERS] Calling get_users from management client...")
         result = auth0_client.get_users(
             page=page,
             per_page=per_page,
@@ -576,7 +583,9 @@ def get_auth0_users(page: int = 0, per_page: int = 50, search: str = ""):
             sort="created_at:-1"
         )
 
-        print(f"[AUTH0-USERS] ✓ Retrieved {len(result.get('users', []))} users")
+        print(f"[AUTH0-USERS] ✓ Got response from Auth0")
+        print(f"[AUTH0-USERS] Result keys: {list(result.keys())}")
+        print(f"[AUTH0-USERS] Retrieved {len(result.get('users', []))} users")
         print(f"[AUTH0-USERS] Total: {result.get('total', 0)}")
 
         # Format response
@@ -603,15 +612,17 @@ def get_auth0_users(page: int = 0, per_page: int = 50, search: str = ""):
         }
 
         print(f"[AUTH0-USERS] ✓ Returning response with {len(users)} users")
-        print(f"{'='*60}\n")
+        print(f"[AUTH0-USERS] Response size: {len(str(response))} bytes")
+        print(f"{'='*80}\n")
 
         return response
 
     except Exception as e:
         print(f"\n[AUTH0-USERS] ✗ Error: {str(e)}")
         print(f"[AUTH0-USERS] Error type: {type(e).__name__}")
+        print(f"[AUTH0-USERS] Full traceback:")
         traceback.print_exc()
-        print(f"{'='*60}\n")
+        print(f"{'='*80}\n")
         raise HTTPException(
             status_code=500,
             detail=f"Error retrieving Auth0 users: {str(e)}"

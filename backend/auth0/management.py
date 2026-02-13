@@ -25,6 +25,12 @@ class Auth0ManagementClient:
     def _get_management_token(self) -> str:
         """Get M2M access token for Management API"""
         try:
+            print(f"\n[MGMT-TOKEN] Getting M2M token...")
+            print(f"[MGMT-TOKEN] Token URL: {AUTH0_TOKEN_URL}")
+            print(f"[MGMT-TOKEN] Client ID: {self.client_id[:20] + '...' if self.client_id else 'NOT SET'}")
+            print(f"[MGMT-TOKEN] Client Secret: {'SET' if self.client_secret else 'NOT SET'}")
+            print(f"[MGMT-TOKEN] Audience: {self.base_url}")
+
             response = requests.post(
                 AUTH0_TOKEN_URL,
                 data={
@@ -35,19 +41,28 @@ class Auth0ManagementClient:
                 },
                 timeout=10,
             )
+
+            print(f"[MGMT-TOKEN] Response status: {response.status_code}")
+
+            if not response.ok:
+                print(f"[MGMT-TOKEN] ✗ Error response: {response.text}")
+
             response.raise_for_status()
-            
+
             data = response.json()
             self.token = data.get("access_token")
-            
+
             if not self.token:
                 raise Exception("No access token in response")
-            
-            print("✅ Auth0 Management API token obtained")
+
+            print(f"[MGMT-TOKEN] ✅ Auth0 Management API token obtained")
+            print(f"[MGMT-TOKEN] Token (first 30 chars): {self.token[:30]}...")
             return self.token
-            
+
         except Exception as e:
-            print(f"❌ Error getting Auth0 Management token: {str(e)}")
+            print(f"[MGMT-TOKEN] ❌ Error getting Auth0 Management token: {str(e)}")
+            import traceback
+            traceback.print_exc()
             raise
     
     def _get_headers(self) -> dict:
@@ -307,8 +322,14 @@ class Auth0ManagementClient:
             Dict with users list and total count
         """
         try:
+            print(f"\n[MGMT-GET-USERS] ✓ get_users called")
+            print(f"[MGMT-GET-USERS] Page: {page}, Per page: {per_page}")
+            print(f"[MGMT-GET-USERS] Query: {query}")
+            print(f"[MGMT-GET-USERS] Sort: {sort}")
+
             headers = self._get_headers()
             url = f"{self.base_url}users"
+            print(f"[MGMT-GET-USERS] URL: {url}")
 
             params = {
                 "page": page,
@@ -320,18 +341,36 @@ class Auth0ManagementClient:
             if query:
                 params["q"] = query
 
+            print(f"[MGMT-GET-USERS] Params: {params}")
+            print(f"[MGMT-GET-USERS] Making request to Auth0...")
+
             response = requests.get(
                 url,
                 headers=headers,
                 params=params,
                 timeout=10,
             )
+
+            print(f"[MGMT-GET-USERS] Response status: {response.status_code}")
+            print(f"[MGMT-GET-USERS] Response headers: {dict(response.headers)}")
+
+            if not response.ok:
+                print(f"[MGMT-GET-USERS] ✗ Error response: {response.text}")
+
             response.raise_for_status()
 
-            return response.json()
+            result = response.json()
+            print(f"[MGMT-GET-USERS] ✓ Got JSON response")
+            print(f"[MGMT-GET-USERS] Response keys: {list(result.keys())}")
+            print(f"[MGMT-GET-USERS] Number of users: {len(result.get('users', []))}")
+
+            return result
 
         except Exception as e:
-            print(f"❌ Error getting users: {str(e)}")
+            print(f"[MGMT-GET-USERS] ❌ Error getting users: {str(e)}")
+            print(f"[MGMT-GET-USERS] Error type: {type(e).__name__}")
+            import traceback
+            traceback.print_exc()
             raise
 
 
