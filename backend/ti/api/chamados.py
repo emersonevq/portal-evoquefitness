@@ -1071,7 +1071,9 @@ def get_attended_tickets_report(start_date: str = "", end_date: str = "", db: Se
 
         # Buscar TODOS os chamados abertos no período (por data de abertura)
         # Inclui: Aberto, Em andamento, Em análise, Concluído, Cancelado
-        print(f"[REPORT] Filtro de data: {start} a {end}")
+        print(f"[REPORT] Datas recebidas: start_date='{start_date}' end_date='{end_date}'")
+        print(f"[REPORT] Datas convertidas: {start} a {end}")
+        print(f"[REPORT] Comparação de tipos: start type={type(start)}, end type={type(end)}")
 
         chamados = db.query(Chamado).filter(
             and_(
