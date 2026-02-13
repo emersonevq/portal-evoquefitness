@@ -82,7 +82,14 @@ def criar_usuario(db: Session, payload: UserCreate) -> UserCreatedOut:
     auth0_id = None
     try:
         # Create user in Auth0
+        print(f"\n[criar_usuario] 🔄 Starting Auth0 user creation...")
+        print(f"[criar_usuario] Email: {payload.email}")
+        print(f"[criar_usuario] Nome: {payload.nome}")
+        print(f"[criar_usuario] Sobrenome: {payload.sobrenome}")
+
         auth0_client = get_auth0_client()
+        print(f"[criar_usuario] ✓ Auth0 client obtained")
+
         auth0_user = auth0_client.create_user(
             email=str(payload.email),
             password=generated_password,
@@ -94,9 +101,17 @@ def criar_usuario(db: Session, payload: UserCreate) -> UserCreatedOut:
             }
         )
         auth0_id = auth0_user.get("user_id")
-        print(f"[criar_usuario] ✓ Auth0 user created: {auth0_id}")
+        print(f"[criar_usuario] ✅ Auth0 user created successfully!")
+        print(f"[criar_usuario] Auth0 ID: {auth0_id}")
+        print(f"[criar_usuario] Response: {auth0_user}\n")
     except Exception as e:
-        print(f"[criar_usuario] ⚠️ Failed to create Auth0 user: {str(e)}")
+        print(f"\n[criar_usuario] ❌ FAILED to create Auth0 user")
+        print(f"[criar_usuario] Error type: {type(e).__name__}")
+        print(f"[criar_usuario] Error message: {str(e)}")
+        import traceback
+        print(f"[criar_usuario] Full traceback:")
+        traceback.print_exc()
+        print(f"[criar_usuario] ⚠️ Continuing with local user creation (graceful degradation)\n")
         # Continue with local user creation even if Auth0 fails
         # This allows graceful degradation
 
