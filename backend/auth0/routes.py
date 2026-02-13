@@ -1,30 +1,65 @@
-from fastapi import APIRouter, Depends, HTTPException, Request
-from sqlalchemy.orm import Session
-from sqlalchemy import func
-from pydantic import BaseModel
-from core.db import get_db
-from auth0.validator import verify_auth0_token
-from auth0.management import get_auth0_client
-from auth0.config import (
-    AUTH0_DOMAIN,
-    AUTH0_CLIENT_ID,
-    AUTH0_CLIENT_SECRET,
-    AUTH0_TOKEN_URL,
-    AUTH0_AUDIENCE,
-    AUTH0_REQUIRE_EMAIL_VERIFIED,
-    AUTH0_M2M_CLIENT_ID,
-    AUTH0_M2M_CLIENT_SECRET,
-)
-from ti.models import User
-from ti.services.session import SessionService
-import json
-import traceback
-import requests
+print("\n\n" + "="*80)
+print("[AUTH0-ROUTES] ⭐ STARTING IMPORT OF auth0/routes.py")
+print("="*80 + "\n")
 
-router = APIRouter(prefix="/api/auth", tags=["auth"])
+try:
+    from fastapi import APIRouter, Depends, HTTPException, Request
+    print("[AUTH0-ROUTES] ✅ FastAPI imports OK")
 
-print("\n[AUTH0-ROUTES] 🔧 Initializing Auth0 routes...")
-print(f"[AUTH0-ROUTES] Router prefix: /api/auth")
+    from sqlalchemy.orm import Session
+    from sqlalchemy import func
+    print("[AUTH0-ROUTES] ✅ SQLAlchemy imports OK")
+
+    from pydantic import BaseModel
+    print("[AUTH0-ROUTES] ✅ Pydantic import OK")
+
+    from core.db import get_db
+    print("[AUTH0-ROUTES] ✅ core.db import OK")
+
+    from auth0.validator import verify_auth0_token
+    print("[AUTH0-ROUTES] ✅ auth0.validator import OK")
+
+    from auth0.management import get_auth0_client
+    print("[AUTH0-ROUTES] ✅ auth0.management import OK")
+
+    from auth0.config import (
+        AUTH0_DOMAIN,
+        AUTH0_CLIENT_ID,
+        AUTH0_CLIENT_SECRET,
+        AUTH0_TOKEN_URL,
+        AUTH0_AUDIENCE,
+        AUTH0_REQUIRE_EMAIL_VERIFIED,
+        AUTH0_M2M_CLIENT_ID,
+        AUTH0_M2M_CLIENT_SECRET,
+    )
+    print("[AUTH0-ROUTES] ✅ auth0.config imports OK")
+
+    from ti.models import User
+    print("[AUTH0-ROUTES] ✅ ti.models import OK")
+
+    from ti.services.session import SessionService
+    print("[AUTH0-ROUTES] ✅ ti.services.session import OK")
+
+    import json
+    import traceback
+    import requests
+    print("[AUTH0-ROUTES] ✅ Standard library imports OK")
+
+    router = APIRouter(prefix="/api/auth", tags=["auth"])
+    print("[AUTH0-ROUTES] ✅ Router created successfully")
+    print(f"[AUTH0-ROUTES] Router object: {router}")
+    print(f"[AUTH0-ROUTES] Router prefix: /api/auth")
+    print("\n[AUTH0-ROUTES] 🔧 Initializing Auth0 routes...")
+    print(f"[AUTH0-ROUTES] Router prefix: /api/auth")
+
+except Exception as e:
+    print(f"\n\n[AUTH0-ROUTES] ❌ ERROR DURING IMPORT:")
+    print(f"[AUTH0-ROUTES] Error type: {type(e).__name__}")
+    print(f"[AUTH0-ROUTES] Error message: {str(e)}")
+    print(f"[AUTH0-ROUTES] Full traceback:")
+    import traceback as tb
+    tb.print_exc()
+    raise
 
 
 @router.options("/auth0-exchange")
@@ -840,3 +875,13 @@ def revoke_all_sessions(
             status_code=500,
             detail=f"Error revoking sessions: {str(e)}"
         )
+
+
+# ✅ CONFIRM ALL ROUTES WERE REGISTERED
+print("\n" + "="*80)
+print("[AUTH0-ROUTES] ✅ ALL ROUTES SUCCESSFULLY REGISTERED!")
+print(f"[AUTH0-ROUTES] Total routes in router: {len(router.routes)}")
+for i, route in enumerate(router.routes, 1):
+    if hasattr(route, 'path') and hasattr(route, 'methods'):
+        print(f"[AUTH0-ROUTES] Route {i}: {' '.join(route.methods or ['GET'])} {route.path}")
+print("="*80 + "\n")
