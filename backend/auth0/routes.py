@@ -62,6 +62,74 @@ except Exception as e:
     raise
 
 
+# ✅ ROUTE 1: /users - MOVED TO BEGINNING WITH LOCAL IMPORTS
+@router.get("/users")
+def get_auth0_users(page: int = 0, per_page: int = 50, search: str = ""):
+    """Get list of users from Auth0"""
+    # Import locally to avoid circular import issues
+    from auth0.management import get_auth0_client
+    from auth0.config import AUTH0_M2M_CLIENT_ID, AUTH0_M2M_CLIENT_SECRET
+
+    print(f"\n[AUTH0-USERS] ✓ Endpoint called")
+
+    try:
+        # Check if M2M credentials are configured
+        if not AUTH0_M2M_CLIENT_ID or not AUTH0_M2M_CLIENT_SECRET:
+            print(f"[AUTH0-USERS] ✗ M2M credentials not configured")
+            raise HTTPException(
+                status_code=503,
+                detail="Auth0 M2M credentials not configured"
+            )
+
+        print(f"[AUTH0-USERS] Getting Auth0 management client...")
+        auth0_client = get_auth0_client()
+        print(f"[AUTH0-USERS] ✓ Management client obtained")
+
+        # Build query if search term provided
+        query = None
+        if search:
+            query = f'email:"{search}*" OR name:"{search}*" OR given_name:"{search}*" OR family_name:"{search}*"'
+            print(f"[AUTH0-USERS] Search query: {query}")
+
+        # Get users from Auth0
+        print(f"[AUTH0-USERS] Fetching users from Auth0...")
+        result = auth0_client.get_users(
+            page=page,
+            per_page=per_page,
+            query=query,
+            sort="created_at:-1"
+        )
+
+        print(f"[AUTH0-USERS] ✓ Got {len(result.get('users', []))} users")
+
+        # Format response
+        users = []
+        for u in result.get("users", []):
+            users.append({
+                "user_id": u.get("user_id"),
+                "email": u.get("email"),
+                "name": u.get("name", ""),
+                "given_name": u.get("given_name", ""),
+                "family_name": u.get("family_name", ""),
+                "email_verified": u.get("email_verified", False),
+                "created_at": u.get("created_at"),
+                "last_login": u.get("last_login"),
+            })
+
+        return {
+            "users": users,
+            "total": result.get("total", 0),
+            "page": page,
+            "per_page": per_page,
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[AUTH0-USERS] ✗ Error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.options("/auth0-exchange")
 def auth0_exchange_options():
     """CORS preflight for auth0-exchange"""
@@ -585,106 +653,6 @@ class SessionValidationRequest(BaseModel):
 class RevokeSessionRequest(BaseModel):
     """Request model for revoking a session"""
     session_token: str
-
-
-@router.get("/users")
-def get_auth0_users(page: int = 0, per_page: int = 50, search: str = ""):
-    """
-    Get list of users from Auth0
-
-    Args:
-        page: Page number (zero-indexed)
-        per_page: Number of users per page
-        search: Search term to filter users by email or name
-    """
-    print("\n\n🔴🔴🔴 [AUTH0-USERS] ENDPOINT /users CALLED! 🔴🔴🔴\n\n")
-    try:
-        print(f"\n{'='*80}")
-        print(f"[AUTH0-USERS] ✓ Endpoint called")
-        print(f"[AUTH0-USERS] Page: {page}, Per page: {per_page}, Search: '{search}'")
-        print(f"[AUTH0-USERS] AUTH0_DOMAIN: {AUTH0_DOMAIN}")
-
-        # Get Auth0 management client (will validate M2M credentials internally)
-        print(f"[AUTH0-USERS] Getting Auth0 management client...")
-        auth0_client = get_auth0_client()
-        print(f"[AUTH0-USERS] ✓ Management client obtained")
-
-        # Build query if search term provided
-        query = None
-        if search:
-            # Search in email or name fields
-            query = f'email:"{search}*" OR name:"{search}*" OR given_name:"{search}*" OR family_name:"{search}*"'
-            print(f"[AUTH0-USERS] Search query: {query}")
-        else:
-            print(f"[AUTH0-USERS] No search term - fetching all users")
-
-        # Get users from Auth0
-        print(f"[AUTH0-USERS] Calling get_users from management client...")
-        result = auth0_client.get_users(
-            page=page,
-            per_page=per_page,
-            query=query,
-            sort="created_at:-1"
-        )
-
-        print(f"[AUTH0-USERS] ✓ Got response from Auth0")
-        print(f"[AUTH0-USERS] Result keys: {list(result.keys())}")
-        print(f"[AUTH0-USERS] Retrieved {len(result.get('users', []))} users")
-        print(f"[AUTH0-USERS] Total: {result.get('total', 0)}")
-
-        # Format response
-        users = []
-        for user in result.get("users", []):
-            users.append({
-                "user_id": user.get("user_id"),
-                "email": user.get("email"),
-                "name": user.get("name", ""),
-                "given_name": user.get("given_name", ""),
-                "family_name": user.get("family_name", ""),
-                "email_verified": user.get("email_verified", False),
-                "created_at": user.get("created_at"),
-                "last_login": user.get("last_login"),
-                "identities": user.get("identities", []),
-            })
-
-        response = {
-            "users": users,
-            "total": result.get("total", 0),
-            "start": result.get("start", 0),
-            "limit": result.get("limit", per_page),
-            "page": page,
-        }
-
-        print(f"[AUTH0-USERS] ✓ Returning response with {len(users)} users")
-        print(f"[AUTH0-USERS] Response size: {len(str(response))} bytes")
-        print(f"{'='*80}\n")
-
-        return response
-
-    except HTTPException:
-        # Re-raise HTTP exceptions (like missing credentials)
-        print(f"[AUTH0-USERS] HTTPException raised")
-        raise
-    except Exception as e:
-        print(f"\n[AUTH0-USERS] ✗ Error: {str(e)}")
-        print(f"[AUTH0-USERS] Error type: {type(e).__name__}")
-        print(f"[AUTH0-USERS] Full traceback:")
-        traceback.print_exc()
-        print(f"{'='*80}\n")
-
-        # Try to provide more helpful error message
-        error_msg = str(e).lower()
-        if "unauthorized" in error_msg or "401" in error_msg:
-            detail = "Auth0 M2M credentials are invalid or expired"
-        elif "connection" in error_msg or "timeout" in error_msg:
-            detail = f"Failed to connect to Auth0: {str(e)}"
-        else:
-            detail = f"Error retrieving Auth0 users: {str(e)}"
-
-        raise HTTPException(
-            status_code=500,
-            detail=detail
-        )
 
 
 @router.post("/session/create")
