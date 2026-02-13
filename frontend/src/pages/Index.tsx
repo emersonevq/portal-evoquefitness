@@ -13,6 +13,7 @@ import { useAuthContext } from "@/lib/auth-context";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { apiFetch } from "@/lib/api";
+import AttendedTicketsMetric from "@/components/AttendedTicketsMetric";
 
 export default function Index() {
   const { user } = useAuthContext();
@@ -193,6 +194,23 @@ export default function Index() {
                 </DropdownMenu>
               </div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Metrics Section - Attended Tickets */}
+      <section className="relative py-6 sm:py-8 border-t border-border/40">
+        <div className="container relative z-10">
+          <div className="mb-6 sm:mb-8">
+            <h2 className="text-xl sm:text-2xl font-bold mb-2 text-foreground">
+              Relatório de Chamados
+            </h2>
+            <p className="text-sm sm:text-base text-muted-foreground">
+              Acompanhe os chamados atendidos nos últimos 30 dias e exporte um relatório detalhado
+            </p>
+          </div>
+          <div className="max-w-md">
+            <AttendedTicketsMetric />
           </div>
         </div>
       </section>
