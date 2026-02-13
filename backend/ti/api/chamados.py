@@ -1071,6 +1071,8 @@ def get_attended_tickets_report(start_date: str = "", end_date: str = "", db: Se
 
         # Buscar TODOS os chamados abertos no período (por data de abertura)
         # Inclui: Aberto, Em andamento, Em análise, Concluído, Cancelado
+        print(f"[REPORT] Buscando chamados entre {start} e {end}")
+
         chamados = db.query(Chamado).filter(
             and_(
                 Chamado.deletado_em.is_(None),
@@ -1078,6 +1080,25 @@ def get_attended_tickets_report(start_date: str = "", end_date: str = "", db: Se
                 Chamado.data_abertura <= end
             )
         ).order_by(Chamado.data_abertura.desc()).all()
+
+        print(f"[REPORT] Encontrados {len(chamados)} chamados")
+
+        # Debug: Se não encontrou, tenta contar sem limite de data
+        if not chamados:
+            print("[REPORT] Nenhum chamado encontrado. Verificando dados no banco...")
+            total_chamados = db.query(Chamado).filter(
+                Chamado.deletado_em.is_(None)
+            ).count()
+            print(f"[REPORT] Total de chamados no banco: {total_chamados}")
+
+            # Verificar se data_abertura tem valores NULL
+            chamados_sem_data = db.query(Chamado).filter(
+                and_(
+                    Chamado.deletado_em.is_(None),
+                    Chamado.data_abertura.is_(None)
+                )
+            ).count()
+            print(f"[REPORT] Chamados com data_abertura NULL: {chamados_sem_data}")
 
         # Construir resposta com dados formatados para Excel
         result = {
