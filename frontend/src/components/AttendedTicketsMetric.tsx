@@ -37,41 +37,83 @@ export default function AttendedTicketsMetric({ startDate, endDate }: Props) {
   const [reportData, setReportData] = useState<ReportData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [lastAppliedDates, setLastAppliedDates] = useState<{start?: string; end?: string}>({});
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
+    // Só fazer fetch se as datas foram realmente aplicadas (alteradas)
+    // e são válidas (formato YYYY-MM-DD completo)
+    const datesChanged =
+      lastAppliedDates.start !== startDate ||
+      lastAppliedDates.end !== endDate;
 
-        let url = "/chamados/report/last-30-days";
+    const datesValid =
+      startDate &&
+      endDate &&
+      /^\d{4}-\d{2}-\d{2}$/.test(startDate) &&
+      /^\d{4}-\d{2}-\d{2}$/.test(endDate);
 
-        // Use custom date range if provided
-        if (startDate && endDate) {
-          url = `/chamados/report?start_date=${startDate}&end_date=${endDate}`;
+    // Se não tem datas customizadas, usa padrão
+    if (!startDate || !endDate) {
+      const fetchDefault = async () => {
+        try {
+          setLoading(true);
+          const response = await apiFetch("/chamados/report/last-30-days");
+
+          if (!response.ok) {
+            throw new Error("Erro ao buscar dados");
+          }
+
+          const data = await response.json();
+          setReportData(data);
+          setError(null);
+          setLastAppliedDates({ start: undefined, end: undefined });
+        } catch (err) {
+          console.error("[ATTENDED TICKETS] Erro:", err);
+          setError(
+            err instanceof Error ? err.message : "Erro ao carregar dados"
+          );
+          setLastAppliedDates({ start: undefined, end: undefined });
+        } finally {
+          setLoading(false);
         }
+      };
 
-        const response = await apiFetch(url);
+      fetchDefault();
+      return;
+    }
 
-        if (!response.ok) {
-          throw new Error("Erro ao buscar dados");
+    // Se tem datas customizadas válidas E elas mudaram
+    if (datesValid && datesChanged) {
+      const fetchData = async () => {
+        try {
+          setLoading(true);
+          const url = `/chamados/report?start_date=${startDate}&end_date=${endDate}`;
+
+          console.log("[ATTENDED TICKETS] Buscando com datas:", { startDate, endDate });
+          const response = await apiFetch(url);
+
+          if (!response.ok) {
+            throw new Error(`Erro ao buscar dados: ${response.status}`);
+          }
+
+          const data = await response.json();
+          setReportData(data);
+          setError(null);
+          setLastAppliedDates({ start: startDate, end: endDate });
+        } catch (err) {
+          console.error("[ATTENDED TICKETS] Erro:", err);
+          setError(
+            err instanceof Error ? err.message : "Erro ao carregar dados"
+          );
+          toast.error("Não foi possível carregar os dados dos chamados");
+        } finally {
+          setLoading(false);
         }
+      };
 
-        const data = await response.json();
-        setReportData(data);
-        setError(null);
-      } catch (err) {
-        console.error("[ATTENDED TICKETS] Erro:", err);
-        setError(
-          err instanceof Error ? err.message : "Erro ao carregar dados"
-        );
-        toast.error("Não foi possível carregar os dados dos chamados");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [startDate, endDate]);
+      fetchData();
+    }
+  }, [startDate, endDate, lastAppliedDates]);
 
   const handleDownloadExcel = () => {
     if (!reportData) {

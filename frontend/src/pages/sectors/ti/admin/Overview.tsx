@@ -421,13 +421,32 @@ export default function Overview() {
                     variant="default"
                     onClick={() => {
                       if (startDate && endDate) {
+                        // Validar formato das datas
+                        const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+                        if (!dateRegex.test(startDate) || !dateRegex.test(endDate)) {
+                          toast.error("Selecione datas válidas");
+                          return;
+                        }
+
+                        // Validar se a data inicial não é depois da final
+                        const start = new Date(startDate);
+                        const end = new Date(endDate);
+                        if (start > end) {
+                          toast.error("Data inicial não pode ser maior que a final");
+                          return;
+                        }
+
                         setAppliedStartDate(startDate);
                         setAppliedEndDate(endDate);
+                        toast.success("Filtro aplicado!");
+                      } else {
+                        toast.error("Preencha ambas as datas");
                       }
                     }}
+                    disabled={!startDate || !endDate}
                     className="h-9"
                   >
-                    Aplicar
+                    Filtrar
                   </Button>
                   <Button
                     size="sm"
