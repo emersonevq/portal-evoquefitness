@@ -80,12 +80,14 @@ def criar_usuario(db: Session, payload: UserCreate) -> UserCreatedOut:
 
     auth0_user = None
     auth0_id = None
+    auth0_error = None
     try:
         # Create user in Auth0
         print(f"\n[criar_usuario] 🔄 Starting Auth0 user creation...")
         print(f"[criar_usuario] Email: {payload.email}")
         print(f"[criar_usuario] Nome: {payload.nome}")
         print(f"[criar_usuario] Sobrenome: {payload.sobrenome}")
+        print(f"[criar_usuario] Generated password length: {len(generated_password)}")
 
         auth0_client = get_auth0_client()
         print(f"[criar_usuario] ✓ Auth0 client obtained")
@@ -93,8 +95,8 @@ def criar_usuario(db: Session, payload: UserCreate) -> UserCreatedOut:
         auth0_user = auth0_client.create_user(
             email=str(payload.email),
             password=generated_password,
-            given_name=payload.nome,
-            family_name=payload.sobrenome,
+            given_name=payload.nome or "",
+            family_name=payload.sobrenome or "",
             user_metadata={
                 "nivel_acesso": payload.nivel_acesso,
                 "usuario": payload.usuario,
@@ -105,9 +107,19 @@ def criar_usuario(db: Session, payload: UserCreate) -> UserCreatedOut:
         print(f"[criar_usuario] Auth0 ID: {auth0_id}")
         print(f"[criar_usuario] Response: {auth0_user}\n")
     except Exception as e:
+        auth0_error = str(e)
         print(f"\n[criar_usuario] ❌ FAILED to create Auth0 user")
         print(f"[criar_usuario] Error type: {type(e).__name__}")
-        print(f"[criar_usuario] Error message: {str(e)}")
+        print(f"[criar_usuario] Error message: {auth0_error}")
+
+        # Try to extract more details from HTTPError response
+        if hasattr(e, 'response'):
+            try:
+                error_detail = e.response.json()
+                print(f"[criar_usuario] Auth0 Error Details: {error_detail}")
+            except:
+                pass
+
         import traceback
         print(f"[criar_usuario] Full traceback:")
         traceback.print_exc()
@@ -148,7 +160,12 @@ def criar_usuario(db: Session, payload: UserCreate) -> UserCreatedOut:
         email=novo.email,
         nivel_acesso=novo.nivel_acesso,
         setor=novo.setor,
+        setores=novo._setores,
+        bi_subcategories=novo._bi_subcategories,
+        bloqueado=novo.bloqueado,
         senha=generated_password,
+        auth0_id=auth0_id,
+        auth0_created=auth0_id is not None,
     )
 
 

@@ -48,6 +48,8 @@ class UserOut(BaseModel):
 
 class UserCreatedOut(UserOut):
     senha: str  # senha em texto plano (retornada uma única vez)
+    auth0_id: Optional[str] = None  # Auth0 user ID if created in Auth0
+    auth0_created: bool = False  # Whether user was successfully created in Auth0
 
 class UserAvailability(BaseModel):
     email_exists: Optional[bool] = None
