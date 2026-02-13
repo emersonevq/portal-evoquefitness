@@ -36,8 +36,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-// Backend API URL - corrige fetch relativo para usar backend correto
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001";
+// Backend API URL - usar URL relativa para aproveitar proxy do Vite
+const API_URL = "";
 
 const normalize = (s: string) => {
   try {
@@ -1475,9 +1475,10 @@ export function Auth0Usuarios() {
         params.append("search", search);
       }
 
-      const url = `${API_URL}/api/auth/users?${params}`;
+      // Use relative URL to leverage Vite proxy
+      const url = `/api/auth/users?${params}`;
       console.log("[DEBUG] URL sendo chamada:", url);
-      console.log("[DEBUG] API_URL:", API_URL);
+      console.log("[DEBUG] Full URL:", window.location.origin + url);
 
       const response = await fetch(url);
       console.log("[DEBUG] Response status:", response.status);
