@@ -141,21 +141,27 @@ class Auth0ManagementClient:
     ) -> Dict[str, Any]:
         """
         Create a new user
-        
+
         Args:
             email: User email
             password: User password
             given_name: First name
             family_name: Last name
             user_metadata: Additional user metadata
-            
+
         Returns:
             Created user data
         """
         try:
             headers = self._get_headers()
             url = f"{self.base_url}users"
-            
+
+            print(f"\n[AUTH0-CREATE-USER] 📝 Creating user in Auth0...")
+            print(f"[AUTH0-CREATE-USER] Email: {email}")
+            print(f"[AUTH0-CREATE-USER] Given name: {given_name}")
+            print(f"[AUTH0-CREATE-USER] Family name: {family_name}")
+            print(f"[AUTH0-CREATE-USER] User metadata: {user_metadata}")
+
             data = {
                 "email": email,
                 "password": password,
@@ -163,23 +169,49 @@ class Auth0ManagementClient:
                 "family_name": family_name,
                 "connection": "Username-Password-Authentication",
                 "email_verified": False,
-                "user_metadata": user_metadata or {},
             }
-            
+
+            # Only add user_metadata if provided
+            if user_metadata:
+                data["user_metadata"] = user_metadata
+
+            print(f"[AUTH0-CREATE-USER] Request payload: {data}")
+            print(f"[AUTH0-CREATE-USER] URL: {url}")
+
             response = requests.post(
                 url,
                 headers=headers,
                 json=data,
                 timeout=10,
             )
+
+            print(f"[AUTH0-CREATE-USER] Response status: {response.status_code}")
+
+            if not response.ok:
+                print(f"[AUTH0-CREATE-USER] ❌ Error response status: {response.status_code}")
+                print(f"[AUTH0-CREATE-USER] ❌ Error response body (raw): {response.text}")
+                # Try to extract error details from Auth0
+                try:
+                    error_data = response.json()
+                    print(f"[AUTH0-CREATE-USER] ❌ Auth0 error details:")
+                    print(f"    - statusCode: {error_data.get('statusCode')}")
+                    print(f"    - error: {error_data.get('error')}")
+                    print(f"    - error_description: {error_data.get('error_description')}")
+                    print(f"    - message: {error_data.get('message')}")
+                except Exception as parse_err:
+                    print(f"[AUTH0-CREATE-USER] Could not parse error JSON: {parse_err}")
+
             response.raise_for_status()
-            
+
             user = response.json()
-            print(f"✅ User created: {email}")
+            print(f"[AUTH0-CREATE-USER] ✅ User created successfully!")
+            print(f"[AUTH0-CREATE-USER] Auth0 user_id: {user.get('user_id')}\n")
             return user
-            
+
         except Exception as e:
-            print(f"❌ Error creating user: {str(e)}")
+            print(f"[AUTH0-CREATE-USER] ❌ Error creating user: {str(e)}")
+            import traceback
+            traceback.print_exc()
             raise
     
     def update_user(

@@ -53,7 +53,14 @@ if not AUTH0_CLIENT_ID or not AUTH0_CLIENT_SECRET:
     print("❌ Please set them in your .env file")
 
 if not AUTH0_M2M_CLIENT_ID or not AUTH0_M2M_CLIENT_SECRET:
-    print("⚠️  WARNING: Auth0 M2M credentials not configured. Management API operations will fail.")
+    print("❌ ERROR: Auth0 M2M credentials NOT configured!")
+    print("❌ These are REQUIRED for user creation to work!")
+    print("❌ Please add to your .env file:")
+    print("   AUTH0_M2M_CLIENT_ID=<your_m2m_client_id>")
+    print("   AUTH0_M2M_CLIENT_SECRET=<your_m2m_client_secret>")
+    print("❌ Get them from: Auth0 Dashboard → Applications → Machine to Machine Applications")
+else:
+    print("✅ Auth0 M2M credentials are configured")
 
 # ✅ VALIDAÇÃO: Verificar se está usando o tenant correto
 if AUTH0_DOMAIN == "evoqueacademia.us.auth0.com":

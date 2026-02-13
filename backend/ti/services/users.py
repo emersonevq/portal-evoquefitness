@@ -80,23 +80,55 @@ def criar_usuario(db: Session, payload: UserCreate) -> UserCreatedOut:
 
     auth0_user = None
     auth0_id = None
+    auth0_error = None
     try:
         # Create user in Auth0
+        print(f"\n[criar_usuario] 🔄 Starting Auth0 user creation...")
+        print(f"[criar_usuario] Email: {payload.email}")
+        print(f"[criar_usuario] Nome: {payload.nome}")
+        print(f"[criar_usuario] Sobrenome: {payload.sobrenome}")
+        print(f"[criar_usuario] Generated password length: {len(generated_password)}")
+
         auth0_client = get_auth0_client()
+        print(f"[criar_usuario] ✓ Auth0 client obtained")
+
         auth0_user = auth0_client.create_user(
             email=str(payload.email),
             password=generated_password,
-            given_name=payload.nome,
-            family_name=payload.sobrenome,
+            given_name=payload.nome or "",
+            family_name=payload.sobrenome or "",
             user_metadata={
                 "nivel_acesso": payload.nivel_acesso,
                 "usuario": payload.usuario,
             }
         )
         auth0_id = auth0_user.get("user_id")
-        print(f"[criar_usuario] ✓ Auth0 user created: {auth0_id}")
+        print(f"[criar_usuario] ✅ Auth0 user created successfully!")
+        print(f"[criar_usuario] Auth0 ID: {auth0_id}")
+        print(f"[criar_usuario] Response: {auth0_user}\n")
     except Exception as e:
-        print(f"[criar_usuario] ⚠️ Failed to create Auth0 user: {str(e)}")
+        auth0_error = str(e)
+        print(f"\n[criar_usuario] ❌ FAILED to create Auth0 user")
+        print(f"[criar_usuario] Error type: {type(e).__name__}")
+        print(f"[criar_usuario] Error message: {auth0_error}")
+
+        # Try to extract more details from HTTPError response
+        if hasattr(e, 'response'):
+            try:
+                error_detail = e.response.json()
+                print(f"[criar_usuario] ❌ Auth0 Error Details:")
+                print(f"    - statusCode: {error_detail.get('statusCode')}")
+                print(f"    - error: {error_detail.get('error')}")
+                print(f"    - error_description: {error_detail.get('error_description')}")
+                print(f"    - message: {error_detail.get('message')}")
+                auth0_error = error_detail.get('error_description') or error_detail.get('message') or auth0_error
+            except Exception as parse_err:
+                print(f"[criar_usuario] Could not parse error JSON: {parse_err}")
+
+        import traceback
+        print(f"[criar_usuario] Full traceback:")
+        traceback.print_exc()
+        print(f"[criar_usuario] ⚠️ Continuing with local user creation (graceful degradation)\n")
         # Continue with local user creation even if Auth0 fails
         # This allows graceful degradation
 
@@ -133,7 +165,12 @@ def criar_usuario(db: Session, payload: UserCreate) -> UserCreatedOut:
         email=novo.email,
         nivel_acesso=novo.nivel_acesso,
         setor=novo.setor,
+        setores=novo._setores,
+        bi_subcategories=novo._bi_subcategories,
+        bloqueado=novo.bloqueado,
         senha=generated_password,
+        auth0_id=auth0_id,
+        auth0_created=auth0_id is not None,
     )
 
 
