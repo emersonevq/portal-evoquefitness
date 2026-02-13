@@ -5,7 +5,7 @@ from pydantic import BaseModel
 from core.db import get_db
 from auth0.validator import verify_auth0_token
 from auth0.management import get_auth0_client
-from auth0.config import AUTH0_DOMAIN, AUTH0_CLIENT_ID, AUTH0_CLIENT_SECRET, AUTH0_TOKEN_URL, AUTH0_AUDIENCE, AUTH0_REQUIRE_EMAIL_VERIFIED, AUTH0_M2M_CLIENT_ID, AUTH0_M2M_CLIENT_SECRET
+from auth0.config import AUTH0_DOMAIN, AUTH0_CLIENT_ID, AUTH0_CLIENT_SECRET, AUTH0_TOKEN_URL, AUTH0_AUDIENCE, AUTH0_REQUIRE_EMAIL_VERIFIED
 from ti.models import User
 from ti.services.session import SessionService
 import json
@@ -558,20 +558,8 @@ def get_auth0_users(page: int = 0, per_page: int = 50, search: str = ""):
         print(f"[AUTH0-USERS] ✓ Endpoint called")
         print(f"[AUTH0-USERS] Page: {page}, Per page: {per_page}, Search: '{search}'")
         print(f"[AUTH0-USERS] AUTH0_DOMAIN: {AUTH0_DOMAIN}")
-        print(f"[AUTH0-USERS] AUTH0_M2M_CLIENT_ID set: {bool(AUTH0_M2M_CLIENT_ID)}")
-        print(f"[AUTH0-USERS] AUTH0_M2M_CLIENT_SECRET set: {bool(AUTH0_M2M_CLIENT_SECRET)}")
 
-        # Validate M2M credentials are configured
-        if not AUTH0_M2M_CLIENT_ID or not AUTH0_M2M_CLIENT_SECRET:
-            print(f"[AUTH0-USERS] ❌ M2M credentials not configured!")
-            print(f"[AUTH0-USERS] AUTH0_M2M_CLIENT_ID: {'✗ MISSING' if not AUTH0_M2M_CLIENT_ID else '✓ SET'}")
-            print(f"[AUTH0-USERS] AUTH0_M2M_CLIENT_SECRET: {'✗ MISSING' if not AUTH0_M2M_CLIENT_SECRET else '✓ SET'}")
-            raise HTTPException(
-                status_code=503,
-                detail="Auth0 Management API credentials not configured. Contact administrator to set AUTH0_M2M_CLIENT_ID and AUTH0_M2M_CLIENT_SECRET in .env"
-            )
-
-        # Get Auth0 management client
+        # Get Auth0 management client (will validate M2M credentials internally)
         print(f"[AUTH0-USERS] Getting Auth0 management client...")
         auth0_client = get_auth0_client()
         print(f"[AUTH0-USERS] ✓ Management client obtained")
