@@ -127,10 +127,22 @@ def criar_usuario(payload: UserCreate, db: Session = Depends(get_db)):
             User.__table__.create(bind=engine, checkfirst=True)
         except Exception:
             pass
-        return service_criar(db, payload)
+        result = service_criar(db, payload)
+
+        # Log the result for debugging
+        print(f"[API] User created successfully:")
+        print(f"  - ID: {result.id}")
+        print(f"  - Email: {result.email}")
+        print(f"  - Auth0 Created: {result.auth0_created}")
+        print(f"  - Auth0 ID: {result.auth0_id}")
+
+        return result
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
+        print(f"[API] Error creating user: {e}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Erro ao criar usuário: {e}")
 
 @router.get("/check-availability", response_model=UserAvailability)

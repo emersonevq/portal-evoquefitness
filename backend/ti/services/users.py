@@ -116,9 +116,14 @@ def criar_usuario(db: Session, payload: UserCreate) -> UserCreatedOut:
         if hasattr(e, 'response'):
             try:
                 error_detail = e.response.json()
-                print(f"[criar_usuario] Auth0 Error Details: {error_detail}")
-            except:
-                pass
+                print(f"[criar_usuario] ❌ Auth0 Error Details:")
+                print(f"    - statusCode: {error_detail.get('statusCode')}")
+                print(f"    - error: {error_detail.get('error')}")
+                print(f"    - error_description: {error_detail.get('error_description')}")
+                print(f"    - message: {error_detail.get('message')}")
+                auth0_error = error_detail.get('error_description') or error_detail.get('message') or auth0_error
+            except Exception as parse_err:
+                print(f"[criar_usuario] Could not parse error JSON: {parse_err}")
 
         import traceback
         print(f"[criar_usuario] Full traceback:")

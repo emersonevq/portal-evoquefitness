@@ -188,13 +188,18 @@ class Auth0ManagementClient:
             print(f"[AUTH0-CREATE-USER] Response status: {response.status_code}")
 
             if not response.ok:
-                print(f"[AUTH0-CREATE-USER] ❌ Error response body: {response.text}")
+                print(f"[AUTH0-CREATE-USER] ❌ Error response status: {response.status_code}")
+                print(f"[AUTH0-CREATE-USER] ❌ Error response body (raw): {response.text}")
                 # Try to extract error details from Auth0
                 try:
                     error_data = response.json()
-                    print(f"[AUTH0-CREATE-USER] Error details: {error_data}")
-                except:
-                    pass
+                    print(f"[AUTH0-CREATE-USER] ❌ Auth0 error details:")
+                    print(f"    - statusCode: {error_data.get('statusCode')}")
+                    print(f"    - error: {error_data.get('error')}")
+                    print(f"    - error_description: {error_data.get('error_description')}")
+                    print(f"    - message: {error_data.get('message')}")
+                except Exception as parse_err:
+                    print(f"[AUTH0-CREATE-USER] Could not parse error JSON: {parse_err}")
 
             response.raise_for_status()
 
