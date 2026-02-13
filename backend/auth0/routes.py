@@ -1,21 +1,133 @@
-from fastapi import APIRouter, Depends, HTTPException, Request
-from sqlalchemy.orm import Session
-from sqlalchemy import func
-from pydantic import BaseModel
-from core.db import get_db
-from auth0.validator import verify_auth0_token
-from auth0.management import get_auth0_client
-from auth0.config import AUTH0_DOMAIN, AUTH0_CLIENT_ID, AUTH0_CLIENT_SECRET, AUTH0_TOKEN_URL, AUTH0_AUDIENCE, AUTH0_REQUIRE_EMAIL_VERIFIED
-from ti.models import User
-from ti.services.session import SessionService
-import json
-import traceback
-import requests
+print("\n\n" + "="*80)
+print("[AUTH0-ROUTES] ⭐ STARTING IMPORT OF auth0/routes.py")
+print("="*80 + "\n")
 
-router = APIRouter(prefix="/api/auth", tags=["auth"])
+try:
+    from fastapi import APIRouter, Depends, HTTPException, Request
+    print("[AUTH0-ROUTES] ✅ FastAPI imports OK")
 
-print("\n[AUTH0-ROUTES] 🔧 Initializing Auth0 routes...")
-print(f"[AUTH0-ROUTES] Router prefix: /api/auth")
+    from sqlalchemy.orm import Session
+    from sqlalchemy import func
+    print("[AUTH0-ROUTES] ✅ SQLAlchemy imports OK")
+
+    from pydantic import BaseModel
+    print("[AUTH0-ROUTES] ✅ Pydantic import OK")
+
+    from core.db import get_db
+    print("[AUTH0-ROUTES] ✅ core.db import OK")
+
+    from auth0.validator import verify_auth0_token
+    print("[AUTH0-ROUTES] ✅ auth0.validator import OK")
+
+    from auth0.management import get_auth0_client
+    print("[AUTH0-ROUTES] ✅ auth0.management import OK")
+
+    from auth0.config import (
+        AUTH0_DOMAIN,
+        AUTH0_CLIENT_ID,
+        AUTH0_CLIENT_SECRET,
+        AUTH0_TOKEN_URL,
+        AUTH0_AUDIENCE,
+        AUTH0_REQUIRE_EMAIL_VERIFIED,
+        AUTH0_M2M_CLIENT_ID,
+        AUTH0_M2M_CLIENT_SECRET,
+    )
+    print("[AUTH0-ROUTES] ✅ auth0.config imports OK")
+
+    from ti.models import User
+    print("[AUTH0-ROUTES] ✅ ti.models import OK")
+
+    from ti.services.session import SessionService
+    print("[AUTH0-ROUTES] ✅ ti.services.session import OK")
+
+    import json
+    import traceback
+    import requests
+    print("[AUTH0-ROUTES] ✅ Standard library imports OK")
+
+    router = APIRouter(prefix="/api/auth", tags=["auth"])
+    print("[AUTH0-ROUTES] ✅ Router created successfully")
+    print(f"[AUTH0-ROUTES] Router object: {router}")
+    print(f"[AUTH0-ROUTES] Router prefix: /api/auth")
+    print("\n[AUTH0-ROUTES] 🔧 Initializing Auth0 routes...")
+    print(f"[AUTH0-ROUTES] Router prefix: /api/auth")
+
+except Exception as e:
+    print(f"\n\n[AUTH0-ROUTES] ❌ ERROR DURING IMPORT:")
+    print(f"[AUTH0-ROUTES] Error type: {type(e).__name__}")
+    print(f"[AUTH0-ROUTES] Error message: {str(e)}")
+    print(f"[AUTH0-ROUTES] Full traceback:")
+    import traceback as tb
+    tb.print_exc()
+    raise
+
+
+# ✅ ROUTE 1: /users - MOVED TO BEGINNING WITH LOCAL IMPORTS
+@router.get("/users")
+def get_auth0_users(page: int = 0, per_page: int = 50, search: str = ""):
+    """Get list of users from Auth0"""
+    # Import locally to avoid circular import issues
+    from auth0.management import get_auth0_client
+    from auth0.config import AUTH0_M2M_CLIENT_ID, AUTH0_M2M_CLIENT_SECRET
+
+    print(f"\n[AUTH0-USERS] ✓ Endpoint called")
+
+    try:
+        # Check if M2M credentials are configured
+        if not AUTH0_M2M_CLIENT_ID or not AUTH0_M2M_CLIENT_SECRET:
+            print(f"[AUTH0-USERS] ✗ M2M credentials not configured")
+            raise HTTPException(
+                status_code=503,
+                detail="Auth0 M2M credentials not configured"
+            )
+
+        print(f"[AUTH0-USERS] Getting Auth0 management client...")
+        auth0_client = get_auth0_client()
+        print(f"[AUTH0-USERS] ✓ Management client obtained")
+
+        # Build query if search term provided
+        query = None
+        if search:
+            query = f'email:"{search}*" OR name:"{search}*" OR given_name:"{search}*" OR family_name:"{search}*"'
+            print(f"[AUTH0-USERS] Search query: {query}")
+
+        # Get users from Auth0
+        print(f"[AUTH0-USERS] Fetching users from Auth0...")
+        result = auth0_client.get_users(
+            page=page,
+            per_page=per_page,
+            query=query,
+            sort="created_at:-1"
+        )
+
+        print(f"[AUTH0-USERS] ✓ Got {len(result.get('users', []))} users")
+
+        # Format response
+        users = []
+        for u in result.get("users", []):
+            users.append({
+                "user_id": u.get("user_id"),
+                "email": u.get("email"),
+                "name": u.get("name", ""),
+                "given_name": u.get("given_name", ""),
+                "family_name": u.get("family_name", ""),
+                "email_verified": u.get("email_verified", False),
+                "created_at": u.get("created_at"),
+                "last_login": u.get("last_login"),
+            })
+
+        return {
+            "users": users,
+            "total": result.get("total", 0),
+            "page": page,
+            "per_page": per_page,
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[AUTH0-USERS] ✗ Error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.options("/auth0-exchange")
@@ -543,92 +655,6 @@ class RevokeSessionRequest(BaseModel):
     session_token: str
 
 
-@router.get("/users")
-def get_auth0_users(page: int = 0, per_page: int = 50, search: str = ""):
-    """
-    Get list of users from Auth0
-
-    Args:
-        page: Page number (zero-indexed)
-        per_page: Number of users per page
-        search: Search term to filter users by email or name
-    """
-    try:
-        print(f"\n{'='*80}")
-        print(f"[AUTH0-USERS] ✓ Endpoint called")
-        print(f"[AUTH0-USERS] Page: {page}, Per page: {per_page}, Search: '{search}'")
-        print(f"[AUTH0-USERS] AUTH0_DOMAIN: {AUTH0_DOMAIN}")
-        print(f"[AUTH0-USERS] AUTH0_M2M_CLIENT_ID set: {bool(AUTH0_M2M_CLIENT_ID)}")
-
-        # Get Auth0 management client
-        print(f"[AUTH0-USERS] Getting Auth0 management client...")
-        auth0_client = get_auth0_client()
-        print(f"[AUTH0-USERS] ✓ Management client obtained")
-
-        # Build query if search term provided
-        query = None
-        if search:
-            # Search in email or name fields
-            query = f'email:"{search}*" OR name:"{search}*" OR given_name:"{search}*" OR family_name:"{search}*"'
-            print(f"[AUTH0-USERS] Search query: {query}")
-        else:
-            print(f"[AUTH0-USERS] No search term - fetching all users")
-
-        # Get users from Auth0
-        print(f"[AUTH0-USERS] Calling get_users from management client...")
-        result = auth0_client.get_users(
-            page=page,
-            per_page=per_page,
-            query=query,
-            sort="created_at:-1"
-        )
-
-        print(f"[AUTH0-USERS] ✓ Got response from Auth0")
-        print(f"[AUTH0-USERS] Result keys: {list(result.keys())}")
-        print(f"[AUTH0-USERS] Retrieved {len(result.get('users', []))} users")
-        print(f"[AUTH0-USERS] Total: {result.get('total', 0)}")
-
-        # Format response
-        users = []
-        for user in result.get("users", []):
-            users.append({
-                "user_id": user.get("user_id"),
-                "email": user.get("email"),
-                "name": user.get("name", ""),
-                "given_name": user.get("given_name", ""),
-                "family_name": user.get("family_name", ""),
-                "email_verified": user.get("email_verified", False),
-                "created_at": user.get("created_at"),
-                "last_login": user.get("last_login"),
-                "identities": user.get("identities", []),
-            })
-
-        response = {
-            "users": users,
-            "total": result.get("total", 0),
-            "start": result.get("start", 0),
-            "limit": result.get("limit", per_page),
-            "page": page,
-        }
-
-        print(f"[AUTH0-USERS] ✓ Returning response with {len(users)} users")
-        print(f"[AUTH0-USERS] Response size: {len(str(response))} bytes")
-        print(f"{'='*80}\n")
-
-        return response
-
-    except Exception as e:
-        print(f"\n[AUTH0-USERS] ✗ Error: {str(e)}")
-        print(f"[AUTH0-USERS] Error type: {type(e).__name__}")
-        print(f"[AUTH0-USERS] Full traceback:")
-        traceback.print_exc()
-        print(f"{'='*80}\n")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error retrieving Auth0 users: {str(e)}"
-        )
-
-
 @router.post("/session/create")
 def create_session(
     request: CreateSessionRequest,
@@ -817,3 +843,13 @@ def revoke_all_sessions(
             status_code=500,
             detail=f"Error revoking sessions: {str(e)}"
         )
+
+
+# ✅ CONFIRM ALL ROUTES WERE REGISTERED
+print("\n" + "="*80)
+print("[AUTH0-ROUTES] ✅ ALL ROUTES SUCCESSFULLY REGISTERED!")
+print(f"[AUTH0-ROUTES] Total routes in router: {len(router.routes)}")
+for i, route in enumerate(router.routes, 1):
+    if hasattr(route, 'path') and hasattr(route, 'methods'):
+        print(f"[AUTH0-ROUTES] Route {i}: {' '.join(route.methods or ['GET'])} {route.path}")
+print("="*80 + "\n")

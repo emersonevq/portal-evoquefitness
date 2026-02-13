@@ -423,8 +423,11 @@ async def delete_login_media(item_id: int, db: Session = Depends(get_db)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro ao remover mídia: {e}")
 
-# Primary mount under /api
+# Register all routers (only once to avoid conflicts)
+# Auth0 router must come first since it has its own /api/auth prefix
 _http.include_router(auth0_router)
+
+# Other routers with /api prefix
 _http.include_router(chamados_router, prefix="/api")
 _http.include_router(usuarios_router, prefix="/api")
 _http.include_router(unidades_router, prefix="/api")
@@ -437,22 +440,10 @@ _http.include_router(powerbi_router, prefix="/api")
 _http.include_router(metrics_router, prefix="/api")
 _http.include_router(dashboard_permissions_router, prefix="")
 
-# Compatibility mount without prefix, in case the server is run without proxy
-_http.include_router(auth0_router)
-_http.include_router(chamados_router)
-_http.include_router(usuarios_router)
-_http.include_router(unidades_router)
-_http.include_router(problemas_router)
-_http.include_router(notifications_router)
-_http.include_router(notification_settings_router)
-_http.include_router(alerts_router)
-_http.include_router(email_debug_router)
-_http.include_router(powerbi_router)
-_http.include_router(metrics_router)
-_http.include_router(dashboard_permissions_router)
-
 # Wrap with Socket.IO ASGI app (exports as 'app')
-app = mount_socketio(_http)
+# TEMPORÁRIO: Testando se Socket.IO estava bloqueando rotas
+# app = mount_socketio(_http)
+app = _http
 
 
 # Register event loop for Socket.IO sync-to-async bridge
