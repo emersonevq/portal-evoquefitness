@@ -559,6 +559,17 @@ def get_auth0_users(page: int = 0, per_page: int = 50, search: str = ""):
         print(f"[AUTH0-USERS] Page: {page}, Per page: {per_page}, Search: '{search}'")
         print(f"[AUTH0-USERS] AUTH0_DOMAIN: {AUTH0_DOMAIN}")
         print(f"[AUTH0-USERS] AUTH0_M2M_CLIENT_ID set: {bool(AUTH0_M2M_CLIENT_ID)}")
+        print(f"[AUTH0-USERS] AUTH0_M2M_CLIENT_SECRET set: {bool(AUTH0_M2M_CLIENT_SECRET)}")
+
+        # Validate M2M credentials are configured
+        if not AUTH0_M2M_CLIENT_ID or not AUTH0_M2M_CLIENT_SECRET:
+            print(f"[AUTH0-USERS] ❌ M2M credentials not configured!")
+            print(f"[AUTH0-USERS] AUTH0_M2M_CLIENT_ID: {'✗ MISSING' if not AUTH0_M2M_CLIENT_ID else '✓ SET'}")
+            print(f"[AUTH0-USERS] AUTH0_M2M_CLIENT_SECRET: {'✗ MISSING' if not AUTH0_M2M_CLIENT_SECRET else '✓ SET'}")
+            raise HTTPException(
+                status_code=503,
+                detail="Auth0 Management API credentials not configured. Contact administrator to set AUTH0_M2M_CLIENT_ID and AUTH0_M2M_CLIENT_SECRET in .env"
+            )
 
         # Get Auth0 management client
         print(f"[AUTH0-USERS] Getting Auth0 management client...")
@@ -617,15 +628,29 @@ def get_auth0_users(page: int = 0, per_page: int = 50, search: str = ""):
 
         return response
 
+    except HTTPException:
+        # Re-raise HTTP exceptions (like missing credentials)
+        print(f"[AUTH0-USERS] HTTPException raised")
+        raise
     except Exception as e:
         print(f"\n[AUTH0-USERS] ✗ Error: {str(e)}")
         print(f"[AUTH0-USERS] Error type: {type(e).__name__}")
         print(f"[AUTH0-USERS] Full traceback:")
         traceback.print_exc()
         print(f"{'='*80}\n")
+
+        # Try to provide more helpful error message
+        error_msg = str(e).lower()
+        if "unauthorized" in error_msg or "401" in error_msg:
+            detail = "Auth0 M2M credentials are invalid or expired"
+        elif "connection" in error_msg or "timeout" in error_msg:
+            detail = f"Failed to connect to Auth0: {str(e)}"
+        else:
+            detail = f"Error retrieving Auth0 users: {str(e)}"
+
         raise HTTPException(
             status_code=500,
-            detail=f"Error retrieving Auth0 users: {str(e)}"
+            detail=detail
         )
 
 
