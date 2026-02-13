@@ -36,6 +36,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
+// Backend API URL - corrige fetch relativo para usar backend correto
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001";
+
 const normalize = (s: string) => {
   try {
     return s
@@ -137,7 +140,7 @@ export function CriarUsuario() {
         type === "email"
           ? `email=${encodeURIComponent(value)}`
           : `username=${encodeURIComponent(value)}`;
-      const res = await fetch(`/api/usuarios/check-availability?${q}`);
+      const res = await fetch(`${API_URL}/api/usuarios/check-availability?${q}`);
       if (!res.ok) return;
       const data = await res.json();
       if (type === "email") setEmailTaken(!!data.email_exists);
@@ -170,7 +173,7 @@ export function CriarUsuario() {
   };
 
   const fetchPassword = async () => {
-    const res = await fetch(`/api/usuarios/generate-password`);
+    const res = await fetch(`${API_URL}/api/usuarios/generate-password`);
     if (!res.ok) throw new Error("Falha ao gerar senha");
     const data = await res.json();
     setGeneratedPassword(data.senha);
@@ -202,7 +205,7 @@ export function CriarUsuario() {
     }
 
     try {
-      const res = await fetch("/api/usuarios", {
+      const res = await fetch(`${API_URL}/api/usuarios`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -510,7 +513,7 @@ export function Bloqueios() {
 
   const load = () => {
     setLoading(true);
-    fetch("/api/usuarios/blocked")
+    fetch(`${API_URL}/api/usuarios/blocked`)
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error("fail"))))
       .then((data: ApiUser[]) => setBlocked(Array.isArray(data) ? data : []))
       .catch(() => setBlocked([]))
@@ -526,7 +529,7 @@ export function Bloqueios() {
   }, []);
 
   const unblock = async (id: number) => {
-    const res = await fetch(`/api/usuarios/${id}/unblock`, { method: "POST" });
+    const res = await fetch(`${API_URL}/api/usuarios/${id}/unblock`, { method: "POST" });
     if (res.ok) {
       // notify other parts of the UI
       window.dispatchEvent(new CustomEvent("users:changed"));
@@ -666,7 +669,7 @@ export function Permissoes() {
   const load = () => {
     setLoading(true);
     console.log("[ADMIN] 📋 Recarregando lista de usuários...");
-    fetch("/api/usuarios")
+    fetch(`${API_URL}/api/usuarios`)
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error("fail"))))
       .then((data: ApiUser[]) => {
         if (Array.isArray(data)) {
@@ -742,7 +745,7 @@ export function Permissoes() {
         "Usuario:",
         u.usuario,
       );
-      const res = await fetch(`/api/usuarios/${u.id}`);
+      const res = await fetch(`${API_URL}/api/usuarios/${u.id}`);
       console.log("[MODAL] 📡 Resposta da API - Status:", res.status);
 
       if (res.ok) {
@@ -862,7 +865,7 @@ export function Permissoes() {
       JSON.stringify(payload, null, 2),
     );
 
-    const res = await fetch(`/api/usuarios/${editing.id}`, {
+    const res = await fetch(`${API_URL}/api/usuarios/${editing.id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
@@ -922,7 +925,7 @@ export function Permissoes() {
   };
 
   const regeneratePwd = async (u: ApiUser) => {
-    const res = await fetch(`/api/usuarios/${u.id}/generate-password`, {
+    const res = await fetch(`${API_URL}/api/usuarios/${u.id}/generate-password`, {
       method: "POST",
     });
     if (!res.ok) {
@@ -936,7 +939,7 @@ export function Permissoes() {
   };
 
   const blockUser = async (u: ApiUser) => {
-    const res = await fetch(`/api/usuarios/${u.id}/block`, { method: "POST" });
+    const res = await fetch(`${API_URL}/api/usuarios/${u.id}/block`, { method: "POST" });
     if (res.ok) {
       // remove locally and notify blocked list
       setUsers((prev) => prev.filter((x) => x.id !== u.id));
@@ -946,7 +949,7 @@ export function Permissoes() {
 
   const deleteUser = async (u: ApiUser) => {
     if (!confirm(`Excluir o usuário ${u.nome}?`)) return;
-    const res = await fetch(`/api/usuarios/${u.id}`, { method: "DELETE" });
+    const res = await fetch(`${API_URL}/api/usuarios/${u.id}`, { method: "DELETE" });
     if (res.ok) {
       setUsers((prev) => prev.filter((x) => x.id !== u.id));
       window.dispatchEvent(new CustomEvent("users:changed"));
@@ -1084,7 +1087,7 @@ export function Permissoes() {
                           if (!confirm(`Deslogar o usuário ${u.nome}?`)) return;
                           try {
                             const res = await fetch(
-                              `/api/usuarios/${u.id}/logout`,
+                              `${API_URL}/api/usuarios/${u.id}/logout`,
                               { method: "POST" },
                             );
                             if (!res.ok) throw new Error("Falha ao deslogar");
@@ -1186,7 +1189,7 @@ export function Permissoes() {
                               return;
                             try {
                               const res = await fetch(
-                                `/api/usuarios/${u.id}/logout`,
+                                `${API_URL}/api/usuarios/${u.id}/logout`,
                                 { method: "POST" },
                               );
                               if (!res.ok) throw new Error("Falha ao deslogar");
@@ -1471,7 +1474,7 @@ export function Auth0Usuarios() {
       if (search) {
         params.append("search", search);
       }
-      const response = await fetch(`/api/auth/users?${params}`);
+      const response = await fetch(`${API_URL}/api/auth/users?${params}`);
       if (!response.ok) {
         throw new Error("Falha ao carregar usuários do Auth0");
       }
