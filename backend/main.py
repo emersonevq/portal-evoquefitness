@@ -441,7 +441,9 @@ _http.include_router(metrics_router, prefix="/api")
 _http.include_router(dashboard_permissions_router, prefix="")
 
 # Wrap with Socket.IO ASGI app (exports as 'app')
-app = mount_socketio(_http)
+# TEMPORÁRIO: Testando se Socket.IO estava bloqueando rotas
+# app = mount_socketio(_http)
+app = _http
 
 
 # Register event loop for Socket.IO sync-to-async bridge
