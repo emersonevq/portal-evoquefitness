@@ -34,6 +34,7 @@ import {
   CriarUsuario,
   Bloqueios,
   Permissoes,
+  Auth0Usuarios,
   Agentes,
   Grupos,
 } from "./pages/sectors/ti/admin/usuarios/pages";
@@ -103,6 +104,7 @@ const App = () => (
                 <Route path="criar" element={<CriarUsuario />} />
                 <Route path="bloqueios" element={<Bloqueios />} />
                 <Route path="permissoes" element={<Permissoes />} />
+                <Route path="auth0" element={<Auth0Usuarios />} />
                 <Route path="agentes" element={<Agentes />} />
                 <Route path="grupos" element={<Grupos />} />
               </Route>

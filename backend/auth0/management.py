@@ -266,25 +266,72 @@ class Auth0ManagementClient:
     def delete_user(self, user_id: str) -> None:
         """
         Delete user
-        
+
         Args:
             user_id: Auth0 user ID
         """
         try:
             headers = self._get_headers()
             url = f"{self.base_url}users/{user_id}"
-            
+
             response = requests.delete(
                 url,
                 headers=headers,
                 timeout=10,
             )
             response.raise_for_status()
-            
+
             print(f"✅ User deleted: {user_id}")
-            
+
         except Exception as e:
             print(f"❌ Error deleting user: {str(e)}")
+            raise
+
+    def get_users(
+        self,
+        page: int = 0,
+        per_page: int = 50,
+        query: Optional[str] = None,
+        sort: str = "created_at:-1",
+    ) -> Dict[str, Any]:
+        """
+        Get list of users from Auth0
+
+        Args:
+            page: Page number (zero-indexed)
+            per_page: Number of users per page
+            query: Search query (e.g., "email:'user@example.com'")
+            sort: Sort order (e.g., "created_at:-1" for newest first)
+
+        Returns:
+            Dict with users list and total count
+        """
+        try:
+            headers = self._get_headers()
+            url = f"{self.base_url}users"
+
+            params = {
+                "page": page,
+                "per_page": per_page,
+                "sort": sort,
+                "include_totals": True,
+            }
+
+            if query:
+                params["q"] = query
+
+            response = requests.get(
+                url,
+                headers=headers,
+                params=params,
+                timeout=10,
+            )
+            response.raise_for_status()
+
+            return response.json()
+
+        except Exception as e:
+            print(f"❌ Error getting users: {str(e)}")
             raise
 
 

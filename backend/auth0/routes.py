@@ -543,6 +543,81 @@ class RevokeSessionRequest(BaseModel):
     session_token: str
 
 
+@router.get("/users")
+def get_auth0_users(page: int = 0, per_page: int = 50, search: str = ""):
+    """
+    Get list of users from Auth0
+
+    Args:
+        page: Page number (zero-indexed)
+        per_page: Number of users per page
+        search: Search term to filter users by email or name
+    """
+    try:
+        print(f"\n{'='*60}")
+        print(f"[AUTH0-USERS] ✓ Endpoint called")
+        print(f"[AUTH0-USERS] Page: {page}, Per page: {per_page}, Search: {search}")
+
+        # Get Auth0 management client
+        auth0_client = get_auth0_client()
+
+        # Build query if search term provided
+        query = None
+        if search:
+            # Search in email or name fields
+            query = f'email:"{search}*" OR name:"{search}*" OR given_name:"{search}*" OR family_name:"{search}*"'
+            print(f"[AUTH0-USERS] Search query: {query}")
+
+        # Get users from Auth0
+        result = auth0_client.get_users(
+            page=page,
+            per_page=per_page,
+            query=query,
+            sort="created_at:-1"
+        )
+
+        print(f"[AUTH0-USERS] ✓ Retrieved {len(result.get('users', []))} users")
+        print(f"[AUTH0-USERS] Total: {result.get('total', 0)}")
+
+        # Format response
+        users = []
+        for user in result.get("users", []):
+            users.append({
+                "user_id": user.get("user_id"),
+                "email": user.get("email"),
+                "name": user.get("name", ""),
+                "given_name": user.get("given_name", ""),
+                "family_name": user.get("family_name", ""),
+                "email_verified": user.get("email_verified", False),
+                "created_at": user.get("created_at"),
+                "last_login": user.get("last_login"),
+                "identities": user.get("identities", []),
+            })
+
+        response = {
+            "users": users,
+            "total": result.get("total", 0),
+            "start": result.get("start", 0),
+            "limit": result.get("limit", per_page),
+            "page": page,
+        }
+
+        print(f"[AUTH0-USERS] ✓ Returning response with {len(users)} users")
+        print(f"{'='*60}\n")
+
+        return response
+
+    except Exception as e:
+        print(f"\n[AUTH0-USERS] ✗ Error: {str(e)}")
+        print(f"[AUTH0-USERS] Error type: {type(e).__name__}")
+        traceback.print_exc()
+        print(f"{'='*60}\n")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error retrieving Auth0 users: {str(e)}"
+        )
+
+
 @router.post("/session/create")
 def create_session(
     request: CreateSessionRequest,
