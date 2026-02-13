@@ -331,15 +331,19 @@ class Auth0ManagementClient:
             url = f"{self.base_url}users"
             print(f"[MGMT-GET-USERS] URL: {url}")
 
+            # Parâmetros básicos sem include_totals e sort por enquanto
             params = {
                 "page": page,
                 "per_page": per_page,
-                "sort": sort,
-                "include_totals": True,
             }
 
+            # Adiciona query se fornecido
             if query:
                 params["q"] = query
+
+            # Adiciona sort APENAS se for uma string não vazia
+            if sort and isinstance(sort, str) and sort.strip():
+                params["sort"] = sort
 
             print(f"[MGMT-GET-USERS] Params: {params}")
             print(f"[MGMT-GET-USERS] Making request to Auth0...")
@@ -359,8 +363,22 @@ class Auth0ManagementClient:
 
             response.raise_for_status()
 
-            result = response.json()
-            print(f"[MGMT-GET-USERS] ✓ Got JSON response")
+            # O Auth0 retorna diretamente a lista quando não usa include_totals
+            users = response.json()
+            
+            # Se for uma lista, transformamos no formato esperado
+            if isinstance(users, list):
+                result = {
+                    "users": users,
+                    "total": len(users),
+                    "page": page,
+                    "per_page": per_page,
+                }
+                print(f"[MGMT-GET-USERS] ✓ Got {len(users)} users (without totals)")
+            else:
+                result = users
+                print(f"[MGMT-GET-USERS] ✓ Got JSON response with totals")
+            
             print(f"[MGMT-GET-USERS] Response keys: {list(result.keys())}")
             print(f"[MGMT-GET-USERS] Number of users: {len(result.get('users', []))}")
 
