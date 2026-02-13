@@ -1025,3 +1025,93 @@ def get_last_30_days_attended_tickets(db: Session = Depends(get_db)):
         print(f"[LAST 30 DAYS] ERRO: {e}")
         print(f"[LAST 30 DAYS] TRACEBACK: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=f"Erro ao buscar relatório: {e}")
+
+
+@router.get("/report")
+def get_attended_tickets_report(start_date: str = "", end_date: str = "", db: Session = Depends(get_db)):
+    """
+    Retorna os chamados atendidos (Concluído) em um período específico com todos os detalhes para relatório Excel.
+
+    Query params:
+    - start_date: Data inicial (formato: YYYY-MM-DD)
+    - end_date: Data final (formato: YYYY-MM-DD)
+
+    Inclui: ID, Código, Nome do Solicitante, Problema, Status, Data de Abertura, Data da Última Atualização
+    """
+    try:
+        try:
+            Chamado.__table__.create(bind=engine, checkfirst=True)
+        except Exception:
+            pass
+
+        from datetime import timedelta, datetime
+
+        # Usar datas fornecidas ou padrão para últimos 30 dias
+        now = now_brazil_naive()
+
+        if start_date and end_date:
+            try:
+                # Parse das datas fornecidas
+                start = datetime.strptime(start_date, "%Y-%m-%d").replace(
+                    hour=0, minute=0, second=0, microsecond=0
+                )
+                end = datetime.strptime(end_date, "%Y-%m-%d").replace(
+                    hour=23, minute=59, second=59, microsecond=999999
+                )
+            except ValueError:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Datas devem estar no formato YYYY-MM-DD"
+                )
+        else:
+            # Padrão: últimos 30 dias
+            end = now.replace(hour=23, minute=59, second=59, microsecond=999999)
+            start = now - timedelta(days=30)
+            start = start.replace(hour=0, minute=0, second=0, microsecond=0)
+
+        # Buscar chamados com status "Concluído" no período
+        chamados = db.query(Chamado).filter(
+            and_(
+                Chamado.deletado_em.is_(None),
+                Chamado.status == "Concluído",
+                Chamado.data_conclusao >= start,
+                Chamado.data_conclusao <= end
+            )
+        ).order_by(Chamado.data_conclusao.desc()).all()
+
+        # Construir resposta com dados formatados para Excel
+        result = {
+            "count": len(chamados),
+            "total": len(chamados),
+            "data_relatorio": now.isoformat(),
+            "period": {
+                "start": start.isoformat(),
+                "end": end.isoformat()
+            },
+            "tickets": [
+                {
+                    "id": ch.id,
+                    "codigo": ch.codigo,
+                    "protocolo": ch.protocolo,
+                    "solicitante": ch.solicitante,
+                    "problema": ch.problema,
+                    "descricao": ch.descricao or "",
+                    "status": ch.status,
+                    "prioridade": ch.prioridade,
+                    "unidade": ch.unidade,
+                    "data_abertura": ch.data_abertura.isoformat() if ch.data_abertura else None,
+                    "data_conclusao": ch.data_conclusao.isoformat() if ch.data_conclusao else None,
+                    "data_ultima_atualizacao": ch.data_conclusao.isoformat() if ch.data_conclusao else None,
+                }
+                for ch in chamados
+            ]
+        }
+
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        print(f"[REPORT] ERRO: {e}")
+        print(f"[REPORT] TRACEBACK: {traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=f"Erro ao buscar relatório: {e}")

@@ -4,6 +4,7 @@ from sqlalchemy import func, and_, or_
 from ti.models.chamado import Chamado
 from ti.models.historico_status import HistoricoStatus
 from core.utils import now_brazil_naive
+from datetime import timedelta
 import threading
 
 
@@ -567,3 +568,270 @@ class MetricsCalculator:
                 "abertos_agora": 0,
                 "tempo_resolucao_30dias": "—",
             }
+
+    @staticmethod
+    def get_chamados_por_dia_periodo(db: Session, start_date: str, end_date: str, statuses: list[str] | None = None) -> list[dict]:
+        """Retorna quantidade de chamados por dia em um período específico, separado por status
+
+        Args:
+            db: Session do banco de dados
+            start_date: Data inicial (formato: YYYY-MM-DD)
+            end_date: Data final (formato: YYYY-MM-DD)
+            statuses: Lista de status para filtrar (ex: ["Aberto", "Em andamento"])
+                     Se None ou vazio, mostra todos os status
+        """
+        from datetime import datetime, timedelta
+
+        try:
+            start = datetime.strptime(start_date, "%Y-%m-%d").replace(hour=0, minute=0, second=0, microsecond=0)
+            end = datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59, microsecond=999999)
+
+            dias_diferenca = (end.date() - start.date()).days + 1
+
+            dias_data = []
+            for i in range(dias_diferenca):
+                dia = start + timedelta(days=i)
+                dias_data.append(dia.replace(hour=0, minute=0, second=0, microsecond=0))
+
+            # Status disponíveis
+            status_disponiveis = ["Aberto", "Em andamento", "Em análise", "Concluído", "Cancelado"]
+            statuses_para_usar = statuses if statuses and len(statuses) > 0 else status_disponiveis
+
+            resultado = []
+            for dia_inicio in dias_data:
+                dia_fim = dia_inicio + timedelta(days=1)
+
+                dados_dia = {
+                    "dia": ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"][dia_inicio.weekday()],
+                    "data": dia_inicio.strftime("%Y-%m-%d"),
+                }
+
+                # Contar por status
+                for status in statuses_para_usar:
+                    count = db.query(Chamado).filter(
+                        and_(
+                            Chamado.data_abertura >= dia_inicio,
+                            Chamado.data_abertura < dia_fim,
+                            Chamado.status == status
+                        )
+                    ).count()
+
+                    status_key = status.lower().replace(" ", "_").replace("á", "a")
+                    dados_dia[status_key] = count
+
+                resultado.append(dados_dia)
+
+            return resultado
+        except Exception as e:
+            print(f"Erro ao calcular chamados por dia (período): {e}")
+            import traceback
+            traceback.print_exc()
+            return []
+
+    @staticmethod
+    def get_chamados_por_semana_periodo(db: Session, start_date: str, end_date: str, statuses: list[str] | None = None) -> list[dict]:
+        """Retorna quantidade de chamados por semana em um período específico, separado por status
+
+        Args:
+            db: Session do banco de dados
+            start_date: Data inicial (formato: YYYY-MM-DD)
+            end_date: Data final (formato: YYYY-MM-DD)
+            statuses: Lista de status para filtrar (ex: ["Aberto", "Em andamento"])
+                     Se None ou vazio, mostra todos os status
+        """
+        from datetime import datetime, timedelta
+
+        try:
+            start = datetime.strptime(start_date, "%Y-%m-%d").replace(hour=0, minute=0, second=0, microsecond=0)
+            end = datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59, microsecond=999999)
+
+            resultado = []
+            semana_num = 1
+            semana_inicio = start - timedelta(days=start.weekday())
+
+            # Status disponíveis
+            status_disponiveis = ["Aberto", "Em andamento", "Em análise", "Concluído", "Cancelado"]
+            statuses_para_usar = statuses if statuses and len(statuses) > 0 else status_disponiveis
+
+            while semana_inicio <= end:
+                semana_fim = semana_inicio + timedelta(days=7)
+
+                dados_semana = {
+                    "semana": f"S{semana_num}",
+                }
+
+                # Contar por status
+                for status in statuses_para_usar:
+                    count = db.query(Chamado).filter(
+                        and_(
+                            Chamado.data_abertura >= semana_inicio,
+                            Chamado.data_abertura < semana_fim,
+                            Chamado.status == status
+                        )
+                    ).count()
+
+                    status_key = status.lower().replace(" ", "_").replace("á", "a")
+                    dados_semana[status_key] = count
+
+                resultado.append(dados_semana)
+                semana_inicio = semana_fim
+                semana_num += 1
+
+            return resultado
+        except Exception as e:
+            print(f"Erro ao calcular chamados por semana (período): {e}")
+            import traceback
+            traceback.print_exc()
+            return []
+
+    @staticmethod
+    def get_chamados_por_mes_periodo(db: Session, start_date: str, end_date: str, statuses: list[str] | None = None) -> list[dict]:
+        """Retorna quantidade de chamados por mês em um período específico, separado por status
+
+        Args:
+            db: Session do banco de dados
+            start_date: Data inicial (formato: YYYY-MM-DD)
+            end_date: Data final (formato: YYYY-MM-DD)
+            statuses: Lista de status para filtrar (ex: ["Aberto", "Em andamento"])
+                     Se None ou vazio, mostra todos os status
+        """
+        from datetime import datetime, timedelta
+
+        try:
+            start = datetime.strptime(start_date, "%Y-%m-%d").replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            end_parsed = datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59, microsecond=999999)
+
+            resultado = []
+            mes_atual = start
+
+            # Status disponíveis
+            status_disponiveis = ["Aberto", "Em andamento", "Em análise", "Concluído", "Cancelado"]
+            statuses_para_usar = statuses if statuses and len(statuses) > 0 else status_disponiveis
+
+            while mes_atual <= end_parsed:
+                mes_inicio = mes_atual
+
+                # Calcular o primeiro dia do próximo mês
+                if mes_inicio.month == 12:
+                    mes_fim = mes_inicio.replace(year=mes_inicio.year + 1, month=1)
+                else:
+                    mes_fim = mes_inicio.replace(month=mes_inicio.month + 1)
+
+                dados_mes = {
+                    "mes": mes_inicio.strftime("%b %Y"),
+                    "data_iso": mes_inicio.strftime("%Y-%m"),
+                }
+
+                # Contar por status
+                for status in statuses_para_usar:
+                    count = db.query(Chamado).filter(
+                        and_(
+                            Chamado.data_abertura >= mes_inicio,
+                            Chamado.data_abertura < mes_fim,
+                            Chamado.status == status
+                        )
+                    ).count()
+
+                    status_key = status.lower().replace(" ", "_").replace("á", "a")
+                    dados_mes[status_key] = count
+
+                resultado.append(dados_mes)
+                mes_atual = mes_fim
+
+            return resultado
+        except Exception as e:
+            print(f"Erro ao calcular chamados por mês (período): {e}")
+            import traceback
+            traceback.print_exc()
+            return []
+
+    @staticmethod
+    def get_chamados_abertos_hoje(db: Session, start_date: str = "", end_date: str = "") -> int:
+        """Retorna quantidade de chamados abertos hoje ou em período específico"""
+        if start_date and end_date:
+            from datetime import datetime
+            try:
+                start = datetime.strptime(start_date, "%Y-%m-%d").replace(hour=0, minute=0, second=0, microsecond=0)
+                end = datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59, microsecond=999999)
+
+                count = db.query(Chamado).filter(
+                    and_(
+                        Chamado.data_abertura >= start,
+                        Chamado.data_abertura <= end,
+                        Chamado.status != "Cancelado"
+                    )
+                ).count()
+                return count
+            except Exception as e:
+                print(f"Erro ao contar chamados em período: {e}")
+                return 0
+
+        # Padrão: retorna chamados de hoje
+        try:
+            from ti.services.cache_manager_incremental import ChamadosTodayCounter
+            return ChamadosTodayCounter.get_count(db)
+        except Exception as e:
+            print(f"Erro ao obter contador de hoje: {e}")
+            return 0
+
+    @staticmethod
+    def get_chamados_concluidos_periodo(db: Session, start_date: str, end_date: str) -> int:
+        """Retorna quantidade de chamados concluídos em um período específico"""
+        from datetime import datetime
+        try:
+            start = datetime.strptime(start_date, "%Y-%m-%d").replace(hour=0, minute=0, second=0, microsecond=0)
+            end = datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59, microsecond=999999)
+
+            count = db.query(Chamado).filter(
+                and_(
+                    Chamado.data_conclusao >= start,
+                    Chamado.data_conclusao <= end,
+                    Chamado.status == "Concluído"
+                )
+            ).count()
+            return count
+        except Exception as e:
+            print(f"Erro ao contar chamados concluídos: {e}")
+            return 0
+
+    @staticmethod
+    def get_chamados_em_andamento_periodo(db: Session, start_date: str, end_date: str) -> int:
+        """Retorna quantidade de chamados em andamento em um período específico"""
+        from datetime import datetime
+        try:
+            start = datetime.strptime(start_date, "%Y-%m-%d").replace(hour=0, minute=0, second=0, microsecond=0)
+            end = datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59, microsecond=999999)
+
+            count = db.query(Chamado).filter(
+                and_(
+                    Chamado.data_abertura >= start,
+                    Chamado.data_abertura <= end,
+                    Chamado.status == "Em andamento"
+                )
+            ).count()
+            return count
+        except Exception as e:
+            print(f"Erro ao contar chamados em andamento: {e}")
+            return 0
+
+    @staticmethod
+    def get_chamados_em_risco_periodo(db: Session, start_date: str, end_date: str) -> int:
+        """Retorna quantidade de chamados em risco (abertos há muito tempo) em um período específico"""
+        from datetime import datetime, timedelta
+        try:
+            start = datetime.strptime(start_date, "%Y-%m-%d").replace(hour=0, minute=0, second=0, microsecond=0)
+            end = datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59, microsecond=999999)
+
+            limite = end - timedelta(days=5)  # Chamados abertos há mais de 5 dias
+
+            count = db.query(Chamado).filter(
+                and_(
+                    Chamado.data_abertura < limite,
+                    Chamado.data_abertura >= start,
+                    Chamado.status.in_(["Aberto", "Em andamento"])
+                )
+            ).count()
+            return count
+        except Exception as e:
+            print(f"Erro ao contar chamados em risco: {e}")
+            return 0
