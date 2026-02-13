@@ -369,9 +369,17 @@ export default function Overview() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4">
-        <div className="flex justify-between items-center">
+        <div className="flex justify-between items-start gap-4">
           <h1 className="text-2xl font-bold">Visão Geral</h1>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-col gap-2 items-end">
+            <Button
+              size="sm"
+              variant={customDateMode ? "default" : "outline"}
+              onClick={() => setCustomDateMode(!customDateMode)}
+              className="h-9"
+            >
+              {customDateMode ? "← Voltar ao padrão" : "📅 Filtro customizado"}
+            </Button>
             <div className="flex items-center gap-2">
               <Calendar className="w-4 h-4 text-muted-foreground" />
               {!customDateMode ? (
@@ -379,7 +387,7 @@ export default function Overview() {
                   value={dateRange}
                   onValueChange={(v) => setDateRange(v as any)}
                 >
-                  <SelectTrigger className="w-32">
+                  <SelectTrigger className="w-40">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -408,7 +416,6 @@ export default function Overview() {
                     size="sm"
                     variant="ghost"
                     onClick={() => {
-                      setCustomDateMode(false);
                       setStartDate("");
                       setEndDate("");
                     }}
@@ -418,14 +425,6 @@ export default function Overview() {
                   </Button>
                 </div>
               )}
-              <Button
-                size="sm"
-                variant={customDateMode ? "default" : "outline"}
-                onClick={() => setCustomDateMode(!customDateMode)}
-                className="h-9"
-              >
-                {customDateMode ? "Padrão" : "Customizar"}
-              </Button>
             </div>
           </div>
         </div>
