@@ -8,10 +8,13 @@ Coordena:
 - Histórico de mudanças
 """
 
+import logging
 from datetime import datetime
 from sqlalchemy.orm import Session
 from ti.models import Chamado, ConfiguracesSla, HistoricoSla
 from .calculator import SlaCalculator
+
+logger = logging.getLogger("sla.tracker")
 
 class SlaTracker:
     def __init__(self, db: Session):
@@ -19,23 +22,51 @@ class SlaTracker:
         self.calculator = SlaCalculator(db)
     
     def obter_config_por_prioridade(self, prioridade: str) -> ConfiguracesSla | None:
-        """Obtém a configuração de SLA pela prioridade"""
-        return self.db.query(ConfiguracesSla).filter(
+        """
+        Obtém a configuração de SLA pela prioridade.
+
+        Logs:
+        - WARNING: Se nenhuma configuração encontrada
+        - INFO: Quando encontra a configuração
+        """
+        config = self.db.query(ConfiguracesSla).filter(
             ConfiguracesSla.prioridade == prioridade,
             ConfiguracesSla.ativo == True
         ).first()
+
+        if not config:
+            logger.warning(
+                f"[SLA] Nenhuma configuração ativa encontrada para prioridade '{prioridade}'. "
+                f"SLA não será calculado para este chamado. "
+                f"Verifique se as configurações padrão foram inseridas via seed."
+            )
+            return None
+
+        logger.debug(
+            f"[SLA] Configuração encontrada para prioridade '{prioridade}': "
+            f"Resposta {config.tempo_primeira_resposta}h, Resolução {config.tempo_resolucao}h"
+        )
+        return config
     
     def iniciar_sla(self, chamado: Chamado) -> None:
         """
         Inicia o SLA de um chamado.
-        
+
         MOMENTO 1 - EVENTO: Chamado criado
         - Define limites de primeira resposta e resolução
         - Salva no histórico
+
+        Se não houver configuração de SLA para a prioridade:
+        - Log warning é emitido
+        - Método retorna sem inicializar SLA
         """
         # Busca configuração pela prioridade
         config = self.obter_config_por_prioridade(chamado.prioridade)
         if not config:
+            logger.warning(
+                f"[SLA] Chamado {chamado.codigo} (prioridade: {chamado.prioridade}) "
+                f"não tem SLA configurado. Criado sem SLA."
+            )
             return  # Sem configuração, não há SLA
         
         # Define a data de abertura se não estiver preenchida
@@ -54,17 +85,24 @@ class SlaTracker:
     def registrar_primeira_resposta(self, chamado: Chamado) -> float:
         """
         Registra a primeira resposta (transição de Aberto para Em Atendimento/Aguardando).
-        
+
         MOMENTO 1 - EVENTO: Primeira resposta
         - Calcula tempo desde abertura até agora
         - Salva data_primeira_resposta
         - Registra no histórico
-        
+
+        Se não houver configuração:
+        - Retorna 0.0 (não há cálculo)
+
         Returns:
-            Tempo decorrido em horas
+            Tempo decorrido em horas (ou 0.0 se sem SLA configurado)
         """
         config = self.obter_config_por_prioridade(chamado.prioridade)
         if not config:
+            logger.debug(
+                f"[SLA] Chamado {chamado.codigo} sem SLA configurado. "
+                f"Primeira resposta não será registrada no SLA."
+            )
             return 0.0
         
         # Se já foi registrada, não recalcula
@@ -103,19 +141,26 @@ class SlaTracker:
     def concluir_sla(self, chamado: Chamado) -> dict:
         """
         Conclui o SLA (transição para Concluído).
-        
+
         MOMENTO 1 - EVENTO: Conclusão
         - Calcula tempo total de resolução
         - Desconta pausas
         - Calcula percentual consumido
         - Determina status SLA (dentro/fora)
         - Registra no histórico (NUNCA MAIS SERÁ RECALCULADO)
-        
+
+        Se não houver configuração:
+        - Retorna dicionário vazio {}
+
         Returns:
-            Dicionário com dados finais do SLA
+            Dicionário com dados finais do SLA (ou {} se sem SLA configurado)
         """
         config = self.obter_config_por_prioridade(chamado.prioridade)
         if not config:
+            logger.debug(
+                f"[SLA] Chamado {chamado.codigo} sem SLA configurado. "
+                f"Conclusão não será registrada no SLA."
+            )
             return {}
         
         agora = datetime.utcnow()
@@ -172,19 +217,22 @@ class SlaTracker:
     def atualizar_monitoramento(self, chamado: Chamado) -> None:
         """
         Atualiza campos de monitoramento de SLA (executado pela task periódica).
-        
+
         MOMENTO 2 - MONITORAMENTO: Task a cada 5 minutos
         - Calcula tempo decorrido até agora
         - Atualiza percentual consumido
         - Marca em risco ou vencido
-        
+
         Apenas para chamados ATIVOS (Aberto, Em Atendimento)
+        Ignora chamados sem SLA configurado.
         """
         if chamado.status not in ["Aberto", "Em atendimento"]:
             return
-        
+
         config = self.obter_config_por_prioridade(chamado.prioridade)
         if not config:
+            # Silencioso para monitoramento periódico (não repete log muitas vezes)
+            logger.debug(f"[SLA] Monitoramento de {chamado.codigo}: sem SLA configurado")
             return
         
         agora = datetime.utcnow()
@@ -220,7 +268,7 @@ class SlaTracker:
         if percentual_consumido >= 100:
             chamado.sla_vencido = True
             chamado.sla_em_risco = False
-        elif percentual_consumido >= config.percentual_risco:
+        elif config.percentual_risco and percentual_consumido >= config.percentual_risco:
             chamado.sla_em_risco = True
         else:
             chamado.sla_em_risco = False

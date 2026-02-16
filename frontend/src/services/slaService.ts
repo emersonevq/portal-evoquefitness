@@ -1,313 +1,213 @@
 /**
- * Serviço de SLA - Comunicação com API backend
- * Otimizado com cache local e tratamento de erros
+ * SLA Service
+ * Handles all API communication for SLA-related endpoints
  */
 
-const API_BASE = process.env.REACT_APP_API_URL || "http://localhost:8000";
+import api from "./api";
 
-interface MetricasSLA {
-  total_chamados: number;
-  chamados_abertos: number;
+// Types
+export interface ConfiguracaoSla {
+  id: number;
+  prioridade: string;
+  tempo_primeira_resposta: number;
+  tempo_resolucao: number;
+  considera_horario_comercial: boolean;
+  considera_feriados: boolean;
+  escalar_automaticamente: boolean;
+  notificar_em_risco: boolean;
+  percentual_risco: number;
+  ativo: boolean;
+}
+
+export interface SlaMetricas {
+  taxa_cumprimento: number;
   chamados_em_risco: number;
   chamados_vencidos: number;
-  chamados_pausados: number;
-  percentual_em_risco: number;
-  percentual_vencidos: number;
-  percentual_cumprimento: number;
-  tempo_medio_resposta_horas: number;
-  tempo_medio_resolucao_horas: number;
-  cached_at?: string;
+  total_chamados: number;
+  tempo_medio_resposta?: number;
+  tempo_medio_resolucao?: number;
 }
 
-interface MetricaPrioridade {
-  prioridade: string;
-  total: number;
+export interface SlaIndicadores {
+  abertos: number;
+  em_atendimento: number;
   em_risco: number;
   vencidos: number;
-  pausados: number;
-  percentual_em_risco: number;
-  percentual_vencidos: number;
-  tempo_medio_resposta_horas: number;
-  tempo_medio_resolucao_horas: number;
+  concluidos_hoje: number;
+  taxa_cumprimento: number;
 }
 
-interface Chamado {
+export interface Feriado {
   id: number;
-  codigo: string;
-  prioridade: string;
-  status: string;
-  percentual_resolucao: number;
-  tempo_decorrido_horas: number;
-  tempo_limite_horas: number;
-  data_abertura: string;
+  data: string;
+  nome: string;
+  tipo: "fixo" | "movel";
+  descricao: string;
+  ativo: boolean;
 }
 
-interface Dashboard {
-  timestamp: string;
-  metricas_gerais: MetricasSLA;
-  metricas_por_prioridade: MetricaPrioridade[];
-  alertas: {
-    chamados_em_risco: Chamado[];
-    chamados_vencidos: Chamado[];
-    total_alertas: number;
-  };
-  observacoes: string[];
+export interface HorarioComercial {
+  id: number;
+  nome: string;
+  descricao: string;
+  hora_inicio: string;
+  hora_fim: string;
+  segunda: boolean;
+  terca: boolean;
+  quarta: boolean;
+  quinta: boolean;
+  sexta: boolean;
+  sabado: boolean;
+  domingo: boolean;
+  timezone: string;
+  ativo: boolean;
+  padrao: boolean;
 }
 
-interface CacheStatus {
-  fonte: string;
-  tempo_resposta_ms: string;
-  atualizado_em?: string;
+export interface SlaPausa {
+  id: number;
+  chamado_id: number;
+  pausado_em: string;
+  retomado_em?: string;
+  duracao_minutos?: number;
+  motivo?: string;
 }
 
-class SLAService {
-  private baseUrl: string;
-  private timeout: number;
+// Configurações
+export const slaService = {
+  // Configurações
+  async obterConfiguracoes(skip = 0, limit = 20): Promise<{ data: ConfiguracaoSla[]; total: number }> {
+    const response = await api.get("/sla/configuracoes", {
+      params: { skip, limit },
+    });
+    return response.data;
+  },
 
-  constructor() {
-    this.baseUrl = `${API_BASE}/api/sla/cache`;
-    this.timeout = 5000; // 5 segundos
-  }
+  async obterConfiguracao(id: number): Promise<ConfiguracaoSla> {
+    const response = await api.get(`/sla/configuracoes/${id}`);
+    return response.data;
+  },
 
-  /**
-   * Faz requisição com timeout
-   */
-  private async fetchWithTimeout(
-    url: string,
-    options: RequestInit = {},
-  ): Promise<Response> {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), this.timeout);
+  async criarConfiguracao(config: Partial<ConfiguracaoSla>): Promise<ConfiguracaoSla> {
+    const response = await api.post("/sla/configuracoes", config);
+    return response.data;
+  },
 
-    try {
-      const response = await fetch(url, {
-        ...options,
-        signal: controller.signal,
-      });
-      return response;
-    } finally {
-      clearTimeout(timeoutId);
-    }
-  }
+  async atualizarConfiguracao(id: number, config: Partial<ConfiguracaoSla>): Promise<ConfiguracaoSla> {
+    const response = await api.put(`/sla/configuracoes/${id}`, config);
+    return response.data;
+  },
 
-  /**
-   * Obter métricas gerais de SLA
-   * @param periodoDias - Número de dias (7, 30, 60, 90)
-   */
-  async obterMetricas(periodoDias: number = 30): Promise<{
-    periodo: { inicio: string; fim: string; dias: number };
-    metricas: MetricasSLA;
-    cache: CacheStatus;
-  }> {
-    try {
-      const url = `${this.baseUrl}/metricas?periodo_dias=${periodoDias}`;
-      const response = await this.fetchWithTimeout(url);
+  async deletarConfiguracao(id: number): Promise<void> {
+    await api.delete(`/sla/configuracoes/${id}`);
+  },
 
-      if (!response.ok) {
-        throw new Error(
-          `Erro ao obter métricas: ${response.status} ${response.statusText}`,
-        );
-      }
+  // Feriados
+  async obterFeriados(skip = 0, limit = 50, ano?: number): Promise<{ data: Feriado[]; total: number }> {
+    const response = await api.get("/sla/feriados", {
+      params: { skip, limit, ano },
+    });
+    return response.data;
+  },
 
-      return await response.json();
-    } catch (error) {
-      console.error("Erro ao obter métricas SLA:", error);
-      throw error;
-    }
-  }
+  async obterFeriado(id: number): Promise<Feriado> {
+    const response = await api.get(`/sla/feriados/${id}`);
+    return response.data;
+  },
 
-  /**
-   * Obter métricas por prioridade
-   */
-  async obterMetricasPorPrioridade(periodoDias: number = 30): Promise<{
-    periodo_dias: number;
-    por_prioridade: MetricaPrioridade[];
-    total_prioridades: number;
-  }> {
-    try {
-      const url = `${this.baseUrl}/metricas/por-prioridade?periodo_dias=${periodoDias}`;
-      const response = await this.fetchWithTimeout(url);
+  async criarFeriado(feriado: Partial<Feriado>): Promise<Feriado> {
+    const response = await api.post("/sla/feriados", feriado);
+    return response.data;
+  },
 
-      if (!response.ok) {
-        throw new Error(`Erro ao obter métricas por prioridade`);
-      }
+  async atualizarFeriado(id: number, feriado: Partial<Feriado>): Promise<Feriado> {
+    const response = await api.put(`/sla/feriados/${id}`, feriado);
+    return response.data;
+  },
 
-      return await response.json();
-    } catch (error) {
-      console.error("Erro ao obter métricas por prioridade:", error);
-      throw error;
-    }
-  }
+  async deletarFeriado(id: number): Promise<void> {
+    await api.delete(`/sla/feriados/${id}`);
+  },
 
-  /**
-   * Obter chamados em risco
-   */
-  async obterChamadosEmRisco(): Promise<{
-    total: number;
-    chamados: Chamado[];
-    alerta: string;
-    mensagem: string;
-  }> {
-    try {
-      const response = await this.fetchWithTimeout(
-        `${this.baseUrl}/chamados/em-risco`,
-      );
+  async verificarFeriado(data: string): Promise<{ eh_feriado: boolean; feriado?: Feriado }> {
+    const response = await api.get(`/sla/feriados/verificar/${data}`);
+    return response.data;
+  },
 
-      if (!response.ok) {
-        throw new Error(`Erro ao obter chamados em risco`);
-      }
+  // Horários Comerciais
+  async obterHorarios(skip = 0, limit = 50): Promise<{ data: HorarioComercial[]; total: number }> {
+    const response = await api.get("/sla/horarios", {
+      params: { skip, limit },
+    });
+    return response.data;
+  },
 
-      return await response.json();
-    } catch (error) {
-      console.error("Erro ao obter chamados em risco:", error);
-      throw error;
-    }
-  }
+  async obterHorario(id: number): Promise<HorarioComercial> {
+    const response = await api.get(`/sla/horarios/${id}`);
+    return response.data;
+  },
 
-  /**
-   * Obter chamados vencidos
-   */
-  async obterChamadosVencidos(): Promise<{
-    total: number;
-    chamados: Chamado[];
-    alerta: string;
-    severidade: string;
-  }> {
-    try {
-      const response = await this.fetchWithTimeout(
-        `${this.baseUrl}/chamados/vencidos`,
-      );
+  async criarHorario(horario: Partial<HorarioComercial>): Promise<HorarioComercial> {
+    const response = await api.post("/sla/horarios", horario);
+    return response.data;
+  },
 
-      if (!response.ok) {
-        throw new Error(`Erro ao obter chamados vencidos`);
-      }
+  async atualizarHorario(id: number, horario: Partial<HorarioComercial>): Promise<HorarioComercial> {
+    const response = await api.put(`/sla/horarios/${id}`, horario);
+    return response.data;
+  },
 
-      return await response.json();
-    } catch (error) {
-      console.error("Erro ao obter chamados vencidos:", error);
-      throw error;
-    }
-  }
+  async deletarHorario(id: number): Promise<void> {
+    await api.delete(`/sla/horarios/${id}`);
+  },
 
-  /**
-   * Obter dashboard executivo completo
-   */
-  async obterDashboard(): Promise<Dashboard> {
-    try {
-      const response = await this.fetchWithTimeout(`${this.baseUrl}/dashboard`);
+  // Pausas
+  async obterPausasChamado(chamado_id: number): Promise<SlaPausa[]> {
+    const response = await api.get(`/sla/pausas/chamado/${chamado_id}`);
+    return response.data;
+  },
 
-      if (!response.ok) {
-        throw new Error(`Erro ao obter dashboard`);
-      }
+  async retornarPausa(pausa_id: number): Promise<SlaPausa> {
+    const response = await api.post(`/sla/pausas/${pausa_id}/retomar`);
+    return response.data;
+  },
 
-      return await response.json();
-    } catch (error) {
-      console.error("Erro ao obter dashboard:", error);
-      throw error;
-    }
-  }
+  // Dashboard
+  async obterIndicadores(): Promise<SlaIndicadores> {
+    const response = await api.get("/sla/dashboard/indicadores");
+    return response.data;
+  },
 
-  /**
-   * Obter SLA de um chamado específico
-   */
-  async obterSLAChamado(chamadoId: number): Promise<any> {
-    try {
-      const response = await this.fetchWithTimeout(
-        `${this.baseUrl}/chamado/${chamadoId}`,
-      );
+  async obterMetricas(periodo: "dia" | "semana" | "mês" = "dia"): Promise<any> {
+    const response = await api.get("/sla/dashboard/metricas", {
+      params: { periodo },
+    });
+    return response.data;
+  },
 
-      if (!response.ok) {
-        throw new Error(`Erro ao obter SLA do chamado ${chamadoId}`);
-      }
+  async obterRelatorioDiario(): Promise<any> {
+    const response = await api.get("/sla/dashboard/relatorio-diario");
+    return response.data;
+  },
 
-      return await response.json();
-    } catch (error) {
-      console.error(`Erro ao obter SLA do chamado ${chamadoId}:`, error);
-      throw error;
-    }
-  }
+  // Utilitários
+  formatarHoras(horas: number): string {
+    const h = Math.floor(horas);
+    const m = Math.round((horas - h) * 60);
+    return `${h}h ${m}m`;
+  },
 
-  /**
-   * Atualizar SLA manualmente
-   */
-  async atualizarSLA(): Promise<{
-    sucesso: boolean;
-    mensagem: string;
-    timestamp: string;
-    dados_atualizados: {
-      chamados_processados: number;
-      em_risco: number;
-      vencidos: number;
-      pausados: number;
-    };
-  }> {
-    try {
-      const response = await this.fetchWithTimeout(
-        `${this.baseUrl}/atualizar`,
-        {
-          method: "POST",
-        },
-      );
+  getStatusColor(percentual: number, emRisco: boolean, vencido: boolean): string {
+    if (vencido) return "text-red-600";
+    if (emRisco) return "text-yellow-600";
+    return "text-green-600";
+  },
 
-      if (!response.ok) {
-        throw new Error(`Erro ao atualizar SLA`);
-      }
+  getStatusBgColor(percentual: number, emRisco: boolean, vencido: boolean): string {
+    if (vencido) return "bg-red-50";
+    if (emRisco) return "bg-yellow-50";
+    return "bg-green-50";
+  },
+};
 
-      return await response.json();
-    } catch (error) {
-      console.error("Erro ao atualizar SLA:", error);
-      throw error;
-    }
-  }
-
-  /**
-   * Obter status do cache
-   */
-  async obterStatusCache(): Promise<{
-    status: string;
-    tipo_cache: string;
-    ttl_padrao_minutos: number;
-    estatisticas: any;
-    atualizacao_intervalo_minutos: number;
-  }> {
-    try {
-      const response = await this.fetchWithTimeout(`${this.baseUrl}/status`);
-
-      if (!response.ok) {
-        throw new Error(`Erro ao obter status do cache`);
-      }
-
-      return await response.json();
-    } catch (error) {
-      console.error("Erro ao obter status do cache:", error);
-      throw error;
-    }
-  }
-
-  /**
-   * Limpar cache
-   */
-  async limparCache(): Promise<{
-    sucesso: boolean;
-    mensagem: string;
-    proxima_atualizacao: string;
-  }> {
-    try {
-      const response = await this.fetchWithTimeout(`${this.baseUrl}/limpar`, {
-        method: "POST",
-      });
-
-      if (!response.ok) {
-        throw new Error(`Erro ao limpar cache`);
-      }
-
-      return await response.json();
-    } catch (error) {
-      console.error("Erro ao limpar cache:", error);
-      throw error;
-    }
-  }
-}
-
-export const slaService = new SLAService();
-export type { MetricasSLA, MetricaPrioridade, Chamado, Dashboard, CacheStatus };
+export default slaService;
