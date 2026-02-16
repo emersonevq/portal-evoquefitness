@@ -16,7 +16,7 @@ chmod +x start-dev.sh
 ```
 
 ### Passo 2: Executar o script
-
+ccccccc
 ```bash
 ./start-dev.sh
 ```
