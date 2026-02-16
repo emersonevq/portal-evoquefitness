@@ -4,6 +4,7 @@ from core.db import get_db
 from core.utils import now_brazil_naive
 from ti.services.metrics import MetricsCalculator
 
+# Metrics router - properly configured with /metrics prefix
 router = APIRouter(prefix="/metrics", tags=["metrics"])
 
 
