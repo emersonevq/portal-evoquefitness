@@ -35,9 +35,10 @@ def recalcular_sla(db: Session) -> None:
     data_corte = date(2026, 1, 1)
     tracker = SlaTracker(db)
     
-    # Buscar todos os chamados de 2026+
+    # Buscar APENAS chamados de 2026+ que NÃO são retroativos
     chamados_2026 = db.query(Chamado).filter(
         Chamado.data_abertura >= datetime.combine(data_corte, datetime.min.time()),
+        Chamado.retroativo != True,
         Chamado.deletado_em == None
     ).all()
     
