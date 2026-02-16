@@ -40,4 +40,3 @@ class Chamado(Base):
     historicos_status: Mapped[list["HistoricoStatus"]] = relationship("HistoricoStatus", cascade="all, delete-orphan", back_populates="chamado")
     historicos_ticket: Mapped[list["HistoricoTicket"]] = relationship("HistoricoTicket", cascade="all, delete-orphan", back_populates="chamado")
     historicos_anexo: Mapped[list["HistoricoAnexo"]] = relationship("HistoricoAnexo", cascade="all, delete-orphan", back_populates="chamado")
-    pausas_sla: Mapped[list["SLAPausa"]] = relationship("SLAPausa", cascade="all, delete-orphan", back_populates="chamado")
