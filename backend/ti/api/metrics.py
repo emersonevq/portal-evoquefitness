@@ -424,41 +424,54 @@ def get_chamados_por_mes(
 def get_performance_metrics(db: Session = Depends(get_db)):
     """
     Retorna métricas de performance no formato esperado pelo Overview.tsx
+    Usa os campos SLA já calculados (horário comercial, respeitando pausas)
+    Filtra apenas chamados de 2026+
     """
     try:
-        # Chamados concluídos
+        agora = now_brazil_naive()
+        ano_2026 = datetime(2026, 1, 1)
+
+        # Chamados concluídos de 2026+
         concluidos = db.query(Chamado).filter(
             Chamado.status == "Concluído",
+            Chamado.data_abertura >= ano_2026,
             Chamado.deletado_em == None
         ).all()
 
-        # Tempo médio de resolução (em horas)
+        # Tempo médio de resolução USANDO O CAMPO SLA JÁ CALCULADO
+        # sla_tempo_decorrido_horas já considera horário comercial e pausas
         tempos_resolucao = []
         for c in concluidos:
-            if c.data_conclusao and c.data_abertura:
-                tempo = (c.data_conclusao - c.data_abertura).total_seconds() / 3600
-                tempos_resolucao.append(tempo)
+            if c.sla_tempo_decorrido_horas and c.sla_tempo_decorrido_horas > 0:
+                tempos_resolucao.append(c.sla_tempo_decorrido_horas)
 
         tempo_resolucao_medio = sum(tempos_resolucao) / len(tempos_resolucao) if tempos_resolucao else 0
         tempo_resolucao_formatado = format_hours(tempo_resolucao_medio)
 
-        # Primeira resposta média (assuming we have um campo para isso ou usar tempo até primeiro atendimento)
-        # Por enquanto, vou usar metade do tempo de resolução como estimativa
-        primeira_resposta_media = tempo_resolucao_medio / 2 if tempo_resolucao_medio > 0 else 0
+        # Primeira resposta média (tempo até primeira_resposta)
+        tempos_primeira_resposta = []
+        for c in concluidos:
+            if c.data_primeira_resposta and c.data_abertura:
+                # Calcular usando horas comerciais também
+                # Por enquanto, usar o campo disponível e dividir por um fator se necessário
+                tempo_hrs = (c.data_primeira_resposta - c.data_abertura).total_seconds() / 3600
+                # Aproximação: primeira resposta é geralmente ~30-40% do tempo total
+                tempos_primeira_resposta.append(tempo_hrs)
+
+        primeira_resposta_media = sum(tempos_primeira_resposta) / len(tempos_primeira_resposta) if tempos_primeira_resposta else 0
         primeira_resposta_formatada = format_hours(primeira_resposta_media)
 
-        # Taxa de reaberturas (chamados reabertos / total concluídos)
+        # Taxa de reaberturas (chamados reabertos / total concluídos de 2026+)
         total_concluidos = len(concluidos)
-        reabertos = db.query(func.count(Chamado.id)).filter(
-            Chamado.status == "Concluído",
-            Chamado.reaberto == True,
-            Chamado.deletado_em == None
-        ).scalar() or 0
+        reabertos = 0
+        for c in concluidos:
+            if c.reaberto or c.numero_reaberturas > 0:
+                reabertos += 1
 
         taxa_reaberturas = (reabertos / total_concluidos * 100) if total_concluidos > 0 else 0
         taxa_reaberturas_formatada = f"{taxa_reaberturas:.1f}%"
 
-        # Chamados em backlog (aguardando atendimento)
+        # Chamados em backlog (aguardando atendimento) - TODOS, não apenas 2026
         chamados_backlog = db.query(func.count(Chamado.id)).filter(
             Chamado.status.in_(["Aberto", "Aguardando"]),
             Chamado.deletado_em == None
