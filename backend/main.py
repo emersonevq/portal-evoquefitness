@@ -116,11 +116,6 @@ try:
 except Exception as e:
     print(f"⚠️  Erro na migração automática de status: {e}")
 
-
-
-
-
-
 # Static uploads mount
 _base_dir = Path(__file__).resolve().parent
 _uploads = _base_dir / "uploads"

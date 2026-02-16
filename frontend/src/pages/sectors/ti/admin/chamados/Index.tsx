@@ -428,7 +428,11 @@ export default function ChamadosPage() {
       atendimento: baseItems.filter((t) => t.status === "EM_ATENDIMENTO").length,
       aguardando: baseItems.filter((t) => t.status === "AGUARDANDO").length,
       concluidos: baseItems.filter((t) => t.status === "CONCLUIDO").length,
-      expirado: baseItems.filter((t) => t.retroativo === true).length,
+      expirado: baseItems.filter((t) => {
+        const isExpiredStatus = t.status === "AGUARDANDO" || t.status === "EM_ATENDIMENTO";
+        const isBeforeCutoffDate = new Date(t.criadoEm) < new Date("2026-01-01");
+        return isExpiredStatus && isBeforeCutoffDate;
+      }).length,
     };
   }, [items, selectedUnidades, searchInputValue]);
 
@@ -473,7 +477,11 @@ export default function ChamadosPage() {
         filtered = filtered.filter((t) => t.status === "CONCLUIDO");
         break;
       case "expirado":
-        filtered = filtered.filter((t) => t.retroativo === true);
+        filtered = filtered.filter((t) => {
+          const isExpiredStatus = t.status === "AGUARDANDO" || t.status === "EM_ATENDIMENTO";
+          const isBeforeCutoffDate = new Date(t.criadoEm) < new Date("2026-01-01");
+          return isExpiredStatus && isBeforeCutoffDate;
+        });
         break;
     }
 
