@@ -268,7 +268,7 @@ class SlaTracker:
         if percentual_consumido >= 100:
             chamado.sla_vencido = True
             chamado.sla_em_risco = False
-        elif percentual_consumido >= config.percentual_risco:
+        elif config.percentual_risco and percentual_consumido >= config.percentual_risco:
             chamado.sla_em_risco = True
         else:
             chamado.sla_em_risco = False

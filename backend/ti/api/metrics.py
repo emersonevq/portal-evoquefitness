@@ -75,10 +75,16 @@ def get_dashboard_basic(
     """
     Dashboard básico com resumo geral de chamados.
     Retorna formato esperado pelo Overview.tsx
+
+    FILTROS:
+    - Ignora chamados retroativos (antes de 01-01-2026)
+    - Conta apenas chamados de 2026+
+    - Status abertos não contam para métricas de SLA (apenas para visão geral)
     """
     try:
         agora = now_brazil_naive()
-        
+        data_corte_2026 = datetime(2026, 1, 1)
+
         # Determinar período
         if start_date and end_date:
             try:
@@ -96,20 +102,24 @@ def get_dashboard_basic(
                 dias = 30 * meses
             else:
                 dias = 30
-            
+
             data_inicio = (agora - timedelta(days=dias)).date()
             data_fim = agora.date()
 
-        # Contar chamados de hoje
+        # Contar chamados de hoje (apenas 2026+, não retroativos)
         chamados_hoje = db.query(func.count(Chamado.id)).filter(
             func.date(Chamado.data_abertura) == agora.date(),
+            Chamado.data_abertura >= data_corte_2026,
+            Chamado.retroativo != True,
             Chamado.deletado_em == None
         ).scalar() or 0
 
-        # Contar chamados de ontem
+        # Contar chamados de ontem (apenas 2026+, não retroativos)
         ontem = agora.date() - timedelta(days=1)
         chamados_ontem = db.query(func.count(Chamado.id)).filter(
             func.date(Chamado.data_abertura) == ontem,
+            Chamado.data_abertura >= data_corte_2026,
+            Chamado.retroativo != True,
             Chamado.deletado_em == None
         ).scalar() or 0
 
@@ -120,22 +130,29 @@ def get_dashboard_basic(
             percentual = ((chamados_hoje - chamados_ontem) / chamados_ontem * 100)
         elif chamados_hoje > 0:
             percentual = 100
-        
+
         direcao = "up" if percentual >= 0 else "down"
 
-        # Contar por status
+        # Contar por status (apenas 2026+, não retroativos)
         em_atendimento = db.query(func.count(Chamado.id)).filter(
-            Chamado.status == "Em atendimento",
+            Chamado.status.in_(["Em atendimento", "Em Atendimento"]),
+            Chamado.data_abertura >= data_corte_2026,
+            Chamado.retroativo != True,
             Chamado.deletado_em == None
         ).scalar() or 0
 
         concluidos = db.query(func.count(Chamado.id)).filter(
-            Chamado.status == "Concluído",
+            Chamado.status.in_(["Concluído", "Concluido"]),
+            Chamado.data_abertura >= data_corte_2026,
+            Chamado.retroativo != True,
             Chamado.deletado_em == None
         ).scalar() or 0
 
+        # Em risco: apenas chamados CONCLUÍDOS de 2026+ que NÃO cumpriram SLA
         em_risco = db.query(func.count(Chamado.id)).filter(
             Chamado.sla_em_risco == True,
+            Chamado.data_abertura >= data_corte_2026,
+            Chamado.retroativo != True,
             Chamado.deletado_em == None
         ).scalar() or 0
 
@@ -177,10 +194,12 @@ def get_chamados_por_dia(
     """
     Retorna chamados por dia nos últimos N dias.
     Formato esperado pelo Overview.tsx
+    FILTRO: Apenas chamados de 2026+, não retroativos
     """
     try:
         agora = now_brazil_naive()
-        
+        data_corte_2026 = datetime(2026, 1, 1)
+
         # Determinar período
         if start_date and end_date:
             try:
@@ -195,18 +214,20 @@ def get_chamados_por_dia(
 
         status_list = [s.strip() for s in statuses.split(",")]
 
-        # Query todos os chamados no período
+        # Query todos os chamados no período (2026+, não retroativos)
         chamados = db.query(Chamado).filter(
             func.date(Chamado.data_abertura) >= data_inicio,
             func.date(Chamado.data_abertura) <= data_fim,
+            Chamado.data_abertura >= data_corte_2026,
+            Chamado.retroativo != True,
             Chamado.deletado_em == None
         ).all()
 
         # Organizar por data
         resultado_dict = {}
         for chamado in chamados:
-            data = func.date(chamado.data_abertura).isoformat() if hasattr(chamado.data_abertura, 'date') else chamado.data_abertura.isoformat()
-            
+            data = chamado.data_abertura.date().isoformat() if hasattr(chamado.data_abertura, 'date') else chamado.data_abertura.isoformat()
+
             if data not in resultado_dict:
                 resultado_dict[data] = {
                     "dia": data,
@@ -216,16 +237,16 @@ def get_chamados_por_dia(
                     "concluido": 0,
                     "expirado": 0
                 }
-            
+
             status = chamado.status or ""
-            
+
             if "Aberto" in status:
                 resultado_dict[data]["aberto"] += 1
-            elif "atendimento" in status:
+            elif "atendimento" in status.lower():
                 resultado_dict[data]["em_atendimento"] += 1
             elif "Aguardando" in status:
                 resultado_dict[data]["aguardando"] += 1
-            elif "Concluído" in status or "Conclu" in status:
+            elif "Concluído" in status or "Concluido" in status:
                 resultado_dict[data]["concluido"] += 1
             elif "Expirado" in status:
                 resultado_dict[data]["expirado"] += 1
@@ -258,10 +279,12 @@ def get_chamados_por_semana(
     """
     Retorna chamados por semana nos últimos N semanas.
     Formato esperado pelo Overview.tsx
+    FILTRO: Apenas chamados de 2026+, não retroativos
     """
     try:
         agora = now_brazil_naive()
-        
+        data_corte_2026 = datetime(2026, 1, 1)
+
         # Determinar período
         if start_date and end_date:
             try:
@@ -276,10 +299,12 @@ def get_chamados_por_semana(
 
         status_list = [s.strip() for s in statuses.split(",")]
 
-        # Query todos os chamados no período
+        # Query todos os chamados no período (2026+, não retroativos)
         chamados = db.query(Chamado).filter(
             func.date(Chamado.data_abertura) >= data_inicio,
             func.date(Chamado.data_abertura) <= data_fim,
+            Chamado.data_abertura >= data_corte_2026,
+            Chamado.retroativo != True,
             Chamado.deletado_em == None
         ).all()
 
@@ -341,10 +366,12 @@ def get_chamados_por_mes(
     """
     Retorna chamados por mês.
     Formato esperado pelo Overview.tsx
+    FILTRO: Apenas chamados de 2026+, não retroativos
     """
     try:
         agora = now_brazil_naive()
-        
+        data_corte_2026 = datetime(2026, 1, 1)
+
         # Determinar período
         if start_date and end_date:
             try:
@@ -361,16 +388,18 @@ def get_chamados_por_mes(
                 dias = 30 * meses
             else:
                 dias = 30
-            
+
             data_inicio = (agora - timedelta(days=dias)).date()
             data_fim = agora.date()
 
         status_list = [s.strip() for s in statuses.split(",")]
 
-        # Query todos os chamados no período
+        # Query todos os chamados no período (2026+, não retroativos)
         chamados = db.query(Chamado).filter(
             func.date(Chamado.data_abertura) >= data_inicio,
             func.date(Chamado.data_abertura) <= data_fim,
+            Chamado.data_abertura >= data_corte_2026,
+            Chamado.retroativo != True,
             Chamado.deletado_em == None
         ).all()
 
@@ -425,16 +454,20 @@ def get_performance_metrics(db: Session = Depends(get_db)):
     """
     Retorna métricas de performance no formato esperado pelo Overview.tsx
     Usa os campos SLA já calculados (horário comercial, respeitando pausas)
-    Filtra apenas chamados de 2026+
+
+    FILTROS:
+    - Apenas chamados concluídos de 2026+ (não retroativos)
+    - Ignora chamados abertos/em pausa (não geram métrica de resolução)
     """
     try:
         agora = now_brazil_naive()
-        ano_2026 = datetime(2026, 1, 1)
+        data_corte_2026 = datetime(2026, 1, 1)
 
-        # Chamados concluídos de 2026+
+        # Chamados concluídos de 2026+ (não retroativos)
         concluidos = db.query(Chamado).filter(
-            Chamado.status == "Concluído",
-            Chamado.data_abertura >= ano_2026,
+            Chamado.status.in_(["Concluído", "Concluido"]),
+            Chamado.data_abertura >= data_corte_2026,
+            Chamado.retroativo != True,
             Chamado.deletado_em == None
         ).all()
 
@@ -452,10 +485,8 @@ def get_performance_metrics(db: Session = Depends(get_db)):
         tempos_primeira_resposta = []
         for c in concluidos:
             if c.data_primeira_resposta and c.data_abertura:
-                # Calcular usando horas comerciais também
-                # Por enquanto, usar o campo disponível e dividir por um fator se necessário
+                # Usar o tempo bruto de primeira resposta
                 tempo_hrs = (c.data_primeira_resposta - c.data_abertura).total_seconds() / 3600
-                # Aproximação: primeira resposta é geralmente ~30-40% do tempo total
                 tempos_primeira_resposta.append(tempo_hrs)
 
         primeira_resposta_media = sum(tempos_primeira_resposta) / len(tempos_primeira_resposta) if tempos_primeira_resposta else 0
@@ -471,9 +502,11 @@ def get_performance_metrics(db: Session = Depends(get_db)):
         taxa_reaberturas = (reabertos / total_concluidos * 100) if total_concluidos > 0 else 0
         taxa_reaberturas_formatada = f"{taxa_reaberturas:.1f}%"
 
-        # Chamados em backlog (aguardando atendimento) - TODOS, não apenas 2026
+        # Chamados em backlog (abertos/em atendimento/aguardando de 2026+, não retroativos)
         chamados_backlog = db.query(func.count(Chamado.id)).filter(
-            Chamado.status.in_(["Aberto", "Aguardando"]),
+            Chamado.status.in_(["Aberto", "Em atendimento", "Em Atendimento", "Aguardando"]),
+            Chamado.data_abertura >= data_corte_2026,
+            Chamado.retroativo != True,
             Chamado.deletado_em == None
         ).scalar() or 0
 
