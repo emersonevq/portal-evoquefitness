@@ -59,36 +59,35 @@ def get_dashboard_metrics(db: Session = Depends(get_db)):
     try:
         agora = now_brazil_naive()
 
-        # Contar por status
+        # Total geral
+        total = db.query(func.count(Chamado.id)).scalar() or 0
+
+        # Contar por status - sem filtro deletado_em por enquanto
         total_abertos = db.query(func.count(Chamado.id)).filter(
-            Chamado.status == "Aberto",
-            Chamado.deletado_em == None
+            Chamado.status.ilike("%Aberto%")
         ).scalar() or 0
 
         total_em_atendimento = db.query(func.count(Chamado.id)).filter(
-            Chamado.status == "Em atendimento",
-            Chamado.deletado_em == None
+            Chamado.status.ilike("%atendimento%")
         ).scalar() or 0
 
         total_concluidos = db.query(func.count(Chamado.id)).filter(
-            Chamado.status == "Concluído",
-            Chamado.deletado_em == None
+            Chamado.status.ilike("%Conclu%")
         ).scalar() or 0
 
-        # SLA metrics (handle NULL values)
+        # SLA metrics
         sla_em_risco = db.query(func.count(Chamado.id)).filter(
-            (Chamado.sla_em_risco == True) | (Chamado.sla_em_risco == 1),
-            Chamado.deletado_em == None
+            Chamado.sla_em_risco.is_(True)
         ).scalar() or 0
 
         sla_vencidos = db.query(func.count(Chamado.id)).filter(
-            (Chamado.sla_vencido == True) | (Chamado.sla_vencido == 1),
-            Chamado.deletado_em == None
+            Chamado.sla_vencido.is_(True)
         ).scalar() or 0
 
         return {
             "timestamp": agora.isoformat(),
             "resumo": {
+                "total": int(total),
                 "total_abertos": int(total_abertos),
                 "total_em_atendimento": int(total_em_atendimento),
                 "total_concluidos": int(total_concluidos),
