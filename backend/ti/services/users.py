@@ -13,22 +13,37 @@ from ti.schemas.user import UserCreate, UserCreatedOut, UserAvailability
 from auth0.management import get_auth0_client
 
 
-def _generate_password(length: int = 6) -> str:
-    # Ensure at least one lowercase, one uppercase, and one digit
-    if length < 3:
-        length = 3
+def _generate_password(length: int = 12) -> str:
+    """
+    Gera senha forte que atende aos requisitos do Auth0:
+    - Mínimo 8 caracteres
+    - Maiúsculas, minúsculas, números e caracteres especiais
+    """
+    # Garantir tamanho mínimo de 8 para Auth0
+    if length < 8:
+        length = 8
+
+    # Caracteres especiais que Auth0 aceita
+    special_chars = "!@#$%^&*"
+
+    # Garantir pelo menos um de cada tipo necessário
     parts = [
-        secrets.choice(string.ascii_lowercase),
-        secrets.choice(string.ascii_uppercase),
-        secrets.choice(string.digits),
+        secrets.choice(string.ascii_lowercase),      # minúscula
+        secrets.choice(string.ascii_uppercase),      # maiúscula
+        secrets.choice(string.digits),               # número
+        secrets.choice(special_chars),               # caractere especial
     ]
-    remaining = length - 3
-    pool = string.ascii_letters + string.digits
+
+    # Preencher o resto com uma mistura
+    remaining = length - 4
+    pool = string.ascii_letters + string.digits + special_chars
     parts += [secrets.choice(pool) for _ in range(remaining)]
-    # Shuffle deterministically with secrets by reordering via random indices
+
+    # Embaralhar para não deixar padrão previsível
     for i in range(len(parts) - 1, 0, -1):
         j = ord(secrets.token_bytes(1)) % (i + 1)
         parts[i], parts[j] = parts[j], parts[i]
+
     return "".join(parts)
 
 
@@ -145,7 +160,6 @@ def criar_usuario(db: Session, payload: UserCreate) -> UserCreatedOut:
         _bi_subcategories=bi_subcategories_json,
         bloqueado=payload.bloqueado,
         auth0_id=auth0_id,
-        email_verified=False,
     )
     db.add(novo)
     db.commit()
