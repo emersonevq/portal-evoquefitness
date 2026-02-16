@@ -419,7 +419,7 @@ export default function ChamadosPage() {
       atendimento: baseItems.filter((t) => t.status === "EM_ATENDIMENTO").length,
       aguardando: baseItems.filter((t) => t.status === "AGUARDANDO").length,
       concluidos: baseItems.filter((t) => t.status === "CONCLUIDO").length,
-      expirado: baseItems.filter((t) => t.status === "EXPIRADO").length,
+      expirado: baseItems.filter((t) => t.retroativo === true).length,
     };
   }, [items, selectedUnidades, searchInputValue]);
 
