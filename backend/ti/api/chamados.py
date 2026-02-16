@@ -17,12 +17,459 @@ from ..models.notification import Notification
 import json
 from core.utils import now_brazil_naive
 from ..models import Chamado, User, TicketAnexo, ChamadoAnexo, HistoricoTicket, HistoricoStatus, HistoricoAnexo
+from ti.models.metrics_cache import MetricsCacheDB
 from ti.schemas.attachment import AnexoOut
 from ti.schemas.ticket import HistoricoItem, HistoricoResponse
 from sqlalchemy import inspect, text
 from core.email_msgraph import send_async, send_chamado_abertura, send_chamado_status
 
 from fastapi.responses import Response
+from sqlalchemy import insert
+import json
+from datetime import datetime, timedelta
+
+# ============================================================================
+# CACHE MANAGER INLINED - Chamados de hoje com reset à meia-noite
+# ============================================================================
+
+class ChamadosTodayCounter:
+    """
+    Counter para "chamados hoje" com reset automático à meia-noite.
+
+    Armazenado no banco como cache com chave especial "chamados_hoje_{data}"
+    Permite recuperar valor mesmo após reinicialização do servidor.
+    """
+
+    @staticmethod
+    def get_cache_key_today() -> str:
+        """Gera chave de cache baseada na data de hoje"""
+        hoje = now_brazil_naive().date().isoformat()
+        return f"chamados_hoje:{hoje}"
+
+    @staticmethod
+    def get_cache_key_for_date(date: datetime) -> str:
+        """Gera chave de cache para uma data específica"""
+        return f"chamados_hoje:{date.date().isoformat()}"
+
+    @staticmethod
+    def get_count(db: Session) -> int:
+        """Obtém contador de chamados de hoje"""
+        try:
+            cache_key = ChamadosTodayCounter.get_cache_key_today()
+
+            cached = db.query(MetricsCacheDB).filter(
+                MetricsCacheDB.cache_key == cache_key
+            ).first()
+
+            if cached and cached.expires_at and cached.expires_at > now_brazil_naive():
+                try:
+                    return int(json.loads(cached.cache_value))
+                except:
+                    return 0
+
+            # Se expirou, recalcula (isso só deve acontecer após meia-noite)
+            return ChamadosTodayCounter._recalculate(db)
+
+        except Exception as e:
+            print(f"[CACHE] Erro ao obter contador de hoje: {e}")
+            return 0
+
+    @staticmethod
+    def increment(db: Session, count: int = 1) -> int:
+        """Incrementa contador de chamados de hoje"""
+        try:
+            cache_key = ChamadosTodayCounter.get_cache_key_today()
+
+            # Obtém valor atual
+            cached = db.query(MetricsCacheDB).filter(
+                MetricsCacheDB.cache_key == cache_key
+            ).first()
+
+            # Se expirou (passou meia-noite), recalcula
+            if not cached or (cached.expires_at and cached.expires_at <= now_brazil_naive()):
+                new_value = ChamadosTodayCounter._recalculate(db)
+                return new_value + count
+
+            # Incrementa o valor existente
+            try:
+                current_value = int(json.loads(cached.cache_value))
+            except:
+                current_value = 0
+
+            new_value = current_value + count
+
+            # Atualiza cache com expire à meia-noite
+            agora = now_brazil_naive()
+            proximo_dia = (agora + timedelta(days=1)).replace(
+                hour=0, minute=0, second=0, microsecond=0
+            )
+
+            cached.cache_value = json.dumps(new_value)
+            cached.calculated_at = agora
+            cached.expires_at = proximo_dia
+            db.add(cached)
+            db.commit()
+
+            return new_value
+
+        except Exception as e:
+            print(f"[CACHE] Erro ao incrementar contador: {e}")
+            try:
+                db.rollback()
+            except:
+                pass
+            return ChamadosTodayCounter._recalculate(db)
+
+    @staticmethod
+    def decrement(db: Session, count: int = 1) -> int:
+        """Decrementa contador de chamados de hoje (para cancelamentos)"""
+        try:
+            cache_key = ChamadosTodayCounter.get_cache_key_today()
+
+            cached = db.query(MetricsCacheDB).filter(
+                MetricsCacheDB.cache_key == cache_key
+            ).first()
+
+            if not cached or (cached.expires_at and cached.expires_at <= now_brazil_naive()):
+                return ChamadosTodayCounter._recalculate(db)
+
+            try:
+                current_value = int(json.loads(cached.cache_value))
+            except:
+                current_value = 0
+
+            new_value = max(0, current_value - count)
+
+            agora = now_brazil_naive()
+            proximo_dia = (agora + timedelta(days=1)).replace(
+                hour=0, minute=0, second=0, microsecond=0
+            )
+
+            try:
+                cached.cache_value = json.dumps(new_value)
+                cached.calculated_at = agora
+                cached.expires_at = proximo_dia
+                db.add(cached)
+                db.commit()
+            except Exception as commit_error:
+                db.rollback()
+                print(f"[CACHE] Erro ao commit decrement: {commit_error}")
+                raise
+
+            return new_value
+
+        except Exception as e:
+            print(f"[CACHE] Erro ao decrementar contador: {e}")
+            try:
+                db.rollback()
+            except:
+                pass
+            return ChamadosTodayCounter._recalculate(db)
+
+    @staticmethod
+    def _recalculate(db: Session) -> int:
+        """Recalcula contador de hoje a partir do banco de dados"""
+        try:
+            hoje = now_brazil_naive().replace(hour=0, minute=0, second=0, microsecond=0)
+
+            count = db.query(Chamado).filter(
+                and_(
+                    Chamado.data_abertura >= hoje,
+                    Chamado.status != "Expirado"
+                )
+            ).count()
+
+            # Salva no cache com expire à meia-noite
+            cache_key = ChamadosTodayCounter.get_cache_key_today()
+            agora = now_brazil_naive()
+            proximo_dia = (agora + timedelta(days=1)).replace(
+                hour=0, minute=0, second=0, microsecond=0
+            )
+
+            try:
+                existing = db.query(MetricsCacheDB).filter(
+                    MetricsCacheDB.cache_key == cache_key
+                ).first()
+
+                if existing:
+                    existing.cache_value = json.dumps(count)
+                    existing.calculated_at = agora
+                    existing.expires_at = proximo_dia
+                    db.add(existing)
+                else:
+                    new_cache = MetricsCacheDB(
+                        cache_key=cache_key,
+                        cache_value=json.dumps(count),
+                        calculated_at=agora,
+                        expires_at=proximo_dia,
+                    )
+                    db.add(new_cache)
+
+                db.commit()
+            except Exception as commit_error:
+                db.rollback()
+                print(f"[CACHE] Erro ao commit recalculate: {commit_error}")
+
+            return count
+
+        except Exception as e:
+            print(f"[CACHE] Erro ao recalcular contador: {e}")
+            try:
+                db.rollback()
+            except:
+                pass
+            return 0
+
+
+class IncrementalMetricsCache:
+    """
+    Cache de métricas mensais com cálculos incrementais.
+
+    Estratégia:
+    - Cache persiste até final do mês (dia 28/29/30/31 às 23:59:59)
+    - Quando um chamado é alterado, recalcula apenas aquele chamado
+    - Soma resultado com cache base para obter novas métricas
+    - Reset automático no dia 1º do próximo mês às 00:00
+    """
+
+    @staticmethod
+    def get_cache_key_month() -> str:
+        """Gera chave de cache para o mês atual"""
+        agora = now_brazil_naive()
+        ano_mes = agora.strftime("%Y-%m")
+        return f"sla_metrics_mes:{ano_mes}"
+
+    @staticmethod
+    def get_expire_time_for_month() -> datetime:
+        """Retorna data/hora do último segundo do mês"""
+        agora = now_brazil_naive()
+
+        # Calcula último dia do mês
+        if agora.month == 12:
+            proximo_mes = agora.replace(year=agora.year + 1, month=1, day=1)
+        else:
+            proximo_mes = agora.replace(month=agora.month + 1, day=1)
+
+        # Último segundo do mês = um segundo antes de virar para o próximo mês
+        ultimo_segundo = proximo_mes - timedelta(seconds=1)
+        return ultimo_segundo
+
+    @staticmethod
+    def get_metrics(db: Session) -> dict:
+        """Obtém métricas mensais do cache com fallback robusto"""
+        try:
+            cache_key = IncrementalMetricsCache.get_cache_key_month()
+
+            # Tenta obter do cache
+            try:
+                cached = db.query(MetricsCacheDB).filter(
+                    MetricsCacheDB.cache_key == cache_key
+                ).first()
+
+                if cached and cached.expires_at and cached.expires_at > now_brazil_naive():
+                    try:
+                        metrics = json.loads(cached.cache_value)
+                        # Validação básica
+                        if all(k in metrics for k in ["total", "dentro_sla", "fora_sla"]):
+                            return metrics
+                    except (json.JSONDecodeError, ValueError):
+                        print(f"[CACHE] Cache corrompido para {cache_key}, recalculando...")
+                        pass
+            except Exception as cache_error:
+                print(f"[CACHE] Erro ao buscar cache do banco: {cache_error}")
+                pass
+
+            # Cache não existe ou expirou, recalcula (de forma otimizada)
+            return IncrementalMetricsCache._calculate_month(db)
+
+        except Exception as e:
+            print(f"[CACHE] Erro ao obter métricas mensais: {e}")
+            # Retorna valores seguros
+            return {
+                "total": 0,
+                "dentro_sla": 0,
+                "fora_sla": 0,
+                "percentual_dentro": 0,
+                "percentual_fora": 0,
+            }
+
+    @staticmethod
+    def update_for_chamado(db: Session, chamado_id: int) -> None:
+        """
+        Atualiza métricas incrementalmente quando um chamado é alterado.
+
+        Em vez de recalcular TUDO, calcula apenas aquele chamado
+        e soma com as métricas em cache.
+        """
+        try:
+            chamado = db.query(Chamado).filter(Chamado.id == chamado_id).first()
+            if not chamado:
+                return
+
+            # Obtém métricas atuais do cache
+            metricas_atuais = IncrementalMetricsCache.get_metrics(db)
+
+            # SLA foi removido - apenas invalida o cache
+            IncrementalMetricsCache.invalidate_cache(db)
+
+        except Exception as e:
+            print(f"[CACHE] Erro ao atualizar métricas para chamado {chamado_id}: {e}")
+
+    @staticmethod
+    def _calculate_month(db: Session) -> dict:
+        """Calcula métricas mensais do zero com debouncing"""
+        try:
+            cache_key = IncrementalMetricsCache.get_cache_key_month()
+
+            def calculate_metrics():
+                agora = now_brazil_naive()
+                mes_inicio = agora.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+
+                # Métricas básicas (SLA removido)
+                metricas = {
+                    "total": 0,
+                    "dentro_sla": 0,
+                    "fora_sla": 0,
+                    "percentual_dentro": 0,
+                    "percentual_fora": 0,
+                    "updated_at": agora.isoformat(),
+                }
+
+                # Salva no cache
+                IncrementalMetricsCache._save_metrics(db, metricas)
+
+                return metricas
+
+            # Cálculo simples (SLA foi removido)
+            result = calculate_metrics()
+
+            if result is None:
+                # Fallback se cálculo falhar
+                return {
+                    "total": 0,
+                    "dentro_sla": 0,
+                    "fora_sla": 0,
+                    "percentual_dentro": 0,
+                    "percentual_fora": 0,
+                }
+
+            return result
+
+        except Exception as e:
+            print(f"[CACHE] Erro ao calcular métricas mensais: {e}")
+            return {
+                "total": 0,
+                "dentro_sla": 0,
+                "fora_sla": 0,
+                "percentual_dentro": 0,
+                "percentual_fora": 0,
+            }
+
+    @staticmethod
+    def _save_metrics(db: Session, metricas: dict) -> None:
+        """Salva métricas no cache com expiração até fim do mês"""
+        try:
+            cache_key = IncrementalMetricsCache.get_cache_key_month()
+            expire_time = IncrementalMetricsCache.get_expire_time_for_month()
+
+            agora = now_brazil_naive()
+            cache_value = json.dumps(metricas)
+
+            try:
+                existing = db.query(MetricsCacheDB).filter(
+                    MetricsCacheDB.cache_key == cache_key
+                ).first()
+
+                if existing:
+                    existing.cache_value = cache_value
+                    existing.calculated_at = agora
+                    existing.expires_at = expire_time
+                    db.add(existing)
+                else:
+                    new_cache = MetricsCacheDB(
+                        cache_key=cache_key,
+                        cache_value=cache_value,
+                        calculated_at=agora,
+                        expires_at=expire_time,
+                    )
+                    db.add(new_cache)
+
+                db.commit()
+            except Exception as commit_error:
+                db.rollback()
+                print(f"[CACHE] Erro ao commit métricas: {commit_error}")
+
+        except Exception as e:
+            print(f"[CACHE] Erro ao salvar métricas: {e}")
+            try:
+                db.rollback()
+            except:
+                pass
+
+    @staticmethod
+    def _save_chamado_status(
+        db: Session,
+        chamado_id: int,
+        dentro_sla: bool
+    ) -> None:
+        """Salva status de SLA do chamado para referência incremental"""
+        try:
+            cache_key = f"chamado_sla_status:{chamado_id}"
+
+            expire_time = IncrementalMetricsCache.get_expire_time_for_month()
+            agora = now_brazil_naive()
+
+            cache_value = json.dumps({"dentro_sla": dentro_sla})
+
+            try:
+                existing = db.query(MetricsCacheDB).filter(
+                    MetricsCacheDB.cache_key == cache_key
+                ).first()
+
+                if existing:
+                    existing.cache_value = cache_value
+                    existing.calculated_at = agora
+                    existing.expires_at = expire_time
+                    db.add(existing)
+                else:
+                    new_cache = MetricsCacheDB(
+                        cache_key=cache_key,
+                        cache_value=cache_value,
+                        calculated_at=agora,
+                        expires_at=expire_time,
+                    )
+                    db.add(new_cache)
+
+                db.commit()
+            except Exception as commit_error:
+                db.rollback()
+                print(f"[CACHE] Erro ao commit status do chamado: {commit_error}")
+
+        except Exception as e:
+            print(f"[CACHE] Erro ao salvar status do chamado: {e}")
+            try:
+                db.rollback()
+            except:
+                pass
+
+    @staticmethod
+    def invalidate_cache(db: Session) -> None:
+        """Invalida o cache de métricas"""
+        try:
+            cache_key = IncrementalMetricsCache.get_cache_key_month()
+            cached = db.query(MetricsCacheDB).filter(
+                MetricsCacheDB.cache_key == cache_key
+            ).first()
+            if cached:
+                db.delete(cached)
+                db.commit()
+        except Exception as e:
+            print(f"[CACHE] Erro ao invalidar cache: {e}")
+
+
+# ============================================================================
+# Imports necessários adicionados
+# ============================================================================
 
 router = APIRouter(prefix="/chamados", tags=["TI - Chamados"])
 
@@ -125,7 +572,6 @@ def criar_chamado(payload: ChamadoCreate, db: Session = Depends(get_db)):
         ch = service_criar(db, payload)
 
         # ATUALIZAÇÃO REAL-TIME: Incrementa contador de "chamados hoje"
-        from ti.services.cache_manager_incremental import ChamadosTodayCounter
         chamados_hoje = ChamadosTodayCounter.increment(db)
 
         try:
@@ -163,7 +609,6 @@ def criar_chamado(payload: ChamadoCreate, db: Session = Depends(get_db)):
                 "criado_em": n.criado_em.isoformat() if n.criado_em else None,
             })
             # EMITE ATUALIZAÇÃO DE MÉTRICAS EM TEMPO REAL
-            from ti.services.cache_manager_incremental import IncrementalMetricsCache
             metricas = IncrementalMetricsCache.get_metrics(db)
             anyio.from_thread.run(sio.emit, "metrics:updated", {
                 "chamados_hoje": chamados_hoje,
@@ -389,7 +834,6 @@ def criar_chamado_com_anexos(
 
         # EMITE ATUALIZAÇÃO DE MÉTRICAS EM TEMPO REAL (sem dependência de db após refresh)
         try:
-            from ti.services.cache_manager_incremental import IncrementalMetricsCache
             metricas = IncrementalMetricsCache.get_metrics(db)
             import anyio
             anyio.from_thread.run(sio.emit, "metrics:updated", {
@@ -684,7 +1128,6 @@ def atualizar_status(chamado_id: int, payload: ChamadoStatusUpdate, db: Session 
 
         # DECREMENTAR CONTADOR DE HOJE SE CANCELADO
         if novo == "Expirado" and prev != "Expirado":
-            from ti.services.cache_manager_incremental import ChamadosTodayCounter
             ChamadosTodayCounter.decrement(db, 1)
 
         try:
@@ -764,7 +1207,6 @@ def atualizar_status(chamado_id: int, payload: ChamadoStatusUpdate, db: Session 
             })
 
             # EMITE ATUALIZAÇÃO DE MÉTRICAS EM TEMPO REAL (quando status muda)
-            from ti.services.cache_manager_incremental import IncrementalMetricsCache
             metricas = IncrementalMetricsCache.get_metrics(db)
             anyio.from_thread.run(sio.emit, "metrics:updated", {
                 "timestamp": now_brazil_naive().isoformat(),
@@ -890,7 +1332,6 @@ def deletar_chamado(chamado_id: int, payload: ChamadoDeleteRequest = Body(...), 
         # Decrementar contador se o chamado não estava cancelado
         if chamado_info['status'] != "Expirado":
             try:
-                from ti.services.cache_manager_incremental import ChamadosTodayCounter
                 ChamadosTodayCounter.decrement(db, 1)
                 print(f"[SOFT DELETE] Contador decrementado")
             except Exception as e:
@@ -939,7 +1380,6 @@ def deletar_chamado(chamado_id: int, payload: ChamadoDeleteRequest = Body(...), 
             })
 
             # Emitir atualização de métricas
-            from ti.services.cache_manager_incremental import IncrementalMetricsCache
             metricas = IncrementalMetricsCache.get_metrics(db)
             anyio.from_thread.run(sio.emit, "metrics:updated", {
                 "timestamp": now_brazil_naive().isoformat(),
