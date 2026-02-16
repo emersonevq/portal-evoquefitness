@@ -60,44 +60,47 @@ def get_dashboard_metrics(db: Session = Depends(get_db)):
         agora = now_brazil_naive()
 
         # Contar por status
-        total_abertos = db.query(Chamado).filter(
+        total_abertos = db.query(func.count(Chamado.id)).filter(
             Chamado.status == "Aberto",
             Chamado.deletado_em == None
-        ).count()
+        ).scalar() or 0
 
-        total_em_atendimento = db.query(Chamado).filter(
+        total_em_atendimento = db.query(func.count(Chamado.id)).filter(
             Chamado.status == "Em atendimento",
             Chamado.deletado_em == None
-        ).count()
+        ).scalar() or 0
 
-        total_concluidos = db.query(Chamado).filter(
+        total_concluidos = db.query(func.count(Chamado.id)).filter(
             Chamado.status == "Concluído",
             Chamado.deletado_em == None
-        ).count()
+        ).scalar() or 0
 
-        # SLA metrics
-        sla_em_risco = db.query(Chamado).filter(
-            Chamado.sla_em_risco == True,
+        # SLA metrics (handle NULL values)
+        sla_em_risco = db.query(func.count(Chamado.id)).filter(
+            (Chamado.sla_em_risco == True) | (Chamado.sla_em_risco == 1),
             Chamado.deletado_em == None
-        ).count()
+        ).scalar() or 0
 
-        sla_vencidos = db.query(Chamado).filter(
-            Chamado.sla_vencido == True,
+        sla_vencidos = db.query(func.count(Chamado.id)).filter(
+            (Chamado.sla_vencido == True) | (Chamado.sla_vencido == 1),
             Chamado.deletado_em == None
-        ).count()
+        ).scalar() or 0
 
         return {
             "timestamp": agora.isoformat(),
             "resumo": {
-                "total_abertos": total_abertos,
-                "total_em_atendimento": total_em_atendimento,
-                "total_concluidos": total_concluidos,
-                "sla_em_risco": sla_em_risco,
-                "sla_vencidos": sla_vencidos
+                "total_abertos": int(total_abertos),
+                "total_em_atendimento": int(total_em_atendimento),
+                "total_concluidos": int(total_concluidos),
+                "sla_em_risco": int(sla_em_risco),
+                "sla_vencidos": int(sla_vencidos)
             },
             "status": "ok"
         }
     except Exception as e:
+        import traceback
+        print(f"Erro em dashboard_metrics: {e}")
+        print(traceback.format_exc())
         return {
             "error": str(e),
             "timestamp": now_brazil_naive().isoformat(),
