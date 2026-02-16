@@ -108,13 +108,6 @@ def listar_chamados(db: Session = Depends(get_db), after_date: str = None):
 
             chamados = query.order_by(Chamado.id.desc()).all()
 
-            # Marcar tickets retroativos como Expirado na resposta
-            sla_start_date = datetime(2026, 1, 1, 0, 0, 0)
-            for chamado in chamados:
-                if chamado.data_abertura and chamado.data_abertura < sla_start_date and chamado.status != "Expirado":
-                    # Marca temporariamente como Expirado na resposta (não persiste no banco)
-                    chamado.status = "Expirado"
-
             return chamados
         except Exception:
             return []

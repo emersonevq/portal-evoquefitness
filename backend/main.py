@@ -95,6 +95,13 @@ try:
 except Exception as e:
     print(f"⚠️  Erro ao restaurar status dos chamados retroativos: {e}")
 
+# Marcar todos os chamados retroativos no banco de dados
+try:
+    from ti.scripts.mark_all_retroativo import mark_retroativo_tickets
+    mark_retroativo_tickets()
+except Exception as e:
+    print(f"⚠️  Erro ao marcar chamados retroativos: {e}")
+
 # Limpar cache de métricas para recalcular com filtro SLA
 try:
     from ti.scripts.clear_metrics_cache import clear_metrics_cache as clear_cache
