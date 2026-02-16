@@ -152,9 +152,10 @@ def check_availability(email: str | None = None, username: str | None = None, db
     return check_user_availability(db, email, username)
 
 @router.get("/generate-password")
-def generate_password_endpoint(length: int = 6):
-    if length < 6:
-        length = 6
+def generate_password_endpoint(length: int = 12):
+    # Mínimo 12 caracteres para atender requisitos Auth0
+    if length < 12:
+        length = 12
     if length > 64:
         length = 64
     return {"senha": generate_password(length)}
@@ -469,8 +470,11 @@ def get_usuario(user_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/{user_id}/generate-password")
-def gerar_nova_senha(user_id: int, length: int = 6, db: Session = Depends(get_db)):
+def gerar_nova_senha(user_id: int, length: int = 12, db: Session = Depends(get_db)):
     try:
+        # Mínimo 12 caracteres para atender requisitos Auth0
+        if length < 12:
+            length = 12
         pwd = regenerate_password(db, user_id, length)
         return {"senha": pwd}
     except ValueError as e:

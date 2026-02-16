@@ -78,8 +78,8 @@ def criar_usuario(db: Session, payload: UserCreate) -> UserCreatedOut:
     if payload.usuario and db.query(User).filter(User.usuario == payload.usuario).first():
         raise ValueError("Nome de usuário já cadastrado")
 
-    # Password generation in backend if not provided
-    generated_password = payload.senha or _generate_password(6)
+    # Password generation in backend if not provided (12 chars minimum for Auth0)
+    generated_password = payload.senha or _generate_password(12)
 
     setores_json = None
     setor = None
@@ -321,9 +321,10 @@ def update_user(db: Session, user_id: int, data: dict) -> User:
     return user
 
 
-def regenerate_password(db: Session, user_id: int, length: int = 6) -> str:
-    if length < 6:
-        length = 6
+def regenerate_password(db: Session, user_id: int, length: int = 12) -> str:
+    # Mínimo 12 caracteres para atender requisitos Auth0
+    if length < 12:
+        length = 12
     if length > 64:
         length = 64
     try:
