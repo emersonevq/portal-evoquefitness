@@ -384,18 +384,30 @@ class MetricsCalculator:
 
     @staticmethod
     def get_performance_metrics(db: Session) -> dict:
-        """Retorna métricas de performance (últimos 30 dias)"""
+        """Retorna métricas de performance (últimos 30 dias)
+
+        IMPORTANTE: Apenas conta chamados a partir de 01.01.2026 (SLA start date).
+        Chamados anteriores são ignorados nas métricas.
+        """
         try:
+            from datetime import datetime
+
             agora = now_brazil_naive()
             trinta_dias_atras = agora - timedelta(days=30)
 
-            # Busca chamados dos últimos 30 dias
+            # Data de início do SLA: 01.01.2026
+            sla_start_date = datetime(2026, 1, 1, 0, 0, 0)
+
+            # Busca chamados dos últimos 30 dias E a partir da data de início do SLA
             chamados_30dias = db.query(Chamado).filter(
                 and_(
-                    Chamado.data_abertura >= trinta_dias_atras,
+                    Chamado.data_abertura >= max(trinta_dias_atras, sla_start_date),
                     Chamado.status != "Cancelado"
                 )
             ).all()
+
+            print(f"[METRICS] Performance: Filtrando chamados a partir de {max(trinta_dias_atras, sla_start_date)}")
+            print(f"[METRICS] Performance: Total de chamados válidos = {len(chamados_30dias)}")
 
             # ===== TEMPO MÉDIO DE RESOLUÇÃO =====
             tempos_resolucao = []
@@ -447,9 +459,10 @@ class MetricsCalculator:
             )
             taxa_reaberturas = int((chamados_reaberlos / total_com_historico * 100)) if total_com_historico > 0 else 0
 
-            # ===== CHAMADOS EM BACKLOG =====
+            # ===== CHAMADOS EM BACKLOG (também filtrado pelo SLA start date) =====
             chamados_backlog = db.query(Chamado).filter(
                 and_(
+                    Chamado.data_abertura >= sla_start_date,
                     Chamado.status.in_(["Aguardando", "Em análise"]),
                     Chamado.status != "Cancelado"
                 )
