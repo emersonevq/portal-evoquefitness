@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from typing import Optional, List
 from sqlalchemy.orm import Session
 from sqlalchemy import func, and_, or_
 from ti.models.chamado import Chamado
@@ -234,7 +235,7 @@ class MetricsCalculator:
         return f"{horas}h {minutos}m" if minutos > 0 else f"{horas}h"
 
     @staticmethod
-    def get_chamados_por_dia(db: Session, dias: int = 7, statuses: list[str] | None = None) -> list[dict]:
+    def get_chamados_por_dia(db: Session, dias: int = 7, statuses: Optional[List[str]] = None) -> List[dict]:
         """Retorna quantidade de chamados por dia dos últimos N dias, separado por status
 
         Args:
@@ -282,7 +283,7 @@ class MetricsCalculator:
         return resultado
 
     @staticmethod
-    def get_chamados_por_semana(db: Session, semanas: int = 4, statuses: list[str] | None = None) -> list[dict]:
+    def get_chamados_por_semana(db: Session, semanas: int = 4, statuses: Optional[List[str]] = None) -> List[dict]:
         """Retorna quantidade de chamados por semana dos últimos N semanas, separado por status
 
         Args:
@@ -327,7 +328,7 @@ class MetricsCalculator:
         return resultado
 
     @staticmethod
-    def get_chamados_por_mes(db: Session, meses: int = 3, statuses: list[str] | None = None) -> list[dict]:
+    def get_chamados_por_mes(db: Session, meses: int = 3, statuses: Optional[List[str]] = None) -> List[dict]:
         """Retorna quantidade de chamados por mês dos últimos N meses, separado por status
 
         Args:
@@ -570,7 +571,7 @@ class MetricsCalculator:
             }
 
     @staticmethod
-    def get_chamados_por_dia_periodo(db: Session, start_date: str, end_date: str, statuses: list[str] | None = None) -> list[dict]:
+    def get_chamados_por_dia_periodo(db: Session, start_date: str, end_date: str, statuses: Optional[List[str]] = None) -> List[dict]:
         """Retorna quantidade de chamados por dia em um período específico, separado por status
 
         Args:
@@ -629,7 +630,7 @@ class MetricsCalculator:
             return []
 
     @staticmethod
-    def get_chamados_por_semana_periodo(db: Session, start_date: str, end_date: str, statuses: list[str] | None = None) -> list[dict]:
+    def get_chamados_por_semana_periodo(db: Session, start_date: str, end_date: str, statuses: Optional[List[str]] = None) -> List[dict]:
         """Retorna quantidade de chamados por semana em um período específico, separado por status
 
         Args:
@@ -685,7 +686,7 @@ class MetricsCalculator:
             return []
 
     @staticmethod
-    def get_chamados_por_mes_periodo(db: Session, start_date: str, end_date: str, statuses: list[str] | None = None) -> list[dict]:
+    def get_chamados_por_mes_periodo(db: Session, start_date: str, end_date: str, statuses: Optional[List[str]] = None) -> List[dict]:
         """Retorna quantidade de chamados por mês em um período específico, separado por status
 
         Args:
