@@ -325,12 +325,8 @@ export default function ChamadosPage() {
       };
     }
 
-    // Calculate date 30 days ago for filtering
-    const now = new Date();
-    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-    const dateParam = thirtyDaysAgo.toISOString().split("T")[0]; // YYYY-MM-DD format
-
-    apiFetch(`/chamados?after_date=${dateParam}`)
+    // Fetch all chamados without date restriction to include expired retroactive tickets
+    apiFetch(`/chamados`)
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error("fail"))))
       .then((data) =>
         setItems(
