@@ -22,14 +22,14 @@ def diagnosticar(db: Session) -> None:
     """Diagnostica chamados abertos de janeiro"""
     
     print("\n" + "=" * 70)
-    print("🔍 DIAGNÓSTICO: CHAMADOS ABERTOS A PARTIR DE 13-02-2026")
+    print("🔍 DIAGNÓSTICO: CHAMADOS ABERTOS A PARTIR DE 15-02-2026")
     print("=" * 70)
 
-    # Período: 13-02-2026 em diante
-    inicio_fevereiro = datetime(2026, 2, 13)
+    # Período: 15-02-2026 em diante
+    inicio_fevereiro = datetime(2026, 2, 15)
     fim_fevereiro = datetime(2026, 12, 31, 23, 59, 59)
     
-    # Buscar chamados ABERTOS/EM ATENDIMENTO a partir de 13-02-2026
+    # Buscar chamados ABERTOS/EM ATENDIMENTO a partir de 15-02-2026
     chamados_ativos_fev = db.query(Chamado).filter(
         Chamado.data_abertura >= inicio_fevereiro,
         Chamado.data_abertura <= fim_fevereiro,
@@ -37,7 +37,7 @@ def diagnosticar(db: Session) -> None:
         Chamado.deletado_em == None
     ).all()
 
-    print(f"\n📊 Chamados ABERTOS/EM ATENDIMENTO a partir de 13-02-2026: {len(chamados_ativos_fev)}\n")
+    print(f"\n📊 Chamados ABERTOS/EM ATENDIMENTO a partir de 15-02-2026: {len(chamados_ativos_fev)}\n")
     
     if len(chamados_ativos_fev) > 0:
         print("⚠️  ENCONTRADOS CHAMADOS ABERTOS QUE NÃO DEVERIAM ESTAR!")
@@ -54,9 +54,9 @@ def diagnosticar(db: Session) -> None:
             print(f"    Tempo decorrido: {chamado.sla_tempo_decorrido_horas:.2f}h")
             print()
     else:
-        print("✅ Nenhum chamado aberto a partir de 13-02-2026 encontrado!")
+        print("✅ Nenhum chamado aberto a partir de 15-02-2026 encontrado!")
 
-    # Também buscar CONCLUÍDOS a partir de 13-02-2026 para comparação
+    # Também buscar CONCLUÍDOS a partir de 15-02-2026 para comparação
     chamados_concluidos_fev = db.query(Chamado).filter(
         Chamado.data_abertura >= inicio_fevereiro,
         Chamado.data_abertura <= fim_fevereiro,
@@ -65,9 +65,9 @@ def diagnosticar(db: Session) -> None:
     ).count()
 
     print("\n" + "=" * 70)
-    print(f"📊 Chamados CONCLUÍDOS a partir de 13-02-2026: {chamados_concluidos_fev}")
-    print(f"📊 Chamados ABERTOS a partir de 13-02-2026: {len(chamados_ativos_fev)}")
-    print(f"📊 Total a partir de 13-02-2026: {chamados_concluidos_fev + len(chamados_ativos_fev)}")
+    print(f"📊 Chamados CONCLUÍDOS a partir de 15-02-2026: {chamados_concluidos_fev}")
+    print(f"📊 Chamados ABERTOS a partir de 15-02-2026: {len(chamados_ativos_fev)}")
+    print(f"📊 Total a partir de 15-02-2026: {chamados_concluidos_fev + len(chamados_ativos_fev)}")
     print("=" * 70)
     print()
 

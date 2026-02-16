@@ -5,7 +5,7 @@ Gerencia:
 - Mudanças de status de chamado
 - Inicialização de SLA
 - Transições de estados
-- Validação de data de corte (13-02-2026)
+- Validação de data de corte (15-02-2026)
 """
 
 import logging
@@ -29,8 +29,8 @@ from ti.modules.sla.utils import (
 
 logger = logging.getLogger("sla.events")
 
-# Data de corte para SLA: 13 de fevereiro de 2026
-SLA_CUTOFF_DATE = date(2026, 2, 13)
+# Data de corte para SLA: 15 de fevereiro de 2026
+SLA_CUTOFF_DATE = date(2026, 2, 15)
 
 class SlaEventHandlers:
     """Handlers de eventos de SLA"""
@@ -48,11 +48,11 @@ class SlaEventHandlers:
         Handler para criação de chamado.
 
         MOMENTO 1 - EVENTO:
-        - Valida data de corte (01-01-2026)
+        - Valida data de corte (15-02-2026)
         - Marca como retroativo se anterior à data de corte
         - Inicia SLA se não for retroativo
         """
-        # Valida data de corte
+        # Valida data de corte (15-02-2026)
         if chamado.data_abertura:
             data_abertura = chamado.data_abertura
             # Se for datetime, extrai a data

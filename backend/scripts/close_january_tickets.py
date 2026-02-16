@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Script para FECHAR chamados a partir de 13-02-2026 que estão ABERTOS/AGUARDANDO.
+Script para FECHAR chamados a partir de 15-02-2026 que estão ABERTOS/AGUARDANDO.
 
 Esses chamados serão marcados como "Concluído" e seus SLAs serão recalculados.
 """
@@ -20,10 +20,10 @@ from core.utils import now_brazil_naive
 from ti.modules.sla.services import SlaTracker
 
 def fechar_fevereiro(db: Session) -> None:
-    """Fecha todos os chamados abertos a partir de 13-02-2026"""
+    """Fecha todos os chamados abertos a partir de 15-02-2026"""
 
     print("\n" + "=" * 70)
-    print("🔴 FECHANDO CHAMADOS ABERTOS A PARTIR DE 13-02-2026")
+    print("🔴 FECHANDO CHAMADOS ABERTOS A PARTIR DE 15-02-2026")
     print("=" * 70)
 
     # Buscar automaticamente chamados abertos a partir de 13-02-2026
@@ -77,7 +77,7 @@ def fechar_fevereiro(db: Session) -> None:
     print("📊 ESTADO FINAL")
     print("=" * 70)
 
-    inicio_fevereiro = datetime(2026, 2, 13)
+    inicio_fevereiro = datetime(2026, 2, 15)
     fim_fevereiro = datetime(2026, 12, 31, 23, 59, 59)
 
     abertos_fev = db.query(Chamado).filter(
@@ -94,16 +94,16 @@ def fechar_fevereiro(db: Session) -> None:
         Chamado.deletado_em == None
     ).count()
 
-    print(f"\n  • Chamados ABERTOS a partir de 13-02-2026: {abertos_fev}")
-    print(f"  • Chamados CONCLUÍDOS a partir de 13-02-2026: {concluidos_fev}")
-    print(f"  • Total a partir de 13-02-2026: {abertos_fev + concluidos_fev}")
+    print(f"\n  • Chamados ABERTOS a partir de 15-02-2026: {abertos_fev}")
+    print(f"  • Chamados CONCLUÍDOS a partir de 15-02-2026: {concluidos_fev}")
+    print(f"  • Total a partir de 15-02-2026: {abertos_fev + concluidos_fev}")
     print()
 
 
 def main():
     """Executa fechamento de chamados"""
     print("\n" + "=" * 70)
-    print("🔧 SCRIPT DE FECHAMENTO DE CHAMADOS A PARTIR DE 13-02-2026")
+    print("🔧 SCRIPT DE FECHAMENTO DE CHAMADOS A PARTIR DE 15-02-2026")
     print("=" * 70)
     print(f"Data/Hora: {now_brazil_naive().isoformat()}")
 
