@@ -14,6 +14,11 @@ from .alert import Alert
 from .session import Session
 from .powerbi_dashboard import PowerBIDashboard
 from .metrics_cache import MetricsCacheDB
+from .configuracoes_sla import ConfiguracesSla
+from .historico_sla import HistoricoSla
+from .sla_pausa import SlaPausa
+from .horario_comercial import HorarioComercial
+from .feriado import Feriado
 
 __all__ = [
     "Chamado",
@@ -32,4 +37,9 @@ __all__ = [
     "Session",
     "PowerBIDashboard",
     "MetricsCacheDB",
+    "ConfiguracesSla",
+    "HistoricoSla",
+    "SlaPausa",
+    "HorarioComercial",
+    "Feriado",
 ]

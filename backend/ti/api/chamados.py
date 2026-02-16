@@ -28,6 +28,9 @@ from sqlalchemy import insert
 import json
 from datetime import datetime, timedelta
 
+# SLA integration
+from ti.modules.sla.events import SlaEventHandlers
+
 # ============================================================================
 # CACHE MANAGER INLINED - Chamados de hoje com reset à meia-noite
 # ============================================================================
@@ -570,6 +573,14 @@ def criar_chamado(payload: ChamadoCreate, db: Session = Depends(get_db)):
         except Exception:
             pass
         ch = service_criar(db, payload)
+
+        # SLA integration: Initialize SLA for the ticket
+        try:
+            sla_handlers = SlaEventHandlers(db)
+            sla_handlers.on_chamado_created(ch)
+        except Exception as sla_error:
+            print(f"[SLA] Erro ao inicializar SLA para chamado {ch.id}: {sla_error}")
+            # Não falhar a operação por causa do SLA
 
         # ATUALIZAÇÃO REAL-TIME: Incrementa contador de "chamados hoje"
         chamados_hoje = ChamadosTodayCounter.increment(db)
@@ -1125,6 +1136,14 @@ def atualizar_status(chamado_id: int, payload: ChamadoStatusUpdate, db: Session 
         db.add(ch)
         db.commit()  # garante persistência do status antes dos logs
         db.refresh(ch)
+
+        # SLA integration: Handle status change for SLA
+        try:
+            sla_handlers = SlaEventHandlers(db)
+            sla_handlers.on_status_changed(ch, prev, novo)
+        except Exception as sla_error:
+            print(f"[SLA] Erro ao processar mudança de status para SLA: {sla_error}")
+            # Não falhar a operação por causa do SLA
 
         # DECREMENTAR CONTADOR DE HOJE SE CANCELADO
         if novo == "Expirado" and prev != "Expirado":
