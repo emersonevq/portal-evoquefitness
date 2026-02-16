@@ -117,12 +117,12 @@ try:
 except Exception as e:
     print(f"⚠️  Erro na migração automática de status: {e}")
 
-# Inicializar scheduler de SLA (executa a cada 15 minutos com cache)
+# Inicializar sistema de SLA (calcula todos na startup, depois incremental)
 try:
-    from ti.services.sla_scheduler_15min import init_sla_scheduler_15min
-    init_sla_scheduler_15min()
+    from ti.services.sla_incremental_updater import init_sla_system
+    init_sla_system()
 except Exception as e:
-    print(f"⚠️  Erro ao inicializar scheduler de SLA: {e}")
+    print(f"⚠️  Erro ao inicializar sistema de SLA: {e}")
     import traceback
     traceback.print_exc()
 
@@ -508,10 +508,5 @@ async def startup_event():
 
 @_http.on_event("shutdown")
 async def shutdown_event():
-    """Shutdown event - para o scheduler de SLA"""
-    try:
-        from ti.services.sla_scheduler_15min import stop_sla_scheduler
-        stop_sla_scheduler()
-        print("[SHUTDOWN] ✓ Scheduler de SLA parado com sucesso")
-    except Exception as e:
-        print(f"[SHUTDOWN] ⚠️  Erro ao parar scheduler: {e}")
+    """Shutdown event"""
+    pass
