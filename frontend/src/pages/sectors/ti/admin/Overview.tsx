@@ -154,7 +154,7 @@ export default function Overview() {
 
   // Cache de métricas com React Query
   const { data: basicMetricsData, isLoading: basicLoading } = useQuery({
-    queryKey: ["metrics-basic", customDateMode, appliedStartDate, appliedEndDate],
+    queryKey: ["metrics-basic", dateRange, customDateMode, appliedStartDate, appliedEndDate],
     queryFn: async () => {
       if (customDateMode && appliedStartDate && appliedEndDate) {
         const response = await api.get(
@@ -162,7 +162,7 @@ export default function Overview() {
         );
         return response.data;
       }
-      const response = await api.get("/metrics/dashboard/basic");
+      const response = await api.get(`/metrics/dashboard/basic?range=${dateRange}`);
       return response.data;
     },
     staleTime: 5 * 60 * 1000, // 5 minutos
