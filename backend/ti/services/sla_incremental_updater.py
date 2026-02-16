@@ -34,8 +34,16 @@ logger = logging.getLogger(__name__)
 def init_sla_system():
     """
     Inicializa o sistema de SLA na startup.
-    
-    Calcula SLA de TODOS os chamados uma só vez e preenche o cache.
+
+    IMPORTANTE: Calcula SLA APENAS dos chamados criados a partir de 01.01.2026.
+    Chamados retroativos (antes de 01.01.2026) são IGNORADOS no SLA.
+
+    Fluxo:
+    1. Filtra chamados com data_abertura >= 01.01.2026
+    2. Calcula SLA de cada um uma única vez
+    3. Preenche cache completamente
+    4. Pronto! Sistema aguarda mudanças de status
+
     Depois, o sistema só recalculará quando um chamado for modificado.
     """
     db = SessionLocal()
@@ -81,7 +89,10 @@ def init_sla_system():
 def recalculate_chamado_sla(db: Session, chamado_id: int):
     """
     Recalcula SLA de um chamado específico (quando seu status muda).
-    
+
+    IMPORTANTE: SÓ recalcula chamados criados a partir de 01.01.2026.
+    Chamados retroativos (antes de 01.01.2026) são ignorados.
+
     Uso:
         # Em um endpoint de atualização de chamado
         @router.put("/chamados/{chamado_id}/status")
@@ -90,21 +101,29 @@ def recalculate_chamado_sla(db: Session, chamado_id: int):
             chamado.status = novo_status
             db.add(chamado)
             db.flush()
-            
-            # Recalcula SLA deste chamado
+
+            # Recalcula SLA deste chamado (se for >= 01.01.2026)
             recalculate_chamado_sla(db, chamado_id)
-            
+
             db.commit()
             return chamado
     """
+    from datetime import datetime
+
     try:
         # Busca o chamado
         chamado = db.query(Chamado).filter(Chamado.id == chamado_id).first()
-        
+
         if not chamado:
             logger.warning(f"⚠️  Chamado {chamado_id} não encontrado")
             return
-        
+
+        # Verifica se é retroativo (antes de 01.01.2026)
+        sla_start_date = datetime(2026, 1, 1, 0, 0, 0)
+        if chamado.data_abertura < sla_start_date:
+            logger.debug(f"⏭️  Chamado {chamado.codigo} (ID: {chamado_id}) é retroativo. Ignorando SLA.")
+            return
+
         logger.debug(f"🔄 Recalculando SLA do chamado {chamado.codigo} (ID: {chamado_id})...")
         
         # Calcula o SLA deste chamado
