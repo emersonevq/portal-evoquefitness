@@ -411,19 +411,24 @@ class MetricsCalculator:
 
             # ===== TEMPO MÉDIO DE RESOLUÇÃO =====
             tempos_resolucao = []
+            chamados_com_resolucao = 0
             for chamado in chamados_30dias:
                 if chamado.data_conclusao and chamado.data_abertura:
                     delta = chamado.data_conclusao - chamado.data_abertura
                     horas = delta.total_seconds() / 3600
                     tempos_resolucao.append(horas)
+                    chamados_com_resolucao += 1
 
             tempo_resolucao_medio = sum(tempos_resolucao) / len(tempos_resolucao) if tempos_resolucao else 0
             horas = int(tempo_resolucao_medio)
             minutos = int((tempo_resolucao_medio - horas) * 60)
             tempo_resolucao_str = f"{horas}h {minutos}m" if minutos > 0 else f"{horas}h" if horas > 0 else "—"
 
+            print(f"[METRICS] Tempo Resolução: {chamados_com_resolucao} chamados com conclusão, média={tempo_resolucao_str}")
+
             # ===== TEMPO MÉDIO DE PRIMEIRA RESPOSTA =====
             tempos_primeira_resposta = []
+            chamados_com_resposta = 0
             for chamado in chamados_30dias:
                 if chamado.data_primeira_resposta and chamado.data_abertura:
                     delta = chamado.data_primeira_resposta - chamado.data_abertura
@@ -431,6 +436,7 @@ class MetricsCalculator:
                     # Filtro de sanidade: máximo 72h
                     if 0 <= horas <= 72:
                         tempos_primeira_resposta.append(horas)
+                        chamados_com_resposta += 1
 
             tempo_primeira_resposta_medio = sum(tempos_primeira_resposta) / len(tempos_primeira_resposta) if tempos_primeira_resposta else 0
 
@@ -441,6 +447,8 @@ class MetricsCalculator:
                 tempo_primeira_resposta_str = f"{hrs}h {mins}m" if mins > 0 else f"{hrs}h"
             else:
                 tempo_primeira_resposta_str = "—"
+
+            print(f"[METRICS] Primeira Resposta: {chamados_com_resposta} chamados com resposta, média={tempo_primeira_resposta_str}")
 
             # ===== TAXA DE REABERTURAS =====
             chamados_reaberlos = 0
