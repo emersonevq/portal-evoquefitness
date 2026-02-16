@@ -22,7 +22,6 @@ import uuid
 from sqlalchemy.orm import Session
 from core.db import get_db, engine
 from ti.models.media import Media
-from ti.scripts.create_performance_indices import create_indices
 
 # Verificar configuração de email do Graph
 try:
@@ -42,79 +41,6 @@ except Exception as e:
 
 # Create the FastAPI application (HTTP)
 _http = FastAPI(title="Evoque API - TI", version="1.0.0")
-
-# Criar índices de performance na inicialização
-try:
-    create_indices()
-except Exception as e:
-    print(f"⚠️  Erro ao criar índices de performance: {e}")
-
-# Criar tabela de cache de métricas na inicialização
-try:
-    from ti.scripts.create_metrics_cache_table import create_metrics_cache_table
-    create_metrics_cache_table()
-    print("✅ Tabela metrics_cache_db criada com sucesso")
-except Exception as e:
-    print(f"⚠️  Erro ao criar tabela metrics_cache_db: {e}")
-
-
-# Limpar estado de migrações anteriores que falharam
-try:
-    from ti.scripts.cleanup_migration_state import cleanup_migration_state
-    cleanup_migration_state()
-    print("✅ Limpeza de estado de migração concluída")
-except Exception as e:
-    print(f"⚠️  Aviso ao limpar estado: {e}")
-
-# Executar migração do historico_status na inicialização
-try:
-    from ti.scripts.migrate_historico_status import migrate_historico_status
-    migrate_historico_status()
-    print("✅ Migração historico_status executada com sucesso")
-except Exception as e:
-    print(f"⚠️  Erro ao migrar historico_status: {e}")
-
-# Criar tabela de configurações de notificações na inicialização
-try:
-    from ti.scripts.setup_notification_settings import create_notification_settings_table
-    create_notification_settings_table()
-except Exception as e:
-    print(f"⚠️  Erro ao criar tabela notification_settings: {e}")
-
-# Adicionar coluna retroativo se não existir
-try:
-    from ti.scripts.add_retroativo_column import add_retroativo_column
-    add_retroativo_column()
-except Exception as e:
-    print(f"⚠️  Erro ao adicionar coluna retroativo: {e}")
-
-# Restaurar status original dos chamados retroativos a partir do histórico
-try:
-    from ti.scripts.restore_retroativo_status import restore_retroativo_status
-    restore_retroativo_status()
-except Exception as e:
-    print(f"⚠️  Erro ao restaurar status dos chamados retroativos: {e}")
-
-# Marcar todos os chamados retroativos no banco de dados
-try:
-    from ti.scripts.mark_all_retroativo import mark_retroativo_tickets
-    mark_retroativo_tickets()
-except Exception as e:
-    print(f"⚠️  Erro ao marcar chamados retroativos: {e}")
-
-# Limpar cache de métricas para recalcular com filtro SLA
-try:
-    from ti.scripts.clear_metrics_cache import clear_metrics_cache as clear_cache
-    clear_cache()
-except Exception as e:
-    print(f"⚠️  Erro ao limpar cache de métricas: {e}")
-
-# Executar migração automática de status de chamados na inicialização
-try:
-    from ti.scripts.auto_migrate_status_values import auto_migrate_status_values
-    auto_migrate_status_values()
-except Exception as e:
-    print(f"⚠️  Erro na migração automática de status: {e}")
 
 # Static uploads mount
 _base_dir = Path(__file__).resolve().parent
