@@ -159,6 +159,7 @@ def criar_usuario(db: Session, payload: UserCreate) -> UserCreatedOut:
         _setores=setores_json,
         _bi_subcategories=bi_subcategories_json,
         bloqueado=payload.bloqueado,
+        email_verified=False,
         auth0_id=auth0_id,
     )
     db.add(novo)
