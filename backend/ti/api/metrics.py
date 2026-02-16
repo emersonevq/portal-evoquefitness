@@ -40,34 +40,65 @@ def get_realtime_metrics(db: Session = Depends(get_db)):
 @router.get("/dashboard/basic")
 def get_basic_metrics(start_date: str = "", end_date: str = "", db: Session = Depends(get_db)):
     """
-    Retorna métricas básicas do dashboard.
+    Retorna métricas básicas do dashboard com dados agregados.
 
     Query params:
     - start_date: Data inicial (formato: YYYY-MM-DD, opcional)
     - end_date: Data final (formato: YYYY-MM-DD, opcional)
 
-    Se as datas não forem fornecidas, retorna as métricas padrão (realtime).
+    Se as datas não forem fornecidas, retorna as métricas padrão (realtime + 30 dias).
     """
-    from datetime import datetime
+    from datetime import datetime, timedelta
 
-    # Se datas não forem fornecidas, retorna o padrão
-    if not start_date or not end_date:
-        return get_realtime_metrics(db)
-
-    # Se datas forem fornecidas, validar
     try:
-        start = datetime.strptime(start_date, "%Y-%m-%d")
-        end = datetime.strptime(end_date, "%Y-%m-%d")
-    except ValueError:
+        realtime = get_realtime_metrics(db)
+
+        # Calcular chamados concluídos nos últimos 30 dias
+        agora = now_brazil_naive()
+        trinta_dias_atras = agora - timedelta(days=30)
+
+        from ti.models.chamado import Chamado
+        from sqlalchemy import and_
+
+        chamados_concluidos_30d = db.query(Chamado).filter(
+            and_(
+                Chamado.data_conclusao >= trinta_dias_atras,
+                Chamado.data_conclusao <= agora,
+                Chamado.status == "Concluído"
+            )
+        ).count()
+
+        chamados_em_andamento = db.query(Chamado).filter(
+            Chamado.status == "Em andamento"
+        ).count()
+
+        # Chamados em risco: abertos há mais de 5 dias
+        limite_risco = agora - timedelta(days=5)
+        chamados_em_risco = db.query(Chamado).filter(
+            and_(
+                Chamado.data_abertura < limite_risco,
+                Chamado.status.in_(["Aberto", "Em andamento", "Em análise"])
+            )
+        ).count()
+
+        return {
+            "chamados_hoje": realtime["chamados_hoje"],
+            "comparacao_ontem": realtime["comparacao_ontem"],
+            "abertos_agora": realtime["abertos_agora"],
+            "concluidos": chamados_concluidos_30d,
+            "em_andamento": chamados_em_andamento,
+            "em_risco": chamados_em_risco,
+            "timestamp": now_brazil_naive().isoformat(),
+        }
+    except Exception as e:
+        print(f"[ERROR] Erro ao calcular métricas básicas: {e}")
+        import traceback
+        traceback.print_exc()
         from fastapi import HTTPException
         raise HTTPException(
-            status_code=400,
-            detail="Datas devem estar no formato YYYY-MM-DD"
+            status_code=500,
+            detail=f"Erro ao calcular métricas básicas: {str(e)}"
         )
-
-    # Retornar métricas padrão (realtime) para manter compatibilidade
-    # Os dados filtrados por período serão puxados dos gráficos específicos
-    return get_realtime_metrics(db)
 
 
 
