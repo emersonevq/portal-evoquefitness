@@ -172,6 +172,23 @@ def criar_usuario(db: Session, payload: UserCreate) -> UserCreatedOut:
     if not user_nome:
         user_nome = novo.email.split("@")[0] if novo.email else novo.usuario
 
+    # Parse setores from JSON string to list
+    setores_list = None
+    if novo._setores:
+        try:
+            raw = json.loads(novo._setores)
+            setores_list = [_denormalize_sector(str(x)) if x is not None else "" for x in raw]
+        except Exception:
+            setores_list = None
+
+    # Parse bi_subcategories from JSON string to list
+    bi_subcategories_list = None
+    if novo._bi_subcategories:
+        try:
+            bi_subcategories_list = json.loads(novo._bi_subcategories)
+        except Exception:
+            bi_subcategories_list = None
+
     return UserCreatedOut(
         id=novo.id,
         nome=user_nome,
@@ -180,8 +197,8 @@ def criar_usuario(db: Session, payload: UserCreate) -> UserCreatedOut:
         email=novo.email,
         nivel_acesso=novo.nivel_acesso,
         setor=novo.setor,
-        setores=novo._setores,
-        bi_subcategories=novo._bi_subcategories,
+        setores=setores_list,
+        bi_subcategories=bi_subcategories_list,
         bloqueado=novo.bloqueado,
         senha=generated_password,
         auth0_id=auth0_id,
