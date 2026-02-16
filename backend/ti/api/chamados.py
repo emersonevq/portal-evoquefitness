@@ -45,17 +45,17 @@ def _normalize_status(s: str) -> str:
         "emandamento": "Em andamento",
         "em_andamento": "Em andamento",
         "aguardando": "Em andamento",
-        "em análise": "Em análise",
-        "em analise": "Em análise",
-        "emanalise": "Em análise",
-        "em_analise": "Em análise",
-        "em_análise": "Em análise",
-        "analise": "Em análise",
-        "análise": "Em análise",
+        "aguardando": "Aguardando",
+        "analise": "Aguardando",
+        "emanalise": "Aguardando",
+        "em_analise": "Aguardando",
+        "em_análise": "Aguardando",
+        "analise": "Aguardando",
+        "análise": "Aguardando",
         "concluído": "Concluído",
         "concluido": "Concluído",
         "finalizado": "Concluído",
-        "cancelado": "Cancelado",
+        "expirado": "Expirado",
     }
     
     if s_lower in mapping_lower:
@@ -681,7 +681,7 @@ def atualizar_status(chamado_id: int, payload: ChamadoStatusUpdate, db: Session 
         db.refresh(ch)
 
         # DECREMENTAR CONTADOR DE HOJE SE CANCELADO
-        if novo == "Cancelado" and prev != "Cancelado":
+        if novo == "Expirado" and prev != "Expirado":
             from ti.services.cache_manager_incremental import ChamadosTodayCounter
             ChamadosTodayCounter.decrement(db, 1)
 
@@ -886,7 +886,7 @@ def deletar_chamado(chamado_id: int, payload: ChamadoDeleteRequest = Body(...), 
         print(f"[SOFT DELETE] Chamado {chamado_id} marcado como deletado")
 
         # Decrementar contador se o chamado não estava cancelado
-        if chamado_info['status'] != "Cancelado":
+        if chamado_info['status'] != "Expirado":
             try:
                 from ti.services.cache_manager_incremental import ChamadosTodayCounter
                 ChamadosTodayCounter.decrement(db, 1)

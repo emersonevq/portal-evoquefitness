@@ -117,9 +117,9 @@ const colorStyles = {
 const STATUS_OPTIONS = [
   "Aberto",
   "Em andamento",
-  "Em análise",
+  "Aguardando",
   "Concluído",
-  "Cancelado",
+  "Expirado",
 ] as const;
 
 export default function Overview() {
@@ -630,12 +630,12 @@ export default function Overview() {
                     name="Em andamento"
                   />
                 )}
-                {selectedStatuses.includes("Em análise") && (
+                {selectedStatuses.includes("Aguardando") && (
                   <Bar
-                    dataKey="em_analise"
+                    dataKey="aguardando"
                     fill="#8b5cf6"
                     radius={[8, 8, 0, 0]}
-                    name="Em análise"
+                    name="Aguardando"
                   />
                 )}
                 {selectedStatuses.includes("Concluído") && (
@@ -646,12 +646,12 @@ export default function Overview() {
                     name="Concluído"
                   />
                 )}
-                {selectedStatuses.includes("Cancelado") && (
+                {selectedStatuses.includes("Expirado") && (
                   <Bar
-                    dataKey="cancelado"
+                    dataKey="expirado"
                     fill="#ef4444"
                     radius={[8, 8, 0, 0]}
-                    name="Cancelado"
+                    name="Expirado"
                   />
                 )}
               </BarChart>
@@ -707,12 +707,12 @@ export default function Overview() {
                     name="Em andamento"
                   />
                 )}
-                {selectedStatuses.includes("Em análise") && (
+                {selectedStatuses.includes("Aguardando") && (
                   <Bar
-                    dataKey="em_analise"
+                    dataKey="aguardando"
                     fill="#8b5cf6"
                     radius={[8, 8, 0, 0]}
-                    name="Em análise"
+                    name="Aguardando"
                   />
                 )}
                 {selectedStatuses.includes("Concluído") && (
@@ -723,12 +723,12 @@ export default function Overview() {
                     name="Concluído"
                   />
                 )}
-                {selectedStatuses.includes("Cancelado") && (
+                {selectedStatuses.includes("Expirado") && (
                   <Bar
-                    dataKey="cancelado"
+                    dataKey="expirado"
                     fill="#ef4444"
                     radius={[8, 8, 0, 0]}
-                    name="Cancelado"
+                    name="Expirado"
                   />
                 )}
               </BarChart>
@@ -781,12 +781,12 @@ export default function Overview() {
                   name="Em andamento"
                 />
               )}
-              {selectedStatuses.includes("Em análise") && (
+              {selectedStatuses.includes("Aguardando") && (
                 <Bar
-                  dataKey="em_analise"
+                  dataKey="aguardando"
                   fill="#8b5cf6"
                   radius={[8, 8, 0, 0]}
-                  name="Em análise"
+                  name="Aguardando"
                 />
               )}
               {selectedStatuses.includes("Concluído") && (
@@ -797,12 +797,12 @@ export default function Overview() {
                   name="Concluído"
                 />
               )}
-              {selectedStatuses.includes("Cancelado") && (
+              {selectedStatuses.includes("Expirado") && (
                 <Bar
-                  dataKey="cancelado"
+                  dataKey="expirado"
                   fill="#ef4444"
                   radius={[8, 8, 0, 0]}
-                  name="Cancelado"
+                  name="Expirado"
                 />
               )}
             </BarChart>

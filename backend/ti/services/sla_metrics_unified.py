@@ -95,7 +95,7 @@ class UnifiedSLAMetricsCalculator:
                     Chamado.data_abertura >= start_date,
                     Chamado.data_abertura <= end_date,
                     Chamado.data_abertura >= data_limite_30d,  # Filtro de 30 dias
-                    Chamado.status != "Cancelado",
+                    Chamado.status != "Expirado",
                     Chamado.data_primeira_resposta.isnot(None)
                 )
             ).order_by(Chamado.id)
@@ -268,7 +268,7 @@ class UnifiedSLAMetricsCalculator:
             data_limite_30d = agora - timedelta(days=30)
             query_ativos = db.query(Chamado).filter(
                 and_(
-                    Chamado.status.notin_(["Concluido", "Cancelado"]),
+                    Chamado.status.notin_(["Concluido", "Expirado"]),
                     Chamado.data_abertura >= data_limite_30d
                 )
             ).order_by(Chamado.id)

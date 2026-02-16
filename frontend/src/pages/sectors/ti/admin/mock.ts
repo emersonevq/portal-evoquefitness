@@ -1,9 +1,9 @@
 export type TicketStatus =
   | "ABERTO"
   | "EM_ANDAMENTO"
-  | "EM_ANALISE"
+  | "AGUARDANDO"
   | "CONCLUIDO"
-  | "CANCELADO";
+  | "EXPIRADO";
 
 export interface TicketMock {
   id: string;
@@ -28,9 +28,9 @@ export const ticketsMock: TicketMock[] = Array.from({ length: 24 }).map(
     const statuses: TicketStatus[] = [
       "ABERTO",
       "EM_ANDAMENTO",
-      "EM_ANALISE",
+      "AGUARDANDO",
       "CONCLUIDO",
-      "CANCELADO",
+      "EXPIRADO",
     ];
     const cats = [
       "Internet",

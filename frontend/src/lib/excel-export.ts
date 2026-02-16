@@ -49,7 +49,7 @@ const THEME_COLORS = {
       background: "FFFFEAA7", // Amarelo claro
       text: "FFD68910",        // Amarelo escuro
     },
-    cancelado: {
+    expirado: {
       background: "FFF8D7DA", // Vermelho claro
       text: "FF721C24",        // Vermelho escuro
     },
@@ -304,7 +304,7 @@ function createTicketsSheet(workbook: ExcelJS.Workbook, data: ReportData) {
             statusStyle = THEME_COLORS.status.concluido;
           } else if (statusLower.includes("aberto") || statusLower.includes("andamento") || statusLower.includes("atendimento") || statusLower.includes("pendente") || statusLower.includes("aguardando")) {
             statusStyle = THEME_COLORS.status.aberto;
-          } else if (statusLower.includes("cancelado")) {
+          } else if (statusLower.includes("expirado")) {
             statusStyle = THEME_COLORS.status.cancelado;
           }
 

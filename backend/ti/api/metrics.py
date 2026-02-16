@@ -85,7 +85,7 @@ def get_basic_metrics(range: str = "30d", start_date: str = "", end_date: str = 
         chamados_hoje = db.query(Chamado).filter(
             and_(
                 Chamado.data_abertura >= hoje_inicio,
-                Chamado.status != "Cancelado"
+                Chamado.status != "Expirado"
             )
         ).count()
 
@@ -93,7 +93,7 @@ def get_basic_metrics(range: str = "30d", start_date: str = "", end_date: str = 
             and_(
                 Chamado.data_abertura >= ontem_inicio,
                 Chamado.data_abertura < ontem_fim,
-                Chamado.status != "Cancelado"
+                Chamado.status != "Expirado"
             )
         ).count()
 
@@ -133,7 +133,7 @@ def get_basic_metrics(range: str = "30d", start_date: str = "", end_date: str = 
                 Chamado.data_abertura >= data_inicio,
                 Chamado.data_abertura <= data_fim,
                 Chamado.data_abertura < limite_risco,
-                Chamado.status.in_(["Aberto", "Em andamento", "Em análise"])
+                Chamado.status.in_(["Aberto", "Em andamento", "Aguardando"])
             )
         ).count()
 
@@ -141,7 +141,7 @@ def get_basic_metrics(range: str = "30d", start_date: str = "", end_date: str = 
         abertos_agora = db.query(Chamado).filter(
             and_(
                 Chamado.status != "Concluido",
-                Chamado.status != "Cancelado"
+                Chamado.status != "Expirado"
             )
         ).count()
 
