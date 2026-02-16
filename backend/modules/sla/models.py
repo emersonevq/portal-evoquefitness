@@ -28,7 +28,7 @@ class StatusChamado(str, enum.Enum):
     EM_ATENDIMENTO = "Em atendimento"
     AGUARDANDO = "Aguardando"
     EM_ANALISE = "Em análise"
-    CANCELADO = "Cancelado"
+    CANCELADO = "Expirado"
     CONCLUIDO = "Concluído"
 
 

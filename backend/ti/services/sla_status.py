@@ -54,7 +54,7 @@ class SLAStatusDeterminer:
     PAUSED_STATUSES = {"Aguardando", "Aguardando Cliente"}
     
     # Status de chamado que indicam encerramento
-    CLOSED_STATUSES = {"Concluído", "Concluido", "Cancelado"}
+    CLOSED_STATUSES = {"Concluído", "Concluido", "Expirado"}
     
     @staticmethod
     def determine_status(

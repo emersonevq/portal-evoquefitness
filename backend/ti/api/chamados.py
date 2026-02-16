@@ -30,7 +30,7 @@ router = APIRouter(prefix="/chamados", tags=["TI - Chamados"])
 def _normalize_status(s: str) -> str:
     """
     Normaliza o status para o formato padrão.
-    Formatos aceitos: Aberto, Em andamento, Em análise, Concluído, Cancelado
+    Formatos aceitos: Aberto, Em atendimento, Aguardando, Concluído, Expirado
     """
     if not s:
         return "Aberto"
@@ -41,21 +41,20 @@ def _normalize_status(s: str) -> str:
     # Mapeamento direto baseado em lowercase
     mapping_lower = {
         "aberto": "Aberto",
-        "em andamento": "Em andamento",
-        "emandamento": "Em andamento",
-        "em_andamento": "Em andamento",
-        "aguardando": "Em andamento",
-        "em análise": "Em análise",
-        "em analise": "Em análise",
-        "emanalise": "Em análise",
-        "em_analise": "Em análise",
-        "em_análise": "Em análise",
-        "analise": "Em análise",
-        "análise": "Em análise",
+        "em andamento": "Em atendimento",
+        "emandamento": "Em atendimento",
+        "em_atendimento": "Em atendimento",
+        "aguardando": "Aguardando",
+        "analise": "Aguardando",
+        "emanalise": "Aguardando",
+        "em_analise": "Aguardando",
+        "em_análise": "Aguardando",
+        "análise": "Aguardando",
         "concluído": "Concluído",
         "concluido": "Concluído",
         "finalizado": "Concluído",
-        "cancelado": "Cancelado",
+        "expirado": "Expirado",
+        "cancelado": "Expirado",
     }
     
     if s_lower in mapping_lower:
@@ -94,19 +93,29 @@ def listar_chamados(db: Session = Depends(get_db), after_date: str = None):
         except Exception:
             pass
         try:
+            from datetime import datetime
+
             query = db.query(Chamado).filter(Chamado.deletado_em.is_(None))
 
             # Aplicar filtro de data se fornecido
             if after_date:
                 try:
-                    from datetime import datetime
                     date_obj = datetime.strptime(after_date, "%Y-%m-%d")
                     query = query.filter(Chamado.data_abertura >= date_obj)
                 except ValueError:
                     # Ignorar filtro se formato inválido
                     pass
 
-            return query.order_by(Chamado.id.desc()).all()
+            chamados = query.order_by(Chamado.id.desc()).all()
+
+            # Marcar tickets retroativos como Expirado na resposta
+            sla_start_date = datetime(2026, 1, 1, 0, 0, 0)
+            for chamado in chamados:
+                if chamado.data_abertura and chamado.data_abertura < sla_start_date and chamado.status != "Expirado":
+                    # Marca temporariamente como Expirado na resposta (não persiste no banco)
+                    chamado.status = "Expirado"
+
+            return chamados
         except Exception:
             return []
     except Exception as e:
@@ -681,7 +690,7 @@ def atualizar_status(chamado_id: int, payload: ChamadoStatusUpdate, db: Session 
         db.refresh(ch)
 
         # DECREMENTAR CONTADOR DE HOJE SE CANCELADO
-        if novo == "Cancelado" and prev != "Cancelado":
+        if novo == "Expirado" and prev != "Expirado":
             from ti.services.cache_manager_incremental import ChamadosTodayCounter
             ChamadosTodayCounter.decrement(db, 1)
 
@@ -886,7 +895,7 @@ def deletar_chamado(chamado_id: int, payload: ChamadoDeleteRequest = Body(...), 
         print(f"[SOFT DELETE] Chamado {chamado_id} marcado como deletado")
 
         # Decrementar contador se o chamado não estava cancelado
-        if chamado_info['status'] != "Cancelado":
+        if chamado_info['status'] != "Expirado":
             try:
                 from ti.services.cache_manager_incremental import ChamadosTodayCounter
                 ChamadosTodayCounter.decrement(db, 1)
@@ -1070,7 +1079,7 @@ def get_attended_tickets_report(start_date: str = "", end_date: str = "", db: Se
             start = start.replace(hour=0, minute=0, second=0, microsecond=0)
 
         # Buscar TODOS os chamados abertos no período (por data de abertura)
-        # Inclui: Aberto, Em andamento, Em análise, Concluído, Cancelado
+        # Inclui: Aberto, Em atendimento, Aguardando, Concluído, Expirado
         print(f"[REPORT] Datas recebidas: start_date='{start_date}' end_date='{end_date}'")
         print(f"[REPORT] Datas convertidas: {start} a {end}")
         print(f"[REPORT] Comparação de tipos: start type={type(start)}, end type={type(end)}")

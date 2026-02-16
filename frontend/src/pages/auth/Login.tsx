@@ -86,7 +86,7 @@ export default function Login() {
                     alt="Auth0"
                     className="w-4 h-4 object-contain"
                   />
-                  <span>Entrar com Auth0</span>
+                  <span>Entrar com e-mail corporativo</span>
                   <LogIn className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </>
               )}

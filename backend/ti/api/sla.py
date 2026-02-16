@@ -424,14 +424,14 @@ def recalcular_sla_painel(db: Session = Depends(get_db)):
                 "total_recalculados": 0,
                 "em_dia": 0,
                 "vencidos": 0,
-                "em_andamento": 0,
+                "em_atendimento": 0,
                 "congelados": 0,
                 "erros": 0,
             }
 
             chamados = db_session.query(Chamado).filter(
                 and_(
-                    Chamado.status != "Cancelado",
+                    Chamado.status != "Expirado",
                     Chamado.status != "Concluído"
                 )
             ).all()
@@ -483,7 +483,7 @@ def recalcular_sla_painel(db: Session = Depends(get_db)):
                 elif status_sla in ["violado", "vencido_ativo"]:
                     stats["vencidos"] += 1
                 elif status_sla == "proximo_vencer":
-                    stats["em_andamento"] += 1
+                    stats["em_atendimento"] += 1
                 elif status_sla == "pausado":
                     stats["congelados"] += 1
 
@@ -513,7 +513,7 @@ def recalcular_sla_painel(db: Session = Depends(get_db)):
                     "total_recalculados": stats.get("total_recalculados"),
                     "em_dia": stats.get("em_dia"),
                     "vencidos": stats.get("vencidos"),
-                    "em_andamento": stats.get("em_andamento"),
+                    "em_atendimento": stats.get("em_atendimento"),
                     "congelados": stats.get("congelados"),
                     "timestamp": now_brazil_naive().isoformat(),
                 })
@@ -732,7 +732,7 @@ def recalcular_sla_p90(db: Session = Depends(get_db)):
 
     Lógica:
     1. Busca todos os chamados fechados (concluído/cancelado) dos últimos 30 dias
-    2. Calcula tempo de resposta (primeira mudança de status) descontando "Em análise"
+    2. Calcula tempo de resposta (primeira mudança de status) descontando "Aguardando"
     3. Calcula tempo de resolução (até concluído/cancelado)
     4. Calcula P90 para ambos
     5. Atualiza configurações de SLA com os novos tempos
@@ -1100,7 +1100,7 @@ def analisar_p90_recomendado(db: Session = Depends(get_db)):
                 Chamado.data_abertura >= data_inicio,
                 Chamado.data_abertura <= agora,
                 Chamado.deletado_em.is_(None),
-                Chamado.status.in_(["Concluído", "Cancelado"]),
+                Chamado.status.in_(["Concluído", "Expirado"]),
                 or_(Chamado.data_conclusao.isnot(None), Chamado.cancelado_em.isnot(None))
             ]
 

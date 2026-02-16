@@ -12,7 +12,7 @@ interface SyncStats {
   atualizados?: number;
   em_dia?: number;
   vencidos?: number;
-  em_andamento?: number;
+  em_atendimento?: number;
   congelados?: number;
   erros?: number;
 }
@@ -212,11 +212,11 @@ export function SLASync() {
               </div>
             )}
 
-            {stats.em_andamento !== undefined && (
+            {stats.em_atendimento !== undefined && (
               <div className="space-y-1">
                 <p className="text-xs text-muted-foreground">Em Andamento</p>
                 <p className="text-2xl font-bold text-amber-600">
-                  {stats.em_andamento}
+                  {stats.em_atendimento}
                 </p>
               </div>
             )}

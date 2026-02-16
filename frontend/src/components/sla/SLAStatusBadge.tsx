@@ -1,7 +1,7 @@
 import { AlertCircle, CheckCircle2, Clock } from "lucide-react";
 
 interface SLAStatusBadgeProps {
-  status: "ok" | "vencido" | "em_andamento" | "congelado" | "sem_configuracao";
+  status: "ok" | "vencido" | "em_atendimento" | "congelado" | "sem_configuracao";
   tempoDecorrido: number;
   limiteHoras: number;
   tipo?: "resposta" | "resolucao";
@@ -28,7 +28,7 @@ export function SLAStatusBadge({
       icon: AlertCircle,
       label: "SLA Vencido",
     },
-    em_andamento: {
+    em_atendimento: {
       bg: "bg-amber-100 dark:bg-amber-900/30",
       text: "text-amber-700 dark:text-amber-300",
       border: "border-amber-200 dark:border-amber-800",
@@ -100,13 +100,13 @@ interface SLAStatusOverviewProps {
   statusResposta:
     | "ok"
     | "vencido"
-    | "em_andamento"
+    | "em_atendimento"
     | "congelado"
     | "sem_configuracao";
   statusResolucao:
     | "ok"
     | "vencido"
-    | "em_andamento"
+    | "em_atendimento"
     | "congelado"
     | "sem_configuracao";
   tempoRepostagem: number;

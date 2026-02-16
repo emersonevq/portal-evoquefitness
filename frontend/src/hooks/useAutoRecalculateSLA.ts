@@ -7,7 +7,7 @@ interface RecalculateStats {
   total_recalculados: number;
   em_dia: number;
   vencidos: number;
-  em_andamento: number;
+  em_atendimento: number;
   congelados: number;
   erros: number;
 }
@@ -42,7 +42,7 @@ export function useAutoRecalculateSLA() {
         total_recalculados: 0,
         em_dia: 0,
         vencidos: 0,
-        em_andamento: 0,
+        em_atendimento: 0,
         congelados: 0,
         erros: 0,
       };

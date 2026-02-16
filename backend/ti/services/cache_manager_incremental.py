@@ -169,7 +169,7 @@ class ChamadosTodayCounter:
             count = db.query(Chamado).filter(
                 and_(
                     Chamado.data_abertura >= hoje,
-                    Chamado.status != "Cancelado"
+                    Chamado.status != "Expirado"
                 )
             ).count()
 

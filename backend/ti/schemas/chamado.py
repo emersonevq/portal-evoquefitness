@@ -2,7 +2,7 @@ from __future__ import annotations
 from datetime import date, datetime
 from pydantic import BaseModel, EmailStr, Field
 
-ALLOWED_STATUSES = {"Aberto", "Em andamento", "Em análise", "Concluído", "Cancelado"}
+ALLOWED_STATUSES = {"Aberto", "Em atendimento", "Aguardando", "Concluído", "Expirado"}
 
 class ChamadoCreate(BaseModel):
     solicitante: str

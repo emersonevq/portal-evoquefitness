@@ -279,7 +279,7 @@ class SLAP90Incremental:
                     Chamado.data_abertura >= data_inicio,
                     Chamado.data_abertura <= agora,
                     Chamado.deletado_em.is_(None),
-                    Chamado.status.in_(["Concluído", "Cancelado"]),
+                    Chamado.status.in_(["Concluído", "Expirado"]),
                     Chamado.id > ultimo_id,
                     # Se houver reset, apenas chamados APÓS o reset
                     Chamado.data_abertura >= (config.ultimo_reset_em if config.ultimo_reset_em else data_inicio)

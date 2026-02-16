@@ -33,10 +33,10 @@ import { toast } from "@/hooks/use-toast";
 
 type TicketStatus =
   | "ABERTO"
-  | "EM_ATENDIMENTO"
-  | "AGUARDANDO"
+  | "EM_ANDAMENTO"
+  | "EM_ANALISE"
   | "CONCLUIDO"
-  | "EXPIRADO";
+  | "CANCELADO";
 
 interface UiTicket {
   id: string;
@@ -60,10 +60,10 @@ interface UiTicket {
 const statusMap = [
   { key: "todos", label: "Todos" },
   { key: "abertos", label: "Abertos" },
-  { key: "em-atendimento", label: "Em atendimento" },
-  { key: "aguardando", label: "Aguardando" },
+  { key: "em-andamento", label: "Em andamento" },
+  { key: "em-analise", label: "Em análise" },
   { key: "concluidos", label: "Concluídos" },
-  { key: "expirado", label: "Expirado" },
+  { key: "cancelados", label: "Cancelados" },
 ] as const;
 
 function SummaryCard({
@@ -87,9 +87,9 @@ function StatusPill({ status }: { status: TicketStatus }) {
   const styles =
     status === "ABERTO"
       ? "bg-cyan-100 text-cyan-700 dark:bg-cyan-900/20 dark:text-cyan-300"
-      : status === "EM_ATENDIMENTO"
+      : status === "EM_ANDAMENTO"
         ? "bg-amber-100 text-amber-700 dark:bg-amber-900/20 dark:text-amber-300"
-        : status === "AGUARDANDO"
+        : status === "EM_ANALISE"
           ? "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/20 dark:text-indigo-300"
           : status === "CONCLUIDO"
             ? "bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-300"
@@ -97,13 +97,13 @@ function StatusPill({ status }: { status: TicketStatus }) {
   const label =
     status === "ABERTO"
       ? "Aberto"
-      : status === "EM_ATENDIMENTO"
-        ? "Em atendimento"
-        : status === "AGUARDANDO"
-          ? "Aguardando"
+      : status === "EM_ANDAMENTO"
+        ? "Em andamento"
+        : status === "EM_ANALISE"
+          ? "Em análise"
           : status === "CONCLUIDO"
             ? "Concluído"
-            : "Expirado";
+            : "Cancelado";
   return (
     <span
       className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${styles}`}
@@ -175,9 +175,10 @@ function TicketCard({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="ABERTO">Aberto</SelectItem>
-              <SelectItem value="EM_ATENDIMENTO">Em atendimento</SelectItem>
-              <SelectItem value="AGUARDANDO">Em análise</SelectItem>
+              <SelectItem value="EM_ANDAMENTO">Em andamento</SelectItem>
+              <SelectItem value="EM_ANALISE">Em análise</SelectItem>
               <SelectItem value="CONCLUIDO">Concluído</SelectItem>
+              <SelectItem value="CANCELADO">Cancelado</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -272,10 +273,10 @@ export default function ChamadosPage() {
         .replace(/\p{Diacritic}/gu, "")
         .toUpperCase();
       const nn = n.replace(/\s+/g, "_");
-      if (nn === "EM_ATENDIMENTO") return "EM_ATENDIMENTO";
-      if (nn === "AGUARDANDO") return "AGUARDANDO";
+      if (nn === "EM_ANDAMENTO" || nn === "AGUARDANDO") return "EM_ANDAMENTO";
+      if (nn === "EM_ANALISE") return "EM_ANALISE";
       if (nn === "CONCLUIDO") return "CONCLUIDO";
-      if (nn === "EXPIRADO") return "EXPIRADO";
+      if (nn === "CANCELADO") return "CANCELADO";
       return "ABERTO";
     }
 
@@ -372,16 +373,16 @@ export default function ChamadosPage() {
                   ...it,
                   status: (() => {
                     const n = data.status?.toUpperCase();
-                    if (n === "EM_ATENDIMENTO") return "EM_ATENDIMENTO";
+                    if (n === "EM_ANDAMENTO") return "EM_ANDAMENTO";
                     if (
-                      n === "AGUARDANDO" ||
+                      n === "EM_ANALISE" ||
                       n === "EM ANÁLISE" ||
                       n === "EM ANALISE"
                     )
-                      return "AGUARDANDO";
+                      return "EM_ANALISE";
                     if (n === "CONCLUIDO" || n === "CONCLUÍDO")
                       return "CONCLUIDO";
-                    if (n === "EXPIRADO" || n === "CANCELADO") return "EXPIRADO";
+                    if (n === "CANCELADO") return "CANCELADO";
                     return "ABERTO";
                   })() as TicketStatus,
                 }
@@ -417,10 +418,9 @@ export default function ChamadosPage() {
     return {
       todos: baseItems.length,
       abertos: baseItems.filter((t) => t.status === "ABERTO").length,
-      atendimento: baseItems.filter((t) => t.status === "EM_ATENDIMENTO").length,
-      aguardando: baseItems.filter((t) => t.status === "AGUARDANDO").length,
+      aguardando: baseItems.filter((t) => t.status === "EM_ANDAMENTO").length,
       concluidos: baseItems.filter((t) => t.status === "CONCLUIDO").length,
-      expirado: baseItems.filter((t) => t.status === "EXPIRADO").length,
+      cancelados: baseItems.filter((t) => t.status === "CANCELADO").length,
     };
   }, [items, selectedUnidades, searchInputValue]);
 
@@ -455,17 +455,17 @@ export default function ChamadosPage() {
       case "abertos":
         filtered = filtered.filter((t) => t.status === "ABERTO");
         break;
-      case "em-atendimento":
-        filtered = filtered.filter((t) => t.status === "EM_ATENDIMENTO");
+      case "em-andamento":
+        filtered = filtered.filter((t) => t.status === "EM_ANDAMENTO");
         break;
-      case "aguardando":
-        filtered = filtered.filter((t) => t.status === "AGUARDANDO");
+      case "em-analise":
+        filtered = filtered.filter((t) => t.status === "EM_ANALISE");
         break;
       case "concluidos":
         filtered = filtered.filter((t) => t.status === "CONCLUIDO");
         break;
-      case "expirado":
-        filtered = filtered.filter((t) => t.status === "EXPIRADO");
+      case "cancelados":
+        filtered = filtered.filter((t) => t.status === "CANCELADO");
         break;
     }
 
@@ -709,7 +709,7 @@ export default function ChamadosPage() {
   return (
     <div className="space-y-4 flex flex-col h-full">
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 flex-shrink-0">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 flex-shrink-0">
         <SummaryCard
           title="Todos"
           value={counts.todos}
@@ -721,14 +721,9 @@ export default function ChamadosPage() {
           bgClass="bg-gradient-to-br from-orange-500 to-orange-400"
         />
         <SummaryCard
-          title="Em atendimento"
-          value={counts.atendimento}
-          bgClass="bg-gradient-to-br from-amber-500 to-amber-600"
-        />
-        <SummaryCard
-          title="Aguardando"
+          title="Em andamento"
           value={counts.aguardando}
-          bgClass="bg-gradient-to-br from-indigo-500 to-indigo-600"
+          bgClass="bg-gradient-to-br from-amber-500 to-amber-600"
         />
         <SummaryCard
           title="Concluídos"
@@ -736,8 +731,8 @@ export default function ChamadosPage() {
           bgClass="bg-gradient-to-br from-green-500 to-green-600"
         />
         <SummaryCard
-          title="Expirado"
-          value={counts.expirado}
+          title="Cancelados"
+          value={counts.cancelados}
           bgClass="bg-gradient-to-br from-red-500 to-red-700"
         />
       </div>
@@ -889,13 +884,13 @@ export default function ChamadosPage() {
                       const statusText =
                         sel === "ABERTO"
                           ? "Aberto"
-                          : sel === "EM_ATENDIMENTO"
-                            ? "Em atendimento"
-                            : sel === "AGUARDANDO"
-                              ? "Aguardando"
+                          : sel === "EM_ANDAMENTO"
+                            ? "Em andamento"
+                            : sel === "EM_ANALISE"
+                              ? "Em análise"
                               : sel === "CONCLUIDO"
                                 ? "Concluído"
-                                : "Expirado";
+                                : "Cancelado";
                       try {
                         const r = await apiFetch(`/chamados/${id}/status`, {
                           method: "PATCH",
@@ -1227,14 +1222,14 @@ export default function ChamadosPage() {
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="ABERTO">Aberto</SelectItem>
-                            <SelectItem value="EM_ATENDIMENTO">
-                              Em atendimento
+                            <SelectItem value="EM_ANDAMENTO">
+                              Em andamento
                             </SelectItem>
-                            <SelectItem value="AGUARDANDO">
-                              Aguardando
+                            <SelectItem value="EM_ANALISE">
+                              Em análise
                             </SelectItem>
                             <SelectItem value="CONCLUIDO">Concluído</SelectItem>
-                            <SelectItem value="EXPIRADO">Expirado</SelectItem>
+                            <SelectItem value="CANCELADO">Cancelado</SelectItem>
                           </SelectContent>
                         </Select>
                         <Button
@@ -1256,13 +1251,13 @@ export default function ChamadosPage() {
                             const statusText =
                               sel === "ABERTO"
                                 ? "Aberto"
-                                : sel === "EM_ATENDIMENTO"
-                                  ? "Em atendimento"
-                                  : sel === "AGUARDANDO"
-                                    ? "Aguardando"
+                                : sel === "EM_ANDAMENTO"
+                                  ? "Em andamento"
+                                  : sel === "EM_ANALISE"
+                                    ? "Em análise"
                                     : sel === "CONCLUIDO"
                                       ? "Concluído"
-                                      : "Expirado";
+                                      : "Cancelado";
                             try {
                               const r = await apiFetch(
                                 `/chamados/${selected.id}/status`,
@@ -1409,14 +1404,14 @@ export default function ChamadosPage() {
                             : "[Data de abertura]";
                           const statusChamado = (() => {
                             if (selected?.status === "ABERTO") return "Aberto";
-                            if (selected?.status === "EM_ATENDIMENTO")
-                              return "Em atendimento";
-                            if (selected?.status === "AGUARDANDO")
-                              return "Aguardando";
+                            if (selected?.status === "EM_ANDAMENTO")
+                              return "Em andamento";
+                            if (selected?.status === "EM_ANALISE")
+                              return "Em análise";
                             if (selected?.status === "CONCLUIDO")
                               return "Concluído";
-                            if (selected?.status === "EXPIRADO")
-                              return "Expirado";
+                            if (selected?.status === "CANCELADO")
+                              return "Cancelado";
                             return "[Status do chamado]";
                           })();
 

@@ -31,17 +31,17 @@ settings = SlaSettings()
 # Status mapeamento
 STATUS_SLA_MAPPING = {
     "Aberto": "ativo",              # ✅ Conta
-    "Em andamento": "ativo",        # ✅ Conta  
+    "Em atendimento": "ativo",        # ✅ Conta  
     "Em análise": "pausado",        # ⏸️ Pausado
     "Concluído": "finalizado",      # ⏹️ Finalizado
-    "Cancelado": "finalizado",      # ⏹️ Finalizado
+    "Expirado": "finalizado",      # ⏹️ Finalizado
 }
 
 # Estados que contam para SLA
-SLA_COUNTING_STATUSES = ["Aberto", "Em andamento"]
+SLA_COUNTING_STATUSES = ["Aberto", "Em atendimento"]
 
 # Estados que pausam o SLA
 SLA_PAUSED_STATUSES = ["Em análise"]
 
 # Estados que finalizam o SLA
-SLA_FINISHED_STATUSES = ["Concluído", "Cancelado"]
+SLA_FINISHED_STATUSES = ["Concluído", "Expirado"]

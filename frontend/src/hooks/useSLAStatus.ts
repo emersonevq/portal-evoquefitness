@@ -12,14 +12,14 @@ interface SLAStatus {
   tempo_resposta_status:
     | "ok"
     | "vencido"
-    | "em_andamento"
+    | "em_atendimento"
     | "congelado"
     | "sem_configuracao";
   tempo_resolucao_horas: number;
   tempo_resolucao_status:
     | "ok"
     | "vencido"
-    | "em_andamento"
+    | "em_atendimento"
     | "congelado"
     | "sem_configuracao";
   data_abertura: string | null;

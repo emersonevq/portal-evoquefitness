@@ -38,36 +38,131 @@ def get_realtime_metrics(db: Session = Depends(get_db)):
 
 
 @router.get("/dashboard/basic")
-def get_basic_metrics(start_date: str = "", end_date: str = "", db: Session = Depends(get_db)):
+def get_basic_metrics(range: str = "30d", start_date: str = "", end_date: str = "", db: Session = Depends(get_db)):
     """
-    Retorna métricas básicas do dashboard.
+    Retorna métricas básicas do dashboard com dados agregados, respeitando filtro de período.
 
     Query params:
-    - start_date: Data inicial (formato: YYYY-MM-DD, opcional)
-    - end_date: Data final (formato: YYYY-MM-DD, opcional)
+    - range: '7d', '30d', '90d' ou 'all' (padrão: '30d') - usado quando não há datas customizadas
+    - start_date: Data inicial (formato: YYYY-MM-DD, opcional) - sobrescreve range
+    - end_date: Data final (formato: YYYY-MM-DD, opcional) - sobrescreve range
 
-    Se as datas não forem fornecidas, retorna as métricas padrão (realtime).
+    Retorna métricas filtradas pelo período selecionado.
     """
-    from datetime import datetime
+    from datetime import datetime, timedelta
+    from ti.models.chamado import Chamado
+    from sqlalchemy import and_
 
-    # Se datas não forem fornecidas, retorna o padrão
-    if not start_date or not end_date:
-        return get_realtime_metrics(db)
-
-    # Se datas forem fornecidas, validar
     try:
-        start = datetime.strptime(start_date, "%Y-%m-%d")
-        end = datetime.strptime(end_date, "%Y-%m-%d")
-    except ValueError:
+        agora = now_brazil_naive()
+
+        # Determinar período baseado em range ou datas customizadas
+        if start_date and end_date:
+            try:
+                data_inicio = datetime.strptime(start_date, "%Y-%m-%d").replace(hour=0, minute=0, second=0, microsecond=0)
+                data_fim = datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59, microsecond=999999)
+            except ValueError:
+                from fastapi import HTTPException
+                raise HTTPException(status_code=400, detail="Datas devem estar no formato YYYY-MM-DD")
+        else:
+            # Mapear range para dias
+            range_map = {
+                "7d": 7,
+                "30d": 30,
+                "90d": 90,
+                "all": 365  # 1 ano como "todos os dados"
+            }
+            dias = range_map.get(range, 30)
+            data_inicio = agora - timedelta(days=dias)
+            data_fim = agora
+
+        # Para "hoje" usamos sempre o dia atual
+        hoje_inicio = agora.replace(hour=0, minute=0, second=0, microsecond=0)
+        ontem_inicio = (agora - timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
+        ontem_fim = hoje_inicio
+
+        # Métricas de hoje (sempre independente do filtro)
+        chamados_hoje = db.query(Chamado).filter(
+            and_(
+                Chamado.data_abertura >= hoje_inicio,
+                Chamado.status != "Expirado"
+            )
+        ).count()
+
+        chamados_ontem = db.query(Chamado).filter(
+            and_(
+                Chamado.data_abertura >= ontem_inicio,
+                Chamado.data_abertura < ontem_fim,
+                Chamado.status != "Expirado"
+            )
+        ).count()
+
+        if chamados_ontem == 0:
+            percentual = 0
+        else:
+            percentual = int(((chamados_hoje - chamados_ontem) / chamados_ontem) * 100)
+
+        comparacao_ontem = {
+            "hoje": chamados_hoje,
+            "ontem": chamados_ontem,
+            "percentual": percentual,
+            "direcao": "up" if percentual >= 0 else "down"
+        }
+
+        # Métricas filtradas pelo período selecionado
+        chamados_concluidos = db.query(Chamado).filter(
+            and_(
+                Chamado.data_conclusao >= data_inicio,
+                Chamado.data_conclusao <= data_fim,
+                Chamado.status == "Concluído"
+            )
+        ).count()
+
+        chamados_em_atendimento = db.query(Chamado).filter(
+            and_(
+                Chamado.data_abertura >= data_inicio,
+                Chamado.data_abertura <= data_fim,
+                Chamado.status == "Em atendimento"
+            )
+        ).count()
+
+        # Chamados em risco: abertos há mais de 5 dias E dentro do período
+        limite_risco = agora - timedelta(days=5)
+        chamados_em_risco = db.query(Chamado).filter(
+            and_(
+                Chamado.data_abertura >= data_inicio,
+                Chamado.data_abertura <= data_fim,
+                Chamado.data_abertura < limite_risco,
+                Chamado.status.in_(["Aberto", "Em atendimento", "Aguardando"])
+            )
+        ).count()
+
+        # Abertos agora (sempre, não filtra por período)
+        abertos_agora = db.query(Chamado).filter(
+            and_(
+                Chamado.status != "Concluído",
+                Chamado.status != "Expirado"
+            )
+        ).count()
+
+        return {
+            "chamados_hoje": chamados_hoje,
+            "comparacao_ontem": comparacao_ontem,
+            "abertos_agora": abertos_agora,
+            "concluidos": chamados_concluidos,
+            "em_atendimento": chamados_em_atendimento,
+            "em_risco": chamados_em_risco,
+            "timestamp": now_brazil_naive().isoformat(),
+        }
+    except Exception as e:
+        print(f"[ERROR] Erro ao calcular métricas básicas: {e}")
+        import traceback
+        traceback.print_exc()
         from fastapi import HTTPException
         raise HTTPException(
-            status_code=400,
-            detail="Datas devem estar no formato YYYY-MM-DD"
+            status_code=500,
+            detail=f"Erro ao calcular métricas básicas: {str(e)}"
         )
-
-    # Retornar métricas padrão (realtime) para manter compatibilidade
-    # Os dados filtrados por período serão puxados dos gráficos específicos
-    return get_realtime_metrics(db)
 
 
 
@@ -178,7 +273,7 @@ def get_chamados_por_dia(dias: int = 7, statuses: str = "", start_date: str = ""
 
     Query params:
     - dias: Número de dias (default: 7)
-    - statuses: Lista separada por vírgula (ex: "Aberto,Em andamento")
+    - statuses: Lista separada por vírgula (ex: "Aberto,Em atendimento")
     - start_date: Data inicial (formato: YYYY-MM-DD, opcional)
     - end_date: Data final (formato: YYYY-MM-DD, opcional)
 
@@ -215,7 +310,7 @@ def get_chamados_por_semana(semanas: int = 4, statuses: str = "", start_date: st
 
     Query params:
     - semanas: Número de semanas (default: 4)
-    - statuses: Lista separada por vírgula (ex: "Aberto,Em andamento")
+    - statuses: Lista separada por vírgula (ex: "Aberto,Em atendimento")
     - start_date: Data inicial (formato: YYYY-MM-DD, opcional)
     - end_date: Data final (formato: YYYY-MM-DD, opcional)
 
@@ -252,7 +347,7 @@ def get_chamados_por_mes(range: str = "30d", statuses: str = "", start_date: str
 
     Query params:
     - range: '7d', '30d', '90d' ou 'all' (padrão: '30d')
-    - statuses: Lista separada por vírgula (ex: "Aberto,Em andamento,Concluído")
+    - statuses: Lista separada por vírgula (ex: "Aberto,Em atendimento,Concluído")
                 Se vazio, mostra todos os status
     - start_date: Data inicial (formato: YYYY-MM-DD, opcional)
     - end_date: Data final (formato: YYYY-MM-DD, opcional)

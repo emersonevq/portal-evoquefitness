@@ -99,7 +99,7 @@ class SLARecalculator:
                     tempo_resolucao = resolucao_metric.get("tempo_decorrido_horas", 0.0)
 
                     # Coleta para média (apenas fechados para tempo de resposta/resolução definitivos)
-                    if chamado.status in ["Concluido", "Concluído", "Cancelado"]:
+                    if chamado.status in ["Concluido", "Concluído", "Expirado"]:
                         if tempo_resposta > 0:
                             tempos_resposta.append(tempo_resposta)
                         if tempo_resolucao > 0:
