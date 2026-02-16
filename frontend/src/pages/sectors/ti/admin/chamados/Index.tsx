@@ -464,7 +464,7 @@ export default function ChamadosPage() {
         filtered = filtered.filter((t) => t.status === "CONCLUIDO");
         break;
       case "expirado":
-        filtered = filtered.filter((t) => t.status === "EXPIRADO");
+        filtered = filtered.filter((t) => t.retroativo === true);
         break;
     }
 
