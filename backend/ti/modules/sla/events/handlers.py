@@ -5,8 +5,11 @@ Gerencia:
 - Mudanças de status de chamado
 - Inicialização de SLA
 - Transições de estados
+- Validação de data de corte (01-01-2026)
 """
 
+import logging
+from datetime import date, datetime
 from sqlalchemy.orm import Session
 from ti.models import Chamado
 from ti.modules.sla.services import (
@@ -24,6 +27,11 @@ from ti.modules.sla.utils import (
     is_status_ativo,
 )
 
+logger = logging.getLogger("sla.events")
+
+# Data de corte para SLA: 01 de janeiro de 2026
+SLA_CUTOFF_DATE = date(2026, 1, 1)
+
 class SlaEventHandlers:
     """Handlers de eventos de SLA"""
     
@@ -38,13 +46,38 @@ class SlaEventHandlers:
     def on_chamado_created(self, chamado: Chamado) -> None:
         """
         Handler para criação de chamado.
-        
+
         MOMENTO 1 - EVENTO:
+        - Valida data de corte (01-01-2026)
+        - Marca como retroativo se anterior à data de corte
         - Inicia SLA se não for retroativo
         """
+        # Valida data de corte
+        if chamado.data_abertura:
+            data_abertura = chamado.data_abertura
+            # Se for datetime, extrai a data
+            if isinstance(data_abertura, datetime):
+                data_abertura = data_abertura.date()
+
+            if data_abertura < SLA_CUTOFF_DATE:
+                logger.info(
+                    f"[SLA] Chamado {chamado.codigo} anterior à data de corte ({SLA_CUTOFF_DATE}). "
+                    f"Data de abertura: {data_abertura}. Marcado como retroativo."
+                )
+                chamado.retroativo = True
+                self.db.add(chamado)
+                self.db.commit()
+                return  # Ignora SLA para retroativos
+
+        # Se já estava marcado como retroativo, ignora
         if chamado.retroativo:
+            logger.debug(
+                f"[SLA] Chamado {chamado.codigo} marcado como retroativo. "
+                f"SLA não será calculado."
+            )
             return  # Ignora chamados retroativos
-        
+
+        logger.info(f"[SLA] Iniciando SLA para chamado {chamado.codigo}")
         self.tracker.iniciar_sla(chamado)
     
     def on_status_changed(

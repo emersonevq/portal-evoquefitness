@@ -409,6 +409,7 @@ app = _http
 # Register event loop for Socket.IO sync-to-async bridge
 import asyncio
 from core.realtime import set_event_loop
+from ti.modules.sla.scheduler import start_scheduler, stop_scheduler
 
 @_http.on_event("startup")
 async def startup_event():
@@ -420,9 +421,20 @@ async def startup_event():
     except Exception as e:
         print(f"[STARTUP] ⚠️  Failed to register event loop: {e}")
 
+    # Initialize SLA Scheduler
+    try:
+        print("[STARTUP] Inicializando scheduler de SLA...")
+        start_scheduler()
+    except Exception as e:
+        print(f"[STARTUP] ⚠️  Erro ao inicializar scheduler de SLA: {e}")
+
 
 
 @_http.on_event("shutdown")
 async def shutdown_event():
     """Shutdown event"""
-    pass
+    try:
+        print("[SHUTDOWN] Parando scheduler de SLA...")
+        stop_scheduler()
+    except Exception as e:
+        print(f"[SHUTDOWN] ⚠️  Erro ao parar scheduler de SLA: {e}")
