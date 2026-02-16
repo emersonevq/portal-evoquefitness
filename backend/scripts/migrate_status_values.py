@@ -14,19 +14,17 @@ Usage:
 import os
 import sys
 from datetime import datetime
-from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 
 # Add parent directory to path to import backend modules
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-from core.db import SQLALCHEMY_DATABASE_URL
+from core.db import engine
 from ti.models.chamado import Chamado
 
 def migrate_status_values():
     """Migrate old status values to new ones"""
 
-    engine = create_engine(SQLALCHEMY_DATABASE_URL)
     Session = sessionmaker(bind=engine)
     session = Session()
 

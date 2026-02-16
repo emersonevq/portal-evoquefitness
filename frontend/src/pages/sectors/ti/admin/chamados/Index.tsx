@@ -55,6 +55,7 @@ interface UiTicket {
   visita?: string | null;
   gerente?: string | null;
   descricao?: string | null;
+  retroativo?: boolean;
 }
 
 const statusMap = [
@@ -125,6 +126,7 @@ function TicketCard({
   onTicket,
   onUpdate,
   onDelete,
+  retroativo,
 }: {
   id: string;
   codigo: string;
@@ -137,12 +139,20 @@ function TicketCard({
   onTicket: () => void;
   onUpdate: (id: string, status: TicketStatus) => void;
   onDelete: (id: string) => void;
+  retroativo?: boolean;
 }) {
   const [sel, setSel] = useState<TicketStatus>(status);
   return (
     <div className="rounded-lg border border-border/60 bg-card overflow-hidden hover:shadow-md transition-all">
       <div className="px-3 py-2 border-b border-border/60 bg-muted/30 flex items-center justify-between">
-        <div className="font-semibold text-sm text-primary">{codigo}</div>
+        <div className="flex items-center gap-2">
+          <div className="font-semibold text-sm text-primary">{codigo}</div>
+          {retroativo && (
+            <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-300">
+              Retroativo
+            </span>
+          )}
+        </div>
         <StatusPill status={status} />
       </div>
 
@@ -301,6 +311,7 @@ export default function ChamadosPage() {
         visita: it.data_visita ?? null,
         gerente: null,
         descricao: it.descricao ?? null,
+        retroativo: it.retroativo ?? false,
       };
     }
 
@@ -322,15 +333,12 @@ export default function ChamadosPage() {
         visita: m.visita ?? null,
         gerente: m.gerente ?? null,
         descricao: (m as any).descricao ?? null,
+        retroativo: (m as any).retroativo ?? false,
       };
     }
 
-    // Calculate date 30 days ago for filtering
-    const now = new Date();
-    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-    const dateParam = thirtyDaysAgo.toISOString().split("T")[0]; // YYYY-MM-DD format
-
-    apiFetch(`/chamados?after_date=${dateParam}`)
+    // Fetch all chamados without date restriction to include expired retroactive tickets
+    apiFetch(`/chamados`)
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error("fail"))))
       .then((data) =>
         setItems(
@@ -420,7 +428,7 @@ export default function ChamadosPage() {
       atendimento: baseItems.filter((t) => t.status === "EM_ATENDIMENTO").length,
       aguardando: baseItems.filter((t) => t.status === "AGUARDANDO").length,
       concluidos: baseItems.filter((t) => t.status === "CONCLUIDO").length,
-      expirado: baseItems.filter((t) => t.status === "EXPIRADO").length,
+      expirado: baseItems.filter((t) => t.retroativo === true).length,
     };
   }, [items, selectedUnidades, searchInputValue]);
 
@@ -465,7 +473,7 @@ export default function ChamadosPage() {
         filtered = filtered.filter((t) => t.status === "CONCLUIDO");
         break;
       case "expirado":
-        filtered = filtered.filter((t) => t.status === "EXPIRADO");
+        filtered = filtered.filter((t) => t.retroativo === true);
         break;
     }
 

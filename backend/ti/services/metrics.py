@@ -28,11 +28,14 @@ class MetricsCalculator:
     def get_abertos_agora(db: Session) -> int:
         """
         Retorna quantidade de chamados ATIVOS (não concluídos nem expirados).
+        IMPORTANTE: Apenas conta chamados a partir de 01.01.2026 (SLA start date).
         Equivalente a "todos" na página de gerenciar chamados.
         """
         try:
+            sla_start_date = datetime(2026, 1, 1, 0, 0, 0)
             count = db.query(Chamado).filter(
                 and_(
+                    Chamado.data_abertura >= sla_start_date,
                     Chamado.status != "Concluido",
                     Chamado.status != "Expirado"
                 )
@@ -47,16 +50,19 @@ class MetricsCalculator:
 
     @staticmethod
     def get_tempo_medio_resposta_24h(db: Session) -> str:
-        """Calcula tempo médio de PRIMEIRA resposta das últimas 24h"""
+        """Calcula tempo médio de PRIMEIRA resposta das últimas 24h
+        IMPORTANTE: Apenas conta chamados a partir de 01.01.2026 (SLA start date)."""
 
         agora = now_brazil_naive()
         ontem = agora - timedelta(hours=24)
+        sla_start_date = datetime(2026, 1, 1, 0, 0, 0)
 
         try:
             # Busca chamados das últimas 24h que tiveram primeira resposta
+            # E que foram abertos a partir de 01.01.2026
             chamados = db.query(Chamado).filter(
                 and_(
-                    Chamado.data_abertura >= ontem,
+                    Chamado.data_abertura >= max(ontem, sla_start_date),
                     Chamado.status != "Expirado",
                     Chamado.data_primeira_resposta.isnot(None),
                     Chamado.data_primeira_resposta >= ontem
@@ -96,16 +102,19 @@ class MetricsCalculator:
 
     @staticmethod
     def get_tempo_medio_resposta_mes(db: Session) -> tuple[str, int]:
-        """Calcula tempo médio de PRIMEIRA resposta deste mês usando Chamado.data_primeira_resposta"""
+        """Calcula tempo médio de PRIMEIRA resposta deste mês usando Chamado.data_primeira_resposta
+        IMPORTANTE: Apenas conta chamados a partir de 01.01.2026 (SLA start date)."""
 
         agora = now_brazil_naive()
         mes_inicio = agora.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        sla_start_date = datetime(2026, 1, 1, 0, 0, 0)
 
         try:
             # Busca chamados do mês que já tiveram primeira resposta
+            # E que foram abertos a partir de 01.01.2026
             chamados = db.query(Chamado).filter(
                 and_(
-                    Chamado.data_abertura >= mes_inicio,
+                    Chamado.data_abertura >= max(mes_inicio, sla_start_date),
                     Chamado.data_abertura <= agora,
                     Chamado.status != "Expirado",
                     Chamado.data_primeira_resposta.isnot(None)
@@ -115,7 +124,7 @@ class MetricsCalculator:
             # Conta total de chamados do mês (mesmo sem resposta)
             total_chamados_mes = db.query(Chamado).filter(
                 and_(
-                    Chamado.data_abertura >= mes_inicio,
+                    Chamado.data_abertura >= max(mes_inicio, sla_start_date),
                     Chamado.data_abertura <= agora,
                     Chamado.status != "Expirado"
                 )
@@ -163,23 +172,25 @@ class MetricsCalculator:
 
     @staticmethod
     def get_comparacao_ontem(db: Session) -> dict:
-        """Compara chamados de hoje vs ontem"""
+        """Compara chamados de hoje vs ontem
+        IMPORTANTE: Apenas conta chamados a partir de 01.01.2026 (SLA start date)."""
         try:
             agora = now_brazil_naive()
             hoje_inicio = agora.replace(hour=0, minute=0, second=0, microsecond=0)
             ontem_inicio = (agora - timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
             ontem_fim = hoje_inicio
+            sla_start_date = datetime(2026, 1, 1, 0, 0, 0)
 
             chamados_hoje = db.query(Chamado).filter(
                 and_(
-                    Chamado.data_abertura >= hoje_inicio,
+                    Chamado.data_abertura >= max(hoje_inicio, sla_start_date),
                     Chamado.status != "Expirado"
                 )
             ).count()
 
             chamados_ontem = db.query(Chamado).filter(
                 and_(
-                    Chamado.data_abertura >= ontem_inicio,
+                    Chamado.data_abertura >= max(ontem_inicio, sla_start_date),
                     Chamado.data_abertura < ontem_fim,
                     Chamado.status != "Expirado"
                 )
@@ -204,13 +215,15 @@ class MetricsCalculator:
 
     @staticmethod
     def get_tempo_resolucao_media_30dias(db: Session) -> str:
-        """Calcula tempo médio de resolução dos últimos 30 dias"""
+        """Calcula tempo médio de resolução dos últimos 30 dias
+        IMPORTANTE: Apenas conta chamados a partir de 01.01.2026 (SLA start date)."""
         agora = now_brazil_naive()
         trinta_dias_atras = agora - timedelta(days=30)
-        
+        sla_start_date = datetime(2026, 1, 1, 0, 0, 0)
+
         chamados = db.query(Chamado).filter(
             and_(
-                Chamado.data_abertura >= trinta_dias_atras,
+                Chamado.data_abertura >= max(trinta_dias_atras, sla_start_date),
                 Chamado.data_conclusao.isnot(None),
             )
         ).all()

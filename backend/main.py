@@ -81,6 +81,34 @@ try:
 except Exception as e:
     print(f"⚠️  Erro ao criar tabela notification_settings: {e}")
 
+# Adicionar coluna retroativo se não existir
+try:
+    from ti.scripts.add_retroativo_column import add_retroativo_column
+    add_retroativo_column()
+except Exception as e:
+    print(f"⚠️  Erro ao adicionar coluna retroativo: {e}")
+
+# Restaurar status original dos chamados retroativos a partir do histórico
+try:
+    from ti.scripts.restore_retroativo_status import restore_retroativo_status
+    restore_retroativo_status()
+except Exception as e:
+    print(f"⚠️  Erro ao restaurar status dos chamados retroativos: {e}")
+
+# Marcar todos os chamados retroativos no banco de dados
+try:
+    from ti.scripts.mark_all_retroativo import mark_retroativo_tickets
+    mark_retroativo_tickets()
+except Exception as e:
+    print(f"⚠️  Erro ao marcar chamados retroativos: {e}")
+
+# Limpar cache de métricas para recalcular com filtro SLA
+try:
+    from ti.scripts.clear_metrics_cache import clear_metrics_cache as clear_cache
+    clear_cache()
+except Exception as e:
+    print(f"⚠️  Erro ao limpar cache de métricas: {e}")
+
 # Executar migração automática de status de chamados na inicialização
 try:
     from ti.scripts.auto_migrate_status_values import auto_migrate_status_values
