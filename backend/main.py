@@ -81,6 +81,13 @@ try:
 except Exception as e:
     print(f"⚠️  Erro ao criar tabela notification_settings: {e}")
 
+# Executar migração automática de status de chamados na inicialização
+try:
+    from ti.scripts.auto_migrate_status_values import auto_migrate_status_values
+    auto_migrate_status_values()
+except Exception as e:
+    print(f"⚠️  Erro na migração automática de status: {e}")
+
 
 
 
