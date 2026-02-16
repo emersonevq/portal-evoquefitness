@@ -14,6 +14,7 @@ from io import BytesIO
 from ti.api import chamados_router, unidades_router, problemas_router, notifications_router, notification_settings_router, alerts_router, email_debug_router, powerbi_router, metrics_router
 from ti.api.usuarios import router as usuarios_router
 from ti.api.dashboard_permissions import router as dashboard_permissions_router
+from ti.api.sla import router as sla_router
 from auth0.routes import router as auth0_router
 from core.realtime import mount_socketio
 import json
@@ -116,7 +117,14 @@ try:
 except Exception as e:
     print(f"⚠️  Erro na migração automática de status: {e}")
 
-
+# Inicializar scheduler de SLA (executa a cada 15 minutos com cache)
+try:
+    from ti.services.sla_scheduler_15min import init_sla_scheduler_15min
+    init_sla_scheduler_15min()
+except Exception as e:
+    print(f"⚠️  Erro ao inicializar scheduler de SLA: {e}")
+    import traceback
+    traceback.print_exc()
 
 
 
@@ -473,6 +481,7 @@ _http.include_router(alerts_router, prefix="/api")
 _http.include_router(email_debug_router, prefix="/api")
 _http.include_router(powerbi_router, prefix="/api")
 _http.include_router(metrics_router, prefix="/api")
+_http.include_router(sla_router, prefix="/api")
 _http.include_router(dashboard_permissions_router, prefix="")
 
 # Wrap with Socket.IO ASGI app (exports as 'app')
@@ -499,5 +508,10 @@ async def startup_event():
 
 @_http.on_event("shutdown")
 async def shutdown_event():
-    """Shutdown event"""
-    pass
+    """Shutdown event - para o scheduler de SLA"""
+    try:
+        from ti.services.sla_scheduler_15min import stop_sla_scheduler
+        stop_sla_scheduler()
+        print("[SHUTDOWN] ✓ Scheduler de SLA parado com sucesso")
+    except Exception as e:
+        print(f"[SHUTDOWN] ⚠️  Erro ao parar scheduler: {e}")
