@@ -20,18 +20,8 @@ backend_path = Path(__file__).parent.parent
 sys.path.insert(0, str(backend_path))
 
 from sqlalchemy.orm import Session
-from core.db import SessionLocal, engine
-from ti.models import Base, ConfiguracesSla, HorarioComercial, Feriado
-
-# Importar models se existirem
-try:
-    from ti.models.configuracoes_sla import ConfiguracesSla
-    from ti.models.horario_comercial import HorarioComercial
-    from ti.models.feriado import Feriado
-except ImportError as e:
-    print(f"❌ Erro ao importar modelos: {e}")
-    print("Certifique-se de que os modelos estão definidos em ti.models")
-    sys.exit(1)
+from core.db import SessionLocal
+from ti.models import ConfiguracesSla, HorarioComercial, Feriado
 
 
 def seed_configuracoes_sla(db: Session) -> None:
