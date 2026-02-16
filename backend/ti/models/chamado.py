@@ -24,6 +24,7 @@ class Chamado(Base):
     data_conclusao: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="Aberto")
     prioridade: Mapped[str] = mapped_column(String(20), nullable=False, default="Normal")
+    retroativo: Mapped[bool] = mapped_column(nullable=False, default=False)
 
     status_assumido_por_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("user.id"), nullable=True)
     status_assumido_em: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)

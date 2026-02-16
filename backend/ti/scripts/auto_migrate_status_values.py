@@ -51,21 +51,21 @@ def auto_migrate_status_values():
                 )
                 print(f"[MIGRATION] ✓ Updated {andamento_count} 'Em andamento' tickets to 'Em atendimento'")
 
-            # Mark retroactive tickets (before 01.01.2026) as Expirado
+            # Mark retroactive tickets (before 01.01.2026) without changing their original status
             sla_start_date = datetime(2026, 1, 1, 0, 0, 0)
             retroativo_count = session.query(Chamado).filter(
                 Chamado.data_abertura < sla_start_date,
-                Chamado.status != "Expirado"
+                (Chamado.retroativo == False) | (Chamado.retroativo.is_(None))
             ).count()
             if retroativo_count > 0:
                 session.query(Chamado).filter(
                     Chamado.data_abertura < sla_start_date,
-                    Chamado.status != "Expirado"
+                    (Chamado.retroativo == False) | (Chamado.retroativo.is_(None))
                 ).update(
-                    {Chamado.status: "Expirado"},
+                    {Chamado.retroativo: True},
                     synchronize_session=False
                 )
-                print(f"[MIGRATION] ✓ Updated {retroativo_count} retroactive tickets (before 01.01.2026) to 'Expirado'")
+                print(f"[MIGRATION] ✓ Marked {retroativo_count} retroactive tickets (before 01.01.2026) as retroativo (original status preserved)")
 
             session.commit()
             print("[MIGRATION] ✅ Automatic status migration completed successfully!\n")

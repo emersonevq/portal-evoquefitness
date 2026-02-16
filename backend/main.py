@@ -81,6 +81,13 @@ try:
 except Exception as e:
     print(f"⚠️  Erro ao criar tabela notification_settings: {e}")
 
+# Adicionar coluna retroativo se não existir
+try:
+    from ti.scripts.add_retroativo_column import add_retroativo_column
+    add_retroativo_column()
+except Exception as e:
+    print(f"⚠️  Erro ao adicionar coluna retroativo: {e}")
+
 # Executar migração automática de status de chamados na inicialização
 try:
     from ti.scripts.auto_migrate_status_values import auto_migrate_status_values

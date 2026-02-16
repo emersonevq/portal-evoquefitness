@@ -55,6 +55,7 @@ interface UiTicket {
   visita?: string | null;
   gerente?: string | null;
   descricao?: string | null;
+  retroativo?: boolean;
 }
 
 const statusMap = [
@@ -301,6 +302,7 @@ export default function ChamadosPage() {
         visita: it.data_visita ?? null,
         gerente: null,
         descricao: it.descricao ?? null,
+        retroativo: it.retroativo ?? false,
       };
     }
 
@@ -322,6 +324,7 @@ export default function ChamadosPage() {
         visita: m.visita ?? null,
         gerente: m.gerente ?? null,
         descricao: (m as any).descricao ?? null,
+        retroativo: (m as any).retroativo ?? false,
       };
     }
 
