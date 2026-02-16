@@ -21,7 +21,6 @@ from ti.models.chamado import Chamado
 from ti.models.metrics_cache import MetricsCacheDB
 from ti.models.historico_status import HistoricoStatus
 from core.utils import now_brazil_naive
-from ti.services.sla_metrics_unified import UnifiedSLAMetricsCalculator
 import json
 from typing import Optional, Dict, Any
 
@@ -323,17 +322,13 @@ class IncrementalMetricsCache:
                 agora = now_brazil_naive()
                 mes_inicio = agora.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 
-                # Usa calculador unificado para mês
-                dist = UnifiedSLAMetricsCalculator.calculate_sla_distribution_period(
-                    db, mes_inicio, agora
-                )
-
+                # Métricas básicas (SLA removido)
                 metricas = {
-                    "total": dist["total"],
-                    "dentro_sla": dist["dentro_sla"],
-                    "fora_sla": dist["fora_sla"],
-                    "percentual_dentro": dist["percentual_dentro"],
-                    "percentual_fora": dist["percentual_fora"],
+                    "total": 0,
+                    "dentro_sla": 0,
+                    "fora_sla": 0,
+                    "percentual_dentro": 0,
+                    "percentual_fora": 0,
                     "updated_at": agora.isoformat(),
                 }
 
