@@ -33,7 +33,7 @@ import { toast } from "@/hooks/use-toast";
 
 type TicketStatus =
   | "ABERTO"
-  | "EM_ANDAMENTO"
+  | "EM_ATENDIMENTO"
   | "AGUARDANDO"
   | "CONCLUIDO"
   | "EXPIRADO";
@@ -60,7 +60,7 @@ interface UiTicket {
 const statusMap = [
   { key: "todos", label: "Todos" },
   { key: "abertos", label: "Abertos" },
-  { key: "em-andamento", label: "Em andamento" },
+  { key: "em-atendimento", label: "Em atendimento" },
   { key: "aguardando", label: "Aguardando" },
   { key: "concluidos", label: "Concluídos" },
   { key: "expirado", label: "Expirado" },
@@ -87,7 +87,7 @@ function StatusPill({ status }: { status: TicketStatus }) {
   const styles =
     status === "ABERTO"
       ? "bg-cyan-100 text-cyan-700 dark:bg-cyan-900/20 dark:text-cyan-300"
-      : status === "EM_ANDAMENTO"
+      : status === "EM_ATENDIMENTO"
         ? "bg-amber-100 text-amber-700 dark:bg-amber-900/20 dark:text-amber-300"
         : status === "AGUARDANDO"
           ? "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/20 dark:text-indigo-300"
@@ -97,8 +97,8 @@ function StatusPill({ status }: { status: TicketStatus }) {
   const label =
     status === "ABERTO"
       ? "Aberto"
-      : status === "EM_ANDAMENTO"
-        ? "Em andamento"
+      : status === "EM_ATENDIMENTO"
+        ? "Em atendimento"
         : status === "AGUARDANDO"
           ? "Aguardando"
           : status === "CONCLUIDO"
@@ -175,7 +175,7 @@ function TicketCard({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="ABERTO">Aberto</SelectItem>
-              <SelectItem value="EM_ANDAMENTO">Em andamento</SelectItem>
+              <SelectItem value="EM_ATENDIMENTO">Em atendimento</SelectItem>
               <SelectItem value="AGUARDANDO">Em análise</SelectItem>
               <SelectItem value="CONCLUIDO">Concluído</SelectItem>
             </SelectContent>
@@ -272,10 +272,10 @@ export default function ChamadosPage() {
         .replace(/\p{Diacritic}/gu, "")
         .toUpperCase();
       const nn = n.replace(/\s+/g, "_");
-      if (nn === "EM_ANDAMENTO") return "EM_ANDAMENTO";
-      if (nn === "AGUARDANDO") return "EM_ANALISE";
+      if (nn === "EM_ATENDIMENTO") return "EM_ATENDIMENTO";
+      if (nn === "AGUARDANDO") return "AGUARDANDO";
       if (nn === "CONCLUIDO") return "CONCLUIDO";
-      if (nn === "CANCELADO") return "CANCELADO";
+      if (nn === "EXPIRADO") return "EXPIRADO";
       return "ABERTO";
     }
 
@@ -372,16 +372,16 @@ export default function ChamadosPage() {
                   ...it,
                   status: (() => {
                     const n = data.status?.toUpperCase();
-                    if (n === "EM_ANDAMENTO") return "EM_ANDAMENTO";
+                    if (n === "EM_ATENDIMENTO") return "EM_ATENDIMENTO";
                     if (
                       n === "AGUARDANDO" ||
                       n === "EM ANÁLISE" ||
                       n === "EM ANALISE"
                     )
-                      return "EM_ANALISE";
+                      return "AGUARDANDO";
                     if (n === "CONCLUIDO" || n === "CONCLUÍDO")
                       return "CONCLUIDO";
-                    if (n === "CANCELADO") return "CANCELADO";
+                    if (n === "EXPIRADO" || n === "CANCELADO") return "EXPIRADO";
                     return "ABERTO";
                   })() as TicketStatus,
                 }
@@ -417,9 +417,10 @@ export default function ChamadosPage() {
     return {
       todos: baseItems.length,
       abertos: baseItems.filter((t) => t.status === "ABERTO").length,
-      aguardando: baseItems.filter((t) => t.status === "EM_ANDAMENTO").length,
+      atendimento: baseItems.filter((t) => t.status === "EM_ATENDIMENTO").length,
+      aguardando: baseItems.filter((t) => t.status === "AGUARDANDO").length,
       concluidos: baseItems.filter((t) => t.status === "CONCLUIDO").length,
-      cancelados: baseItems.filter((t) => t.status === "EXPIRADO").length,
+      expirado: baseItems.filter((t) => t.status === "EXPIRADO").length,
     };
   }, [items, selectedUnidades, searchInputValue]);
 
@@ -454,8 +455,8 @@ export default function ChamadosPage() {
       case "abertos":
         filtered = filtered.filter((t) => t.status === "ABERTO");
         break;
-      case "em-andamento":
-        filtered = filtered.filter((t) => t.status === "EM_ANDAMENTO");
+      case "em-atendimento":
+        filtered = filtered.filter((t) => t.status === "EM_ATENDIMENTO");
         break;
       case "aguardando":
         filtered = filtered.filter((t) => t.status === "AGUARDANDO");
@@ -708,7 +709,7 @@ export default function ChamadosPage() {
   return (
     <div className="space-y-4 flex flex-col h-full">
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 flex-shrink-0">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 flex-shrink-0">
         <SummaryCard
           title="Todos"
           value={counts.todos}
@@ -720,9 +721,14 @@ export default function ChamadosPage() {
           bgClass="bg-gradient-to-br from-orange-500 to-orange-400"
         />
         <SummaryCard
-          title="Em andamento"
-          value={counts.aguardando}
+          title="Em atendimento"
+          value={counts.atendimento}
           bgClass="bg-gradient-to-br from-amber-500 to-amber-600"
+        />
+        <SummaryCard
+          title="Aguardando"
+          value={counts.aguardando}
+          bgClass="bg-gradient-to-br from-indigo-500 to-indigo-600"
         />
         <SummaryCard
           title="Concluídos"
@@ -730,8 +736,8 @@ export default function ChamadosPage() {
           bgClass="bg-gradient-to-br from-green-500 to-green-600"
         />
         <SummaryCard
-          title="Cancelados"
-          value={counts.cancelados}
+          title="Expirado"
+          value={counts.expirado}
           bgClass="bg-gradient-to-br from-red-500 to-red-700"
         />
       </div>
@@ -883,8 +889,8 @@ export default function ChamadosPage() {
                       const statusText =
                         sel === "ABERTO"
                           ? "Aberto"
-                          : sel === "EM_ANDAMENTO"
-                            ? "Em andamento"
+                          : sel === "EM_ATENDIMENTO"
+                            ? "Em atendimento"
                             : sel === "AGUARDANDO"
                               ? "Aguardando"
                               : sel === "CONCLUIDO"
@@ -1221,13 +1227,14 @@ export default function ChamadosPage() {
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="ABERTO">Aberto</SelectItem>
-                            <SelectItem value="EM_ANDAMENTO">
-                              Em andamento
+                            <SelectItem value="EM_ATENDIMENTO">
+                              Em atendimento
                             </SelectItem>
                             <SelectItem value="AGUARDANDO">
-                              Em análise
+                              Aguardando
                             </SelectItem>
                             <SelectItem value="CONCLUIDO">Concluído</SelectItem>
+                            <SelectItem value="EXPIRADO">Expirado</SelectItem>
                           </SelectContent>
                         </Select>
                         <Button
@@ -1249,8 +1256,8 @@ export default function ChamadosPage() {
                             const statusText =
                               sel === "ABERTO"
                                 ? "Aberto"
-                                : sel === "EM_ANDAMENTO"
-                                  ? "Em andamento"
+                                : sel === "EM_ATENDIMENTO"
+                                  ? "Em atendimento"
                                   : sel === "AGUARDANDO"
                                     ? "Aguardando"
                                     : sel === "CONCLUIDO"
@@ -1402,13 +1409,13 @@ export default function ChamadosPage() {
                             : "[Data de abertura]";
                           const statusChamado = (() => {
                             if (selected?.status === "ABERTO") return "Aberto";
-                            if (selected?.status === "EM_ANDAMENTO")
-                              return "Em andamento";
+                            if (selected?.status === "EM_ATENDIMENTO")
+                              return "Em atendimento";
                             if (selected?.status === "AGUARDANDO")
                               return "Aguardando";
                             if (selected?.status === "CONCLUIDO")
                               return "Concluído";
-                            if (selected?.status === "CANCELADO")
+                            if (selected?.status === "EXPIRADO")
                               return "Expirado";
                             return "[Status do chamado]";
                           })();

@@ -5,7 +5,7 @@ from typing import Set
 # Status que CONTAM no SLA (relógio rodando)
 STATUS_SLA_ATIVO: Set[str] = {
     "aberto",
-    "em_andamento",
+    "em_atendimento",
 }
 
 # Status que PAUSAM o SLA (aguardando terceiros)
@@ -26,12 +26,12 @@ _STATUS_MAP = {
     "Aberto": "aberto",
     "ABERTO": "aberto",
     
-    # Em andamento
-    "em andamento": "em_andamento",
-    "Em andamento": "em_andamento",
-    "EM ANDAMENTO": "em_andamento",
-    "em_andamento": "em_andamento",
-    "Em Andamento": "em_andamento",
+    # Em atendimento
+    "em andamento": "em_atendimento",
+    "Em atendimento": "em_atendimento",
+    "EM ANDAMENTO": "em_atendimento",
+    "em_atendimento": "em_atendimento",
+    "Em Andamento": "em_atendimento",
     
     # Em análise
     "em análise": "em_analise",
@@ -48,9 +48,9 @@ _STATUS_MAP = {
     "concluido": "concluido",
     "Concluido": "concluido",
     
-    # Cancelado
+    # Expirado
     "cancelado": "cancelado",
-    "Cancelado": "cancelado",
+    "Expirado": "cancelado",
     "CANCELADO": "cancelado",
 }
 
@@ -60,7 +60,7 @@ def normalizar_status(status: str) -> str:
     Normaliza o status para comparação consistente.
     
     Exemplos:
-        "Em andamento" -> "em_andamento"
+        "Em atendimento" -> "em_atendimento"
         "EM ANÁLISE" -> "em_analise"
     """
     if not status:

@@ -118,11 +118,11 @@ def get_basic_metrics(range: str = "30d", start_date: str = "", end_date: str = 
             )
         ).count()
 
-        chamados_em_andamento = db.query(Chamado).filter(
+        chamados_em_atendimento = db.query(Chamado).filter(
             and_(
                 Chamado.data_abertura >= data_inicio,
                 Chamado.data_abertura <= data_fim,
-                Chamado.status == "Em andamento"
+                Chamado.status == "Em atendimento"
             )
         ).count()
 
@@ -133,14 +133,14 @@ def get_basic_metrics(range: str = "30d", start_date: str = "", end_date: str = 
                 Chamado.data_abertura >= data_inicio,
                 Chamado.data_abertura <= data_fim,
                 Chamado.data_abertura < limite_risco,
-                Chamado.status.in_(["Aberto", "Em andamento", "Aguardando"])
+                Chamado.status.in_(["Aberto", "Em atendimento", "Aguardando"])
             )
         ).count()
 
         # Abertos agora (sempre, não filtra por período)
         abertos_agora = db.query(Chamado).filter(
             and_(
-                Chamado.status != "Concluido",
+                Chamado.status != "Concluído",
                 Chamado.status != "Expirado"
             )
         ).count()
@@ -150,7 +150,7 @@ def get_basic_metrics(range: str = "30d", start_date: str = "", end_date: str = 
             "comparacao_ontem": comparacao_ontem,
             "abertos_agora": abertos_agora,
             "concluidos": chamados_concluidos,
-            "em_andamento": chamados_em_andamento,
+            "em_atendimento": chamados_em_atendimento,
             "em_risco": chamados_em_risco,
             "timestamp": now_brazil_naive().isoformat(),
         }
@@ -273,7 +273,7 @@ def get_chamados_por_dia(dias: int = 7, statuses: str = "", start_date: str = ""
 
     Query params:
     - dias: Número de dias (default: 7)
-    - statuses: Lista separada por vírgula (ex: "Aberto,Em andamento")
+    - statuses: Lista separada por vírgula (ex: "Aberto,Em atendimento")
     - start_date: Data inicial (formato: YYYY-MM-DD, opcional)
     - end_date: Data final (formato: YYYY-MM-DD, opcional)
 
@@ -310,7 +310,7 @@ def get_chamados_por_semana(semanas: int = 4, statuses: str = "", start_date: st
 
     Query params:
     - semanas: Número de semanas (default: 4)
-    - statuses: Lista separada por vírgula (ex: "Aberto,Em andamento")
+    - statuses: Lista separada por vírgula (ex: "Aberto,Em atendimento")
     - start_date: Data inicial (formato: YYYY-MM-DD, opcional)
     - end_date: Data final (formato: YYYY-MM-DD, opcional)
 
@@ -347,7 +347,7 @@ def get_chamados_por_mes(range: str = "30d", statuses: str = "", start_date: str
 
     Query params:
     - range: '7d', '30d', '90d' ou 'all' (padrão: '30d')
-    - statuses: Lista separada por vírgula (ex: "Aberto,Em andamento,Concluído")
+    - statuses: Lista separada por vírgula (ex: "Aberto,Em atendimento,Concluído")
                 Se vazio, mostra todos os status
     - start_date: Data inicial (formato: YYYY-MM-DD, opcional)
     - end_date: Data final (formato: YYYY-MM-DD, opcional)

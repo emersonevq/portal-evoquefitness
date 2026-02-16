@@ -110,7 +110,7 @@ class SLAP90Calculator:
                 Chamado.data_abertura >= data_inicio,
                 Chamado.data_abertura <= agora,
                 Chamado.deletado_em.is_(None),
-                Chamado.status.in_(["Concluído", "Cancelado"])
+                Chamado.status.in_(["Concluído", "Expirado"])
             )
         ).all()
 

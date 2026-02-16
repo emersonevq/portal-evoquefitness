@@ -27,14 +27,14 @@ class MetricsCalculator:
     @staticmethod
     def get_abertos_agora(db: Session) -> int:
         """
-        Retorna quantidade de chamados ATIVOS (não concluídos nem cancelados).
+        Retorna quantidade de chamados ATIVOS (não concluídos nem expirados).
         Equivalente a "todos" na página de gerenciar chamados.
         """
         try:
             count = db.query(Chamado).filter(
                 and_(
                     Chamado.status != "Concluido",
-                    Chamado.status != "Cancelado"
+                    Chamado.status != "Expirado"
                 )
             ).count()
 
@@ -57,7 +57,7 @@ class MetricsCalculator:
             chamados = db.query(Chamado).filter(
                 and_(
                     Chamado.data_abertura >= ontem,
-                    Chamado.status != "Cancelado",
+                    Chamado.status != "Expirado",
                     Chamado.data_primeira_resposta.isnot(None),
                     Chamado.data_primeira_resposta >= ontem
                 )
@@ -107,7 +107,7 @@ class MetricsCalculator:
                 and_(
                     Chamado.data_abertura >= mes_inicio,
                     Chamado.data_abertura <= agora,
-                    Chamado.status != "Cancelado",
+                    Chamado.status != "Expirado",
                     Chamado.data_primeira_resposta.isnot(None)
                 )
             ).all()
@@ -117,7 +117,7 @@ class MetricsCalculator:
                 and_(
                     Chamado.data_abertura >= mes_inicio,
                     Chamado.data_abertura <= agora,
-                    Chamado.status != "Cancelado"
+                    Chamado.status != "Expirado"
                 )
             ).count()
 
@@ -173,7 +173,7 @@ class MetricsCalculator:
             chamados_hoje = db.query(Chamado).filter(
                 and_(
                     Chamado.data_abertura >= hoje_inicio,
-                    Chamado.status != "Cancelado"
+                    Chamado.status != "Expirado"
                 )
             ).count()
 
@@ -181,7 +181,7 @@ class MetricsCalculator:
                 and_(
                     Chamado.data_abertura >= ontem_inicio,
                     Chamado.data_abertura < ontem_fim,
-                    Chamado.status != "Cancelado"
+                    Chamado.status != "Expirado"
                 )
             ).count()
 
@@ -241,7 +241,7 @@ class MetricsCalculator:
         Args:
             db: Session do banco de dados
             dias: Número de dias a retornar
-            statuses: Lista de status para filtrar (ex: ["Aberto", "Em andamento"])
+            statuses: Lista de status para filtrar (ex: ["Aberto", "Em atendimento"])
                      Se None ou vazio, mostra todos os status
         """
         agora = now_brazil_naive()
@@ -253,7 +253,7 @@ class MetricsCalculator:
             dias_data.append(dia.replace(hour=0, minute=0, second=0, microsecond=0))
 
         # Status disponíveis
-        status_disponiveis = ["Aberto", "Em andamento", "Em análise", "Concluído", "Cancelado"]
+        status_disponiveis = ["Aberto", "Em atendimento", "Aguardando", "Concluído", "Expirado"]
         statuses_para_usar = statuses if statuses and len(statuses) > 0 else status_disponiveis
 
         resultado = []
@@ -289,14 +289,14 @@ class MetricsCalculator:
         Args:
             db: Session do banco de dados
             semanas: Número de semanas a retornar
-            statuses: Lista de status para filtrar (ex: ["Aberto", "Em andamento"])
+            statuses: Lista de status para filtrar (ex: ["Aberto", "Em atendimento"])
                      Se None ou vazio, mostra todos os status
         """
         agora = now_brazil_naive()
         resultado = []
 
         # Status disponíveis
-        status_disponiveis = ["Aberto", "Em andamento", "Em análise", "Concluído", "Cancelado"]
+        status_disponiveis = ["Aberto", "Em atendimento", "Aguardando", "Concluído", "Expirado"]
         statuses_para_usar = statuses if statuses and len(statuses) > 0 else status_disponiveis
 
         for i in range(semanas):
@@ -334,14 +334,14 @@ class MetricsCalculator:
         Args:
             db: Session do banco de dados
             meses: Número de meses a retornar
-            statuses: Lista de status para filtrar (ex: ["Aberto", "Em andamento"])
+            statuses: Lista de status para filtrar (ex: ["Aberto", "Em atendimento"])
                      Se None ou vazio, mostra todos os status
         """
         agora = now_brazil_naive()
         resultado = []
 
         # Status disponíveis no sistema
-        status_disponiveis = ["Aberto", "Em andamento", "Em análise", "Concluído", "Cancelado"]
+        status_disponiveis = ["Aberto", "Em atendimento", "Aguardando", "Concluído", "Expirado"]
 
         # Se statuses foi especificado, filtra apenas os selecionados
         statuses_para_usar = statuses if statuses and len(statuses) > 0 else status_disponiveis
@@ -402,7 +402,7 @@ class MetricsCalculator:
             chamados_30dias = db.query(Chamado).filter(
                 and_(
                     Chamado.data_abertura >= max(trinta_dias_atras, sla_start_date),
-                    Chamado.status != "Cancelado"
+                    Chamado.status != "Expirado"
                 )
             ).all()
 
@@ -463,8 +463,8 @@ class MetricsCalculator:
             chamados_backlog = db.query(Chamado).filter(
                 and_(
                     Chamado.data_abertura >= sla_start_date,
-                    Chamado.status.in_(["Aguardando", "Em análise"]),
-                    Chamado.status != "Cancelado"
+                    Chamado.status.in_(["Aguardando", "Em atendimento"]),
+                    Chamado.status != "Expirado"
                 )
             ).count()
 
@@ -504,7 +504,7 @@ class MetricsCalculator:
         historicos = db.query(HistoricoStatus).filter(
             and_(
                 HistoricoStatus.created_at >= inicio,
-                HistoricoStatus.status.in_(["Em Atendimento", "Em análise", "Em andamento"])
+                HistoricoStatus.status.in_(["Em Atendimento", "Em análise", "Em atendimento"])
             )
         ).all()
 
@@ -591,7 +591,7 @@ class MetricsCalculator:
             db: Session do banco de dados
             start_date: Data inicial (formato: YYYY-MM-DD)
             end_date: Data final (formato: YYYY-MM-DD)
-            statuses: Lista de status para filtrar (ex: ["Aberto", "Em andamento"])
+            statuses: Lista de status para filtrar (ex: ["Aberto", "Em atendimento"])
                      Se None ou vazio, mostra todos os status
         """
         from datetime import datetime, timedelta
@@ -608,7 +608,7 @@ class MetricsCalculator:
                 dias_data.append(dia.replace(hour=0, minute=0, second=0, microsecond=0))
 
             # Status disponíveis
-            status_disponiveis = ["Aberto", "Em andamento", "Em análise", "Concluído", "Cancelado"]
+            status_disponiveis = ["Aberto", "Em atendimento", "Aguardando", "Concluído", "Expirado"]
             statuses_para_usar = statuses if statuses and len(statuses) > 0 else status_disponiveis
 
             resultado = []
@@ -650,7 +650,7 @@ class MetricsCalculator:
             db: Session do banco de dados
             start_date: Data inicial (formato: YYYY-MM-DD)
             end_date: Data final (formato: YYYY-MM-DD)
-            statuses: Lista de status para filtrar (ex: ["Aberto", "Em andamento"])
+            statuses: Lista de status para filtrar (ex: ["Aberto", "Em atendimento"])
                      Se None ou vazio, mostra todos os status
         """
         from datetime import datetime, timedelta
@@ -664,7 +664,7 @@ class MetricsCalculator:
             semana_inicio = start - timedelta(days=start.weekday())
 
             # Status disponíveis
-            status_disponiveis = ["Aberto", "Em andamento", "Em análise", "Concluído", "Cancelado"]
+            status_disponiveis = ["Aberto", "Em atendimento", "Aguardando", "Concluído", "Expirado"]
             statuses_para_usar = statuses if statuses and len(statuses) > 0 else status_disponiveis
 
             while semana_inicio <= end:
@@ -706,7 +706,7 @@ class MetricsCalculator:
             db: Session do banco de dados
             start_date: Data inicial (formato: YYYY-MM-DD)
             end_date: Data final (formato: YYYY-MM-DD)
-            statuses: Lista de status para filtrar (ex: ["Aberto", "Em andamento"])
+            statuses: Lista de status para filtrar (ex: ["Aberto", "Em atendimento"])
                      Se None ou vazio, mostra todos os status
         """
         from datetime import datetime, timedelta
@@ -719,7 +719,7 @@ class MetricsCalculator:
             mes_atual = start
 
             # Status disponíveis
-            status_disponiveis = ["Aberto", "Em andamento", "Em análise", "Concluído", "Cancelado"]
+            status_disponiveis = ["Aberto", "Em atendimento", "Aguardando", "Concluído", "Expirado"]
             statuses_para_usar = statuses if statuses and len(statuses) > 0 else status_disponiveis
 
             while mes_atual <= end_parsed:
@@ -772,7 +772,7 @@ class MetricsCalculator:
                     and_(
                         Chamado.data_abertura >= start,
                         Chamado.data_abertura <= end,
-                        Chamado.status != "Cancelado"
+                        Chamado.status != "Expirado"
                     )
                 ).count()
                 return count
@@ -809,7 +809,7 @@ class MetricsCalculator:
             return 0
 
     @staticmethod
-    def get_chamados_em_andamento_periodo(db: Session, start_date: str, end_date: str) -> int:
+    def get_chamados_em_atendimento_periodo(db: Session, start_date: str, end_date: str) -> int:
         """Retorna quantidade de chamados em andamento em um período específico"""
         from datetime import datetime
         try:
@@ -820,7 +820,7 @@ class MetricsCalculator:
                 and_(
                     Chamado.data_abertura >= start,
                     Chamado.data_abertura <= end,
-                    Chamado.status == "Em andamento"
+                    Chamado.status == "Em atendimento"
                 )
             ).count()
             return count
@@ -842,7 +842,7 @@ class MetricsCalculator:
                 and_(
                     Chamado.data_abertura < limite,
                     Chamado.data_abertura >= start,
-                    Chamado.status.in_(["Aberto", "Em andamento"])
+                    Chamado.status.in_(["Aberto", "Em atendimento"])
                 )
             ).count()
             return count

@@ -424,7 +424,7 @@ def recalcular_sla_painel(db: Session = Depends(get_db)):
                 "total_recalculados": 0,
                 "em_dia": 0,
                 "vencidos": 0,
-                "em_andamento": 0,
+                "em_atendimento": 0,
                 "congelados": 0,
                 "erros": 0,
             }
@@ -483,7 +483,7 @@ def recalcular_sla_painel(db: Session = Depends(get_db)):
                 elif status_sla in ["violado", "vencido_ativo"]:
                     stats["vencidos"] += 1
                 elif status_sla == "proximo_vencer":
-                    stats["em_andamento"] += 1
+                    stats["em_atendimento"] += 1
                 elif status_sla == "pausado":
                     stats["congelados"] += 1
 
@@ -513,7 +513,7 @@ def recalcular_sla_painel(db: Session = Depends(get_db)):
                     "total_recalculados": stats.get("total_recalculados"),
                     "em_dia": stats.get("em_dia"),
                     "vencidos": stats.get("vencidos"),
-                    "em_andamento": stats.get("em_andamento"),
+                    "em_atendimento": stats.get("em_atendimento"),
                     "congelados": stats.get("congelados"),
                     "timestamp": now_brazil_naive().isoformat(),
                 })

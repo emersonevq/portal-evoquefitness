@@ -6,7 +6,7 @@ interface SLASyncStats {
   total_recalculados: number;
   em_dia: number;
   vencidos: number;
-  em_andamento: number;
+  em_atendimento: number;
   congelados: number;
   erros: number;
 }

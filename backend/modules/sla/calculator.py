@@ -5,7 +5,7 @@ Sistema de cálculo de SLA robusto
 - Considera feriados fixos e móveis
 - Pausa automática em status: Aguardando, Em análise
 - Conta SLA em: Aberto, Em atendimento
-- Calcula ao encerrar: Concluído, Cancelado
+- Calcula ao encerrar: Concluído, Expirado
 """
 from datetime import datetime, date, time, timedelta
 from typing import List, Optional, Tuple, Dict
@@ -28,7 +28,7 @@ STATUS_PAUSA = {"Aguardando", "Em análise"}
 STATUS_CONTA = {"Aberto", "Em atendimento"}
 
 # Status finais (encerram o cálculo)
-STATUS_FINAL = {"Concluído", "Cancelado"}
+STATUS_FINAL = {"Concluído", "Expirado"}
 
 
 class CalculadorSLA:

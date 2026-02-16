@@ -201,7 +201,7 @@ class SLACalculator:
             historico = db.query(HistoricoStatus).filter(
                 and_(
                     HistoricoStatus.chamado_id == chamado_id,
-                    HistoricoStatus.status.in_(["Em Atendimento", "Em análise", "Em andamento"])
+                    HistoricoStatus.status.in_(["Em Atendimento", "Em análise", "Em atendimento"])
                 )
             ).order_by(HistoricoStatus.data_inicio.asc()).first()
 

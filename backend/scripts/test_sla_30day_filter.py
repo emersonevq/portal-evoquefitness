@@ -100,11 +100,11 @@ def test_sla_pause_logic():
     try:
         # Criar um chamado de teste ou usar um existente
         chamado = db.query(Chamado).filter(
-            Chamado.status.in_(["Aberto", "Em andamento"])
+            Chamado.status.in_(["Aberto", "Em atendimento"])
         ).first()
         
         if not chamado:
-            print_result(False, "Nenhum chamado 'Aberto' ou 'Em andamento' para teste")
+            print_result(False, "Nenhum chamado 'Aberto' ou 'Em atendimento' para teste")
             return False
         
         print(f"Usando chamado ID {chamado.id} para teste")
@@ -135,9 +135,9 @@ def test_sla_pause_logic():
             print_result(True, "Pausa foi criada quando status mudou para 'Em análise'")
             
             # Tentar retomar
-            print(f"\nMudando status de volta para 'Em andamento'...")
+            print(f"\nMudando status de volta para 'Em atendimento'...")
             mudanca2 = SLAPausaManager.registrar_mudanca_status(
-                db, chamado.id, "Em análise", "Em andamento"
+                db, chamado.id, "Em análise", "Em atendimento"
             )
             
             print(f"Resultado da retomada:")

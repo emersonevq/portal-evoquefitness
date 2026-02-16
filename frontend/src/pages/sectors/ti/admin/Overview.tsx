@@ -116,7 +116,7 @@ const colorStyles = {
 
 const STATUS_OPTIONS = [
   "Aberto",
-  "Em andamento",
+  "Em atendimento",
   "Aguardando",
   "Concluído",
   "Expirado",
@@ -141,7 +141,7 @@ export default function Overview() {
   const [showCompleted, setShowCompleted] = useState(true);
   const [selectedStatuses, setSelectedStatuses] = useState<
     typeof STATUS_OPTIONS
-  >(["Aberto", "Em andamento", "Concluído"]);
+  >(["Aberto", "Em atendimento", "Concluído"]);
 
   // Custom date range filter
   const [startDate, setStartDate] = useState<string>("");
@@ -497,7 +497,7 @@ export default function Overview() {
               variant="ghost"
               size="sm"
               onClick={() =>
-                setSelectedStatuses(["Aberto", "Em andamento", "Concluído"])
+                setSelectedStatuses(["Aberto", "Em atendimento", "Concluído"])
               }
               className="text-xs"
             >
@@ -518,8 +518,8 @@ export default function Overview() {
           trend={comparacao.direcao}
         />
         <Metric
-          label="Em andamento"
-          value={String(metrics?.em_andamento || 0)}
+          label="Em atendimento"
+          value={String(metrics?.em_atendimento || 0)}
           sub="Chamados ativos"
           variant="blue"
           icon={Clock}
@@ -622,12 +622,12 @@ export default function Overview() {
                     name="Aberto"
                   />
                 )}
-                {selectedStatuses.includes("Em andamento") && (
+                {selectedStatuses.includes("Em atendimento") && (
                   <Bar
-                    dataKey="em_andamento"
+                    dataKey="em_atendimento"
                     fill="#f59e0b"
                     radius={[8, 8, 0, 0]}
-                    name="Em andamento"
+                    name="Em atendimento"
                   />
                 )}
                 {selectedStatuses.includes("Aguardando") && (
@@ -699,12 +699,12 @@ export default function Overview() {
                     name="Aberto"
                   />
                 )}
-                {selectedStatuses.includes("Em andamento") && (
+                {selectedStatuses.includes("Em atendimento") && (
                   <Bar
-                    dataKey="em_andamento"
+                    dataKey="em_atendimento"
                     fill="#f59e0b"
                     radius={[8, 8, 0, 0]}
-                    name="Em andamento"
+                    name="Em atendimento"
                   />
                 )}
                 {selectedStatuses.includes("Aguardando") && (
@@ -773,12 +773,12 @@ export default function Overview() {
                   name="Aberto"
                 />
               )}
-              {selectedStatuses.includes("Em andamento") && (
+              {selectedStatuses.includes("Em atendimento") && (
                 <Bar
-                  dataKey="em_andamento"
+                  dataKey="em_atendimento"
                   fill="#f59e0b"
                   radius={[8, 8, 0, 0]}
-                  name="Em andamento"
+                  name="Em atendimento"
                 />
               )}
               {selectedStatuses.includes("Aguardando") && (

@@ -1,6 +1,6 @@
 export type TicketStatus =
   | "ABERTO"
-  | "EM_ANDAMENTO"
+  | "EM_ATENDIMENTO"
   | "AGUARDANDO"
   | "CONCLUIDO"
   | "EXPIRADO";
@@ -27,7 +27,7 @@ export const ticketsMock: TicketMock[] = Array.from({ length: 24 }).map(
   (_, i) => {
     const statuses: TicketStatus[] = [
       "ABERTO",
-      "EM_ANDAMENTO",
+      "EM_ATENDIMENTO",
       "AGUARDANDO",
       "CONCLUIDO",
       "EXPIRADO",
