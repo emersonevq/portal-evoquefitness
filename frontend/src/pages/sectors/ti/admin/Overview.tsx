@@ -280,6 +280,9 @@ export default function Overview() {
   useEffect(() => {
     if (performanceMetricsData) {
       setPerformanceData(performanceMetricsData);
+      console.log("[Overview] Performance data loaded:", performanceMetricsData);
+    } else {
+      console.log("[Overview] Performance data is null/undefined");
     }
   }, [performanceMetricsData]);
 
@@ -534,6 +537,38 @@ export default function Overview() {
           sub="Requer atenção"
           variant="purple"
           icon={AlertCircle}
+        />
+      </div>
+
+      {/* Performance Metrics Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Metric
+          label="Tempo médio de resolução"
+          value={String(performanceData?.tempo_resolucao_medio ?? "—")}
+          sub="Últimos 30 dias"
+          variant="blue"
+          icon={Clock}
+        />
+        <Metric
+          label="Primeira resposta média"
+          value={String(performanceData?.primeira_resposta_media ?? "—")}
+          sub="Tempo até primeira resposta"
+          variant="purple"
+          icon={Clock}
+        />
+        <Metric
+          label="Taxa de reaberturas"
+          value={String(performanceData?.taxa_reaberturas ?? "0%")}
+          sub="Percentual de reaberturas"
+          variant="orange"
+          icon={AlertTriangle}
+        />
+        <Metric
+          label="Chamados em backlog"
+          value={String(performanceData?.chamados_backlog ?? 0)}
+          sub="Aguardando atendimento"
+          variant="green"
+          icon={CheckIcon}
         />
       </div>
 

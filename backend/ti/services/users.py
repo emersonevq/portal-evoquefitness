@@ -13,22 +13,37 @@ from ti.schemas.user import UserCreate, UserCreatedOut, UserAvailability
 from auth0.management import get_auth0_client
 
 
-def _generate_password(length: int = 6) -> str:
-    # Ensure at least one lowercase, one uppercase, and one digit
-    if length < 3:
-        length = 3
+def _generate_password(length: int = 12) -> str:
+    """
+    Gera senha forte que atende aos requisitos do Auth0:
+    - Mínimo 8 caracteres
+    - Maiúsculas, minúsculas, números e caracteres especiais
+    """
+    # Garantir tamanho mínimo de 8 para Auth0
+    if length < 8:
+        length = 8
+
+    # Caracteres especiais que Auth0 aceita
+    special_chars = "!@#$%^&*"
+
+    # Garantir pelo menos um de cada tipo necessário
     parts = [
-        secrets.choice(string.ascii_lowercase),
-        secrets.choice(string.ascii_uppercase),
-        secrets.choice(string.digits),
+        secrets.choice(string.ascii_lowercase),      # minúscula
+        secrets.choice(string.ascii_uppercase),      # maiúscula
+        secrets.choice(string.digits),               # número
+        secrets.choice(special_chars),               # caractere especial
     ]
-    remaining = length - 3
-    pool = string.ascii_letters + string.digits
+
+    # Preencher o resto com uma mistura
+    remaining = length - 4
+    pool = string.ascii_letters + string.digits + special_chars
     parts += [secrets.choice(pool) for _ in range(remaining)]
-    # Shuffle deterministically with secrets by reordering via random indices
+
+    # Embaralhar para não deixar padrão previsível
     for i in range(len(parts) - 1, 0, -1):
         j = ord(secrets.token_bytes(1)) % (i + 1)
         parts[i], parts[j] = parts[j], parts[i]
+
     return "".join(parts)
 
 
@@ -63,8 +78,8 @@ def criar_usuario(db: Session, payload: UserCreate) -> UserCreatedOut:
     if payload.usuario and db.query(User).filter(User.usuario == payload.usuario).first():
         raise ValueError("Nome de usuário já cadastrado")
 
-    # Password generation in backend if not provided
-    generated_password = payload.senha or _generate_password(6)
+    # Password generation in backend if not provided (12 chars minimum for Auth0)
+    generated_password = payload.senha or _generate_password(12)
 
     setores_json = None
     setor = None
@@ -144,8 +159,8 @@ def criar_usuario(db: Session, payload: UserCreate) -> UserCreatedOut:
         _setores=setores_json,
         _bi_subcategories=bi_subcategories_json,
         bloqueado=payload.bloqueado,
-        auth0_id=auth0_id,
         email_verified=False,
+        auth0_id=auth0_id,
     )
     db.add(novo)
     db.commit()
@@ -157,6 +172,23 @@ def criar_usuario(db: Session, payload: UserCreate) -> UserCreatedOut:
     if not user_nome:
         user_nome = novo.email.split("@")[0] if novo.email else novo.usuario
 
+    # Parse setores from JSON string to list
+    setores_list = None
+    if novo._setores:
+        try:
+            raw = json.loads(novo._setores)
+            setores_list = [_denormalize_sector(str(x)) if x is not None else "" for x in raw]
+        except Exception:
+            setores_list = None
+
+    # Parse bi_subcategories from JSON string to list
+    bi_subcategories_list = None
+    if novo._bi_subcategories:
+        try:
+            bi_subcategories_list = json.loads(novo._bi_subcategories)
+        except Exception:
+            bi_subcategories_list = None
+
     return UserCreatedOut(
         id=novo.id,
         nome=user_nome,
@@ -165,8 +197,8 @@ def criar_usuario(db: Session, payload: UserCreate) -> UserCreatedOut:
         email=novo.email,
         nivel_acesso=novo.nivel_acesso,
         setor=novo.setor,
-        setores=novo._setores,
-        bi_subcategories=novo._bi_subcategories,
+        setores=setores_list,
+        bi_subcategories=bi_subcategories_list,
         bloqueado=novo.bloqueado,
         senha=generated_password,
         auth0_id=auth0_id,
@@ -307,9 +339,10 @@ def update_user(db: Session, user_id: int, data: dict) -> User:
     return user
 
 
-def regenerate_password(db: Session, user_id: int, length: int = 6) -> str:
-    if length < 6:
-        length = 6
+def regenerate_password(db: Session, user_id: int, length: int = 12) -> str:
+    # Mínimo 12 caracteres para atender requisitos Auth0
+    if length < 12:
+        length = 12
     if length > 64:
         length = 64
     try:

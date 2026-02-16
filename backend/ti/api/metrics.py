@@ -4,10 +4,11 @@ from core.db import get_db
 from core.utils import now_brazil_naive
 from ti.services.metrics import MetricsCalculator
 
-router = APIRouter(prefix="/api", tags=["metrics"])
+# Metrics router - properly configured with /metrics prefix
+router = APIRouter(prefix="/metrics", tags=["metrics"])
 
 
-@router.get("/metrics/realtime")
+@router.get("/realtime")
 def get_realtime_metrics(db: Session = Depends(get_db)):
     """
     Retorna métricas instantâneas (sem cache, sem cálculos pesados).
@@ -36,7 +37,7 @@ def get_realtime_metrics(db: Session = Depends(get_db)):
         )
 
 
-@router.get("/metrics/dashboard/basic")
+@router.get("/dashboard/basic")
 def get_basic_metrics(start_date: str = "", end_date: str = "", db: Session = Depends(get_db)):
     """
     Retorna métricas básicas do dashboard.
@@ -71,7 +72,7 @@ def get_basic_metrics(start_date: str = "", end_date: str = "", db: Session = De
 
 
 
-@router.get("/metrics/dashboard")
+@router.get("/dashboard")
 def get_dashboard_metrics(db: Session = Depends(get_db)):
     """
     Endpoint consolidado: Retorna todas as métricas do dashboard administrativo.
@@ -121,7 +122,7 @@ def get_dashboard_metrics(db: Session = Depends(get_db)):
         )
 
 
-@router.get("/metrics/chamados-abertos")
+@router.get("/chamados-abertos")
 def get_chamados_abertos(db: Session = Depends(get_db)):
     """
     [DEPRECATED] Use /metrics/realtime instead.
@@ -137,7 +138,7 @@ def get_chamados_abertos(db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=f"Erro: {str(e)}")
 
 
-@router.get("/metrics/chamados-hoje")
+@router.get("/chamados-hoje")
 def get_chamados_hoje(db: Session = Depends(get_db)):
     """
     [DEPRECATED] Use /metrics/realtime instead.
@@ -153,7 +154,7 @@ def get_chamados_hoje(db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=f"Erro: {str(e)}")
 
 
-@router.get("/metrics/tempo-resposta")
+@router.get("/tempo-resposta")
 def get_tempo_resposta(db: Session = Depends(get_db)):
     """
     [DEPRECATED] Use /metrics/dashboard/sla instead.
@@ -171,7 +172,7 @@ def get_tempo_resposta(db: Session = Depends(get_db)):
 
 
 
-@router.get("/metrics/chamados-por-dia")
+@router.get("/chamados-por-dia")
 def get_chamados_por_dia(dias: int = 7, statuses: str = "", start_date: str = "", end_date: str = "", db: Session = Depends(get_db)):
     """Retorna quantidade de chamados por dia dos últimos N dias ou período customizado
 
@@ -208,7 +209,7 @@ def get_chamados_por_dia(dias: int = 7, statuses: str = "", start_date: str = ""
         return {"dados": []}
 
 
-@router.get("/metrics/chamados-por-semana")
+@router.get("/chamados-por-semana")
 def get_chamados_por_semana(semanas: int = 4, statuses: str = "", start_date: str = "", end_date: str = "", db: Session = Depends(get_db)):
     """Retorna quantidade de chamados por semana dos últimos N semanas ou período customizado
 
@@ -245,7 +246,7 @@ def get_chamados_por_semana(semanas: int = 4, statuses: str = "", start_date: st
         return {"dados": []}
 
 
-@router.get("/metrics/chamados-por-mes")
+@router.get("/chamados-por-mes")
 def get_chamados_por_mes(range: str = "30d", statuses: str = "", start_date: str = "", end_date: str = "", db: Session = Depends(get_db)):
     """Retorna quantidade de chamados por status por mês
 
@@ -291,7 +292,7 @@ def get_chamados_por_mes(range: str = "30d", statuses: str = "", start_date: str
 
 
 
-@router.get("/metrics/performance")
+@router.get("/performance")
 def get_performance_metrics(db: Session = Depends(get_db)):
     """Retorna métricas de performance (últimos 30 dias)"""
     try:
@@ -307,7 +308,7 @@ def get_performance_metrics(db: Session = Depends(get_db)):
         }
 
 
-@router.get("/metrics/debug/tempo-resposta")
+@router.get("/debug/tempo-resposta")
 def debug_tempo_resposta(periodo: str = "mes", db: Session = Depends(get_db)):
     """
     Debug: retorna dados brutos de tempo de resposta
@@ -331,7 +332,7 @@ def debug_tempo_resposta(periodo: str = "mes", db: Session = Depends(get_db)):
 
 
 
-@router.get("/metrics/health")
+@router.get("/health")
 def metrics_health_check(db: Session = Depends(get_db)):
     """
     Endpoint de health check para monitorar saúde do cache e cálculos.

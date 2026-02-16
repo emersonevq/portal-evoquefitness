@@ -67,15 +67,11 @@ POWERBI_WORKSPACE_ID = os.getenv("POWERBI_WORKSPACE_ID", "").strip()
 POWERBI_OBJECT_ID = os.getenv("POWERBI_OBJECT_ID", "").strip()
 POWERBI_DISPLAY_NAME = os.getenv("POWERBI_DISPLAY_NAME", "Portal de BI 2")
 
-# Validação
-if not POWERBI_CLIENT_ID:
-    raise ValueError("❌ POWERBI_CLIENT_ID não está configurado no .env")
-if not POWERBI_CLIENT_SECRET:
-    raise ValueError("❌ POWERBI_CLIENT_SECRET não está configurado no .env")
-if not POWERBI_TENANT_ID:
-    raise ValueError("❌ POWERBI_TENANT_ID não está configurado no .env")
-if not POWERBI_WORKSPACE_ID:
-    raise ValueError("❌ POWERBI_WORKSPACE_ID não está configurado no .env")
+# Validação - PowerBI é opcional
+POWERBI_CONFIGURED = all([POWERBI_CLIENT_ID, POWERBI_CLIENT_SECRET, POWERBI_TENANT_ID, POWERBI_WORKSPACE_ID])
+
+if not POWERBI_CONFIGURED:
+    print("⚠️  WARNING: PowerBI não está configurado. Endpoints PowerBI retornarão erro 503.")
 
 AUTHORITY_URL = f"https://login.microsoftonline.com/{POWERBI_TENANT_ID}"
 TOKEN_ENDPOINT = f"{AUTHORITY_URL}/oauth2/v2.0/token"
