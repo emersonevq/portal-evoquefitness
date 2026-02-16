@@ -411,10 +411,11 @@ class MetricsCalculator:
             # Data de início do SLA: 01.01.2026
             sla_start_date = datetime(2026, 1, 1, 0, 0, 0)
 
-            # Busca chamados dos últimos 30 dias E a partir da data de início do SLA
+            # Busca chamados a partir da data de início do SLA (01.01.2026)
+            # Nota: Ignora o filtro de 30 dias - queremos TODOS os chamados >= 01.01.2026
             chamados_30dias = db.query(Chamado).filter(
                 and_(
-                    Chamado.data_abertura >= max(trinta_dias_atras, sla_start_date),
+                    Chamado.data_abertura >= sla_start_date,
                     Chamado.status != "Expirado"
                 )
             ).all()
