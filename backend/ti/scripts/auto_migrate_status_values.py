@@ -11,19 +11,15 @@ No manual intervention required.
 """
 
 from datetime import datetime
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
 
 def auto_migrate_status_values():
     """Automatically migrate status values on startup"""
-    
+
     try:
-        from core.db import SQLALCHEMY_DATABASE_URL
+        from core.db import SessionLocal
         from ti.models.chamado import Chamado
-        
-        engine = create_engine(SQLALCHEMY_DATABASE_URL)
-        Session = sessionmaker(bind=engine)
-        session = Session()
+
+        session = SessionLocal()
         
         print("\n[MIGRATION] 🔄 Starting automatic status migration...")
         
