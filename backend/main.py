@@ -14,7 +14,6 @@ from io import BytesIO
 from ti.api import chamados_router, unidades_router, problemas_router, notifications_router, notification_settings_router, alerts_router, email_debug_router, powerbi_router, metrics_router
 from ti.api.usuarios import router as usuarios_router
 from ti.api.dashboard_permissions import router as dashboard_permissions_router
-from ti.api.sla import router as sla_router
 from auth0.routes import router as auth0_router
 from core.realtime import mount_socketio
 import json
@@ -116,18 +115,6 @@ try:
     auto_migrate_status_values()
 except Exception as e:
     print(f"⚠️  Erro na migração automática de status: {e}")
-
-# Inicializar sistema de SLA (calcula todos na startup, depois incremental)
-try:
-    from ti.services.sla_incremental_updater import init_sla_system
-    init_sla_system()
-except Exception as e:
-    print(f"⚠️  Erro ao inicializar sistema de SLA: {e}")
-    import traceback
-    traceback.print_exc()
-
-
-
 
 # Static uploads mount
 _base_dir = Path(__file__).resolve().parent
@@ -481,7 +468,6 @@ _http.include_router(alerts_router, prefix="/api")
 _http.include_router(email_debug_router, prefix="/api")
 _http.include_router(powerbi_router, prefix="/api")
 _http.include_router(metrics_router, prefix="/api")
-_http.include_router(sla_router, prefix="/api")
 _http.include_router(dashboard_permissions_router, prefix="")
 
 # Wrap with Socket.IO ASGI app (exports as 'app')

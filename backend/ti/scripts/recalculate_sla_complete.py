@@ -45,12 +45,10 @@ class SLARecalculator:
         }
 
     def recalculate_all(self, verbose: bool = True) -> dict:
-        """Recalcula SLA APENAS dos chamados a partir de 01.01.2026 (excluindo retroativos)"""
-        from datetime import datetime
-
+        """Recalcula SLA de todos os chamados"""
         if verbose:
             print("\n" + "=" * 80)
-            print("RECALCULANDO SLA DOS CHAMADOS (a partir de 01.01.2026)")
+            print("RECALCULANDO SLA DE TODOS OS CHAMADOS")
             print("=" * 80 + "\n")
 
         try:
@@ -67,11 +65,8 @@ class SLARecalculator:
                     print("⚠️  AVISO: Nenhuma configuração de SLA encontrada!")
                 return self.stats
 
-            # Carrega APENAS chamados a partir de 01.01.2026 (excluindo retroativos)
-            sla_start_date = datetime(2026, 1, 1, 0, 0, 0)
-            chamados = self.db.query(Chamado).filter(
-                Chamado.data_abertura >= sla_start_date
-            ).all()
+            # Carrega todos os chamados
+            chamados = self.db.query(Chamado).all()
             self.stats["total_chamados"] = len(chamados)
 
             if verbose:

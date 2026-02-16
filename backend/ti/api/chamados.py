@@ -682,15 +682,6 @@ def atualizar_status(chamado_id: int, payload: ChamadoStatusUpdate, db: Session 
         db.commit()  # garante persistência do status antes dos logs
         db.refresh(ch)
 
-        # RECALCULAR SLA DESTE CHAMADO (incremental)
-        try:
-            from ti.services.sla_incremental_updater import recalculate_chamado_sla
-            recalculate_chamado_sla(db, chamado_id)
-        except Exception as e:
-            print(f"[SLA] ⚠️  Erro ao recalcular SLA do chamado {chamado_id}: {e}")
-            import traceback
-            traceback.print_exc()
-
         # DECREMENTAR CONTADOR DE HOJE SE CANCELADO
         if novo == "Expirado" and prev != "Expirado":
             from ti.services.cache_manager_incremental import ChamadosTodayCounter
