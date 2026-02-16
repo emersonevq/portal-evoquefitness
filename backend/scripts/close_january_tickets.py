@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Script para FECHAR os 10 chamados de janeiro que estão ABERTOS/AGUARDANDO.
+Script para FECHAR chamados a partir de 15-02-2026 que estão ABERTOS/AGUARDANDO.
 
 Esses chamados serão marcados como "Concluído" e seus SLAs serão recalculados.
 """
@@ -19,33 +19,31 @@ from ti.models import Chamado
 from core.utils import now_brazil_naive
 from ti.modules.sla.services import SlaTracker
 
-def fechar_janeiro(db: Session) -> None:
-    """Fecha todos os chamados abertos de janeiro"""
-    
+def fechar_fevereiro(db: Session) -> None:
+    """Fecha todos os chamados abertos a partir de 15-02-2026"""
+
     print("\n" + "=" * 70)
-    print("🔴 FECHANDO CHAMADOS ABERTOS DE JANEIRO")
+    print("🔴 FECHANDO CHAMADOS ABERTOS A PARTIR DE 15-02-2026")
     print("=" * 70)
-    
-    # Lista dos 10 chamados que precisam ser fechados
-    codigos_para_fechar = [
-        "EVQ-0338",
-        "EVQ-0339", 
-        "EVQ-0342",
-        "EVQ-0351",
-        "EVQ-0356",
-        "EVQ-0359",
-        "EVQ-0380",
-        "EVQ-0385",
-        "EVQ-0386",
-        "EVQ-0388"
-    ]
-    
-    chamados = db.query(Chamado).filter(
-        Chamado.codigo.in_(codigos_para_fechar),
+
+    # Buscar automaticamente chamados abertos a partir de 13-02-2026
+    inicio_fevereiro = datetime(2026, 2, 13)
+    chamados_abertos = db.query(Chamado).filter(
+        Chamado.data_abertura >= inicio_fevereiro,
+        Chamado.status.in_(["Aberto", "Em atendimento", "Em Atendimento", "Aguardando"]),
         Chamado.deletado_em == None
     ).all()
+
+    codigos_para_fechar = [chamado.codigo for chamado in chamados_abertos]
     
+    chamados = [c for c in chamados_abertos if c.codigo in codigos_para_fechar]
+
     print(f"\n📊 Chamados para fechar: {len(chamados)}\n")
+    if len(chamados) > 0:
+        print("Códigos:")
+        for codigo in codigos_para_fechar:
+            print(f"  • {codigo}")
+        print()
     
     if len(chamados) == 0:
         print("✅ Nenhum chamado encontrado para fechar!")
@@ -78,51 +76,48 @@ def fechar_janeiro(db: Session) -> None:
     print("\n" + "=" * 70)
     print("📊 ESTADO FINAL")
     print("=" * 70)
-    
-    inicio_janeiro = datetime(2026, 1, 1)
-    fim_janeiro = datetime(2026, 1, 31, 23, 59, 59)
-    
-    abertos_jan = db.query(Chamado).filter(
-        Chamado.data_abertura >= inicio_janeiro,
-        Chamado.data_abertura <= fim_janeiro,
+
+    inicio_fevereiro = datetime(2026, 2, 15)
+    fim_fevereiro = datetime(2026, 12, 31, 23, 59, 59)
+
+    abertos_fev = db.query(Chamado).filter(
+        Chamado.data_abertura >= inicio_fevereiro,
+        Chamado.data_abertura <= fim_fevereiro,
         Chamado.status.in_(["Aberto", "Em atendimento", "Em Atendimento", "Aguardando"]),
         Chamado.deletado_em == None
     ).count()
-    
-    concluidos_jan = db.query(Chamado).filter(
-        Chamado.data_abertura >= inicio_janeiro,
-        Chamado.data_abertura <= fim_janeiro,
+
+    concluidos_fev = db.query(Chamado).filter(
+        Chamado.data_abertura >= inicio_fevereiro,
+        Chamado.data_abertura <= fim_fevereiro,
         Chamado.status.in_(["Concluído", "Concluido"]),
         Chamado.deletado_em == None
     ).count()
-    
-    print(f"\n  • Chamados ABERTOS de janeiro: {abertos_jan}")
-    print(f"  • Chamados CONCLUÍDOS de janeiro: {concluidos_jan}")
-    print(f"  • Total janeiro: {abertos_jan + concluidos_jan}")
+
+    print(f"\n  • Chamados ABERTOS a partir de 15-02-2026: {abertos_fev}")
+    print(f"  • Chamados CONCLUÍDOS a partir de 15-02-2026: {concluidos_fev}")
+    print(f"  • Total a partir de 15-02-2026: {abertos_fev + concluidos_fev}")
     print()
 
 
 def main():
     """Executa fechamento de chamados"""
     print("\n" + "=" * 70)
-    print("🔧 SCRIPT DE FECHAMENTO DE CHAMADOS DE JANEIRO")
+    print("🔧 SCRIPT DE FECHAMENTO DE CHAMADOS A PARTIR DE 15-02-2026")
     print("=" * 70)
     print(f"Data/Hora: {now_brazil_naive().isoformat()}")
-    
+
     db = SessionLocal()
-    
+
     try:
         # Pedir confirmação
-        print("\n⚠️  Este script vai fechar 10 chamados de janeiro que estão ABERTOS")
-        print("\nChamados a fechar:")
-        print("  • EVQ-0338, EVQ-0339, EVQ-0342, EVQ-0351, EVQ-0356")
-        print("  • EVQ-0359, EVQ-0380, EVQ-0385, EVQ-0386, EVQ-0388")
+        print("\n⚠️  Este script vai fechar chamados que estão ABERTOS a partir de 13-02-2026")
         print("\nEles serão marcados como 'Concluído' e seus SLAs recalculados.")
         
         resposta = input("\nDeseja continuar? (s/n): ").lower().strip()
         
         if resposta == 's':
-            fechar_janeiro(db)
+            fechar_fevereiro(db)
         else:
             print("\nOperação cancelada.")
         

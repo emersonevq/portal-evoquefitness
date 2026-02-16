@@ -25,9 +25,9 @@ def marcar_retroativos(db: Session) -> None:
     print("🔴 MARCANDO CHAMADOS RETROATIVOS")
     print("=" * 70)
     
-    data_corte = datetime(2026, 1, 1)
-    
-    # Buscar todos os chamados ANTES de 2026-01-01 que NÃO foram marcados como retroativo
+    data_corte = datetime(2026, 2, 15)
+
+    # Buscar todos os chamados ANTES de 2026-02-15 que NÃO foram marcados como retroativo
     chamados_retroativos = db.query(Chamado).filter(
         Chamado.data_abertura < data_corte,
         Chamado.retroativo != True,
@@ -75,8 +75,8 @@ def marcar_retroativos(db: Session) -> None:
     ).count()
     
     print(f"\n  • Total de chamados: {total}")
-    print(f"  • Retroativos (antes de 2026): {retroativos}")
-    print(f"  • Válidos para SLA (2026+): {ativos_2026}")
+    print(f"  • Retroativos (antes de 15-02-2026): {retroativos}")
+    print(f"  • Válidos para SLA (15-02-2026+): {ativos_2026}")
     print()
 
 
@@ -92,7 +92,7 @@ def main():
     try:
         # Pedir confirmação
         print("\n⚠️  Este script vai marcar como retroativo todos os chamados")
-        print("    com data_abertura ANTES de 01-01-2026")
+        print("    com data_abertura ANTES de 15-02-2026")
         print("\nISSO DEVE SER EXECUTADO ANTES de cualquier cálculo de SLA!")
         resposta = input("\nDeseja continuar? (s/n): ").lower().strip()
         

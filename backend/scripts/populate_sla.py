@@ -110,7 +110,7 @@ def populate_sla(db: Session) -> None:
                 if isinstance(data_abertura, datetime):
                     data_abertura = data_abertura.date()
                 
-                data_corte = date(2026, 1, 1)
+                data_corte = date(2026, 2, 15)
                 if data_abertura < data_corte:
                     chamado.retroativo = True
                     db.add(chamado)
@@ -143,7 +143,7 @@ def populate_sla(db: Session) -> None:
     
     print(f"\n✅ Resultado:")
     print(f"  • SLA inicializados: {inicializados}")
-    print(f"  • Retroativos (antes de 01-01-2026): {retroativos}")
+    print(f"  • Retroativos (antes de 15-02-2026): {retroativos}")
     print(f"  • Sem configuração de SLA: {sem_config}")
     print(f"  • Total processados: {inicializados + retroativos + sem_config}")
 

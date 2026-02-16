@@ -18,32 +18,35 @@ backend_path = Path(__file__).parent.parent
 sys.path.insert(0, str(backend_path))
 
 from sqlalchemy.orm import Session
-from sqlalchemy import extract
 from core.db import SessionLocal
 from ti.models import Chamado, ConfiguracesSla
 from ti.modules.sla.services import SlaTracker
 
 def recalculate_sla(db: Session) -> None:
-    """Recalcula SLA para todos os chamados"""
+    """Recalcula SLA para todos os chamados a partir de 15-02-2026 que não são retroativos"""
     print("\n" + "=" * 60)
-    print("🔄 RECALCULANDO SLA PARA TODOS OS CHAMADOS")
+    print("🔄 RECALCULANDO SLA PARA CHAMADOS >= 15-02-2026")
     print("=" * 60)
-    
+
     # Verificar configurações
     configs = db.query(ConfiguracesSla).filter(ConfiguracesSla.ativo == True).count()
     if configs == 0:
         print("\n❌ ERRO: Nenhuma configuração de SLA!")
         return
-    
+
     print(f"✓ {configs} configurações de SLA encontradas\n")
-    
-    # Buscar chamados de 2026 que não são retroativos
+
+    # Data de corte para SLA
+    data_corte = datetime(2026, 2, 15)
+
+    # Buscar chamados a partir de 15-02-2026 que não são retroativos
     chamados = db.query(Chamado).filter(
-        extract('year', Chamado.data_abertura) >= 2026,
+        Chamado.data_abertura >= data_corte,
+        Chamado.retroativo != True,
         Chamado.deletado_em == None
     ).all()
-    
-    print(f"📋 Recalculando SLA para {len(chamados)} chamados de 2026+...\n")
+
+    print(f"📋 Recalculando SLA para {len(chamados)} chamados de 15-02-2026+...\n")
     
     tracker = SlaTracker(db)
     atualizados = 0

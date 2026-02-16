@@ -77,13 +77,13 @@ def get_dashboard_basic(
     Retorna formato esperado pelo Overview.tsx
 
     FILTROS:
-    - Ignora chamados retroativos (antes de 01-01-2026)
-    - Conta apenas chamados de 2026+
+    - Ignora chamados retroativos (antes de 15-02-2026)
+    - Conta apenas chamados de 15-02-2026+
     - Status abertos não contam para métricas de SLA (apenas para visão geral)
     """
     try:
         agora = now_brazil_naive()
-        data_corte_2026 = datetime(2026, 1, 1)
+        data_corte_2026 = datetime(2026, 2, 15)
 
         # Determinar período
         if start_date and end_date:
@@ -198,7 +198,7 @@ def get_chamados_por_dia(
     """
     try:
         agora = now_brazil_naive()
-        data_corte_2026 = datetime(2026, 1, 1)
+        data_corte_2026 = datetime(2026, 2, 15)
 
         # Determinar período
         if start_date and end_date:
@@ -283,7 +283,7 @@ def get_chamados_por_semana(
     """
     try:
         agora = now_brazil_naive()
-        data_corte_2026 = datetime(2026, 1, 1)
+        data_corte_2026 = datetime(2026, 2, 15)
 
         # Determinar período
         if start_date and end_date:
@@ -370,7 +370,7 @@ def get_chamados_por_mes(
     """
     try:
         agora = now_brazil_naive()
-        data_corte_2026 = datetime(2026, 1, 1)
+        data_corte_2026 = datetime(2026, 2, 15)
 
         # Determinar período
         if start_date and end_date:
@@ -461,7 +461,7 @@ def get_performance_metrics(db: Session = Depends(get_db)):
     """
     try:
         agora = now_brazil_naive()
-        data_corte_2026 = datetime(2026, 1, 1)
+        data_corte_2026 = datetime(2026, 2, 15)
 
         # Chamados concluídos de 2026+ (não retroativos)
         concluidos = db.query(Chamado).filter(
