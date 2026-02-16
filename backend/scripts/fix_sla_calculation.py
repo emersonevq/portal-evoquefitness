@@ -51,10 +51,11 @@ def recalcular_sla(db: Session) -> None:
     
     for i, chamado in enumerate(chamados_2026, 1):
         try:
-            # Verificar status
+            # Verificar status (normalizar para aceitar com/sem acento)
             status = chamado.status.strip() if chamado.status else ""
-            
-            if status == "Concluído":
+            status_normalizado = status.lower().replace("á", "a").replace("ç", "c")
+
+            if status_normalizado in ["concluido", "concluído"]:
                 # Para concluídos: chamar concluir_sla()
                 # Isso calcula o tempo total com pausas e o congela
                 try:
@@ -65,8 +66,8 @@ def recalcular_sla(db: Session) -> None:
                 except Exception as e:
                     print(f"✗ [{i}/{len(chamados_2026)}] {chamado.codigo} (Concluído) - ERRO: {e}")
                     erros += 1
-            
-            elif status in ["Aberto", "Em atendimento", "Aguardando"]:
+
+            elif status_normalizado in ["aberto", "em atendimento", "aguardando"]:
                 # Para ativos: chamar atualizar_monitoramento()
                 # Isso calcula o tempo decorrido até agora
                 try:
