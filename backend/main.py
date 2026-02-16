@@ -95,6 +95,13 @@ try:
 except Exception as e:
     print(f"⚠️  Erro ao restaurar status dos chamados retroativos: {e}")
 
+# Limpar cache de métricas para recalcular com filtro SLA
+try:
+    from ti.scripts.clear_metrics_cache import clear_metrics_cache as clear_cache
+    clear_cache()
+except Exception as e:
+    print(f"⚠️  Erro ao limpar cache de métricas: {e}")
+
 # Executar migração automática de status de chamados na inicialização
 try:
     from ti.scripts.auto_migrate_status_values import auto_migrate_status_values
