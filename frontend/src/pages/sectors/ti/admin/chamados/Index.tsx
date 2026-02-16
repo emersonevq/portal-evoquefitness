@@ -126,6 +126,7 @@ function TicketCard({
   onTicket,
   onUpdate,
   onDelete,
+  retroativo,
 }: {
   id: string;
   codigo: string;
@@ -138,12 +139,20 @@ function TicketCard({
   onTicket: () => void;
   onUpdate: (id: string, status: TicketStatus) => void;
   onDelete: (id: string) => void;
+  retroativo?: boolean;
 }) {
   const [sel, setSel] = useState<TicketStatus>(status);
   return (
     <div className="rounded-lg border border-border/60 bg-card overflow-hidden hover:shadow-md transition-all">
       <div className="px-3 py-2 border-b border-border/60 bg-muted/30 flex items-center justify-between">
-        <div className="font-semibold text-sm text-primary">{codigo}</div>
+        <div className="flex items-center gap-2">
+          <div className="font-semibold text-sm text-primary">{codigo}</div>
+          {retroativo && (
+            <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-300">
+              Retroativo
+            </span>
+          )}
+        </div>
         <StatusPill status={status} />
       </div>
 

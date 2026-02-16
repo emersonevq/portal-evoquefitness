@@ -88,6 +88,13 @@ try:
 except Exception as e:
     print(f"⚠️  Erro ao adicionar coluna retroativo: {e}")
 
+# Restaurar status original dos chamados retroativos a partir do histórico
+try:
+    from ti.scripts.restore_retroativo_status import restore_retroativo_status
+    restore_retroativo_status()
+except Exception as e:
+    print(f"⚠️  Erro ao restaurar status dos chamados retroativos: {e}")
+
 # Executar migração automática de status de chamados na inicialização
 try:
     from ti.scripts.auto_migrate_status_values import auto_migrate_status_values
